@@ -19,7 +19,9 @@
 #       define CP_UTF8                   0       // UTF-8 translation
 #       define CP_1251                   1
 #       define CP_KOI8                   2
-
+#else
+#include <Windows.h>
+#include <Windowsx.h>
 #endif
 
 
@@ -244,9 +246,11 @@ public:
 
 #ifdef WIN32
 
+class WND_COMBO;
+
 class EX_WND
 {
-private:
+protected:
 	HWND hWnd;
 
 public:
@@ -330,7 +334,7 @@ public:
 	template<typename T>
 	inline BOOL SetText(std::basic_string<T> & Str)
 	{
-		if(typeid(T) == typeid(wchar_t))
+		if(typeid(T) == typeid(WCHAR))
 		{
 			return SetWindowTextW(hWnd, (LPCWSTR)Str.c_str());
 		}else
@@ -342,7 +346,7 @@ public:
 	template<typename T>
 	inline BOOL SetTextItem(std::basic_string<T> & Str, int nIDDlgItem)
 	{
-		if(typeid(T) == typeid(wchar_t))
+		if(typeid(T) == typeid(WCHAR))
 		{
 			return SetDlgItemTextW(hWnd,nIDDlgItem,(LPCWSTR)Str.c_str());
 		}else
@@ -381,7 +385,7 @@ public:
 	template<typename T>
 	inline int GetText(std::basic_string<T> & Str)
 	{
-		if(typeid(T) == typeid(wchar_t))
+		if(typeid(T) == typeid(WCHAR))
 		{
 			int Length = GetWindowTextLengthW(hWnd);
 			Str.resize(Length);
@@ -403,7 +407,7 @@ public:
 			Str.clear();
 			return 0;
 		}
-		if(typeid(T) == typeid(wchar_t))
+		if(typeid(T) == typeid(WCHAR))
 		{
 			int Length = GetWindowTextLengthW(Wnd);
 			Str.resize(Length);
@@ -493,14 +497,24 @@ public:
 
 	////
 
-	inline WNDPROC GetProc()
+	inline WNDPROC GetProcW()
 	{
-		return (WNDPROC)GetWindowLongPtr(hWnd, GWLP_WNDPROC);
+		return (WNDPROC)GetWindowLongPtrW(hWnd, GWLP_WNDPROC);
 	}
 
-	inline WNDPROC SetProc(WNDPROC NewProc)
+	inline WNDPROC SetProcW(WNDPROC NewProc)
 	{
-		return (WNDPROC)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)NewProc);
+		return (WNDPROC)SetWindowLongPtrA(hWnd, GWLP_WNDPROC, (LONG_PTR)NewProc);
+	}
+
+	inline WNDPROC GetProcA()
+	{
+		return (WNDPROC)GetWindowLongPtrW(hWnd, GWLP_WNDPROC);
+	}
+
+	inline WNDPROC SetProcA(WNDPROC NewProc)
+	{
+		return (WNDPROC)SetWindowLongPtrA(hWnd, GWLP_WNDPROC, (LONG_PTR)NewProc);
 	}
 
 	// 
@@ -510,7 +524,7 @@ public:
 		return GetWindowLongPtr(hWnd, GWL_USERDATA);
 	}
 
-	inline LONG_PTR SetProc(LONG_PTR NewData)
+	inline LONG_PTR GetUserData(LONG_PTR NewData)
 	{
 		return SetWindowLongPtr(hWnd, GWL_USERDATA, NewData);
 	}
@@ -551,10 +565,10 @@ public:
 
 	//
 	template<typename T>
-	inline int GetClassName(std::basic_string<T> & Str)
+	inline int GetNameClass(std::basic_string<T> & Str)
 	{
 		Str.resize(255);
-		if(typeid(T) == typeid(wchar_t))
+		if(typeid(T) == typeid(WCHAR))
 		{
 			return GetClassNameW(hWnd,(LPWSTR)Str.c_str(),254);
 		}else
@@ -795,7 +809,7 @@ public:
 	}
 	///
 
-    inline EX_WND SetFocus()
+	inline EX_WND SetFocus()
 	{
 		return (EX_WND)::SetFocus(hWnd);
 	}
@@ -811,21 +825,21 @@ public:
 	{
 		POINT p = *(LPPOINT)lpRect;
 		MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), &p, 1);
-	    return MoveWindow(hWnd, p.x, p.y, lpRect->right - lpRect->left, lpRect->bottom - lpRect->top, TRUE);
+		return MoveWindow(hWnd, p.x, p.y, lpRect->right - lpRect->left, lpRect->bottom - lpRect->top, TRUE);
 	}
 
 	BOOL SetCoord(RECT & Rect)
 	{
 		POINT p = *(LPPOINT)&Rect;
 		MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), &p, 1);
-	    return MoveWindow(hWnd, p.x, p.y, Rect.right - Rect.left, Rect.bottom - Rect.top, TRUE);
+		return MoveWindow(hWnd, p.x, p.y, Rect.right - Rect.left, Rect.bottom - Rect.top, TRUE);
 	}
 
 	BOOL SetCoord(LPPOINT Point1, LPPOINT Point2)
 	{
 		POINT p = *Point1;
 		MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), &p, 1);
-	    return MoveWindow(hWnd, p.x, p.y, Point2->x - Point1->x, Point2->y - Point1->y, TRUE);
+		return MoveWindow(hWnd, p.x, p.y, Point2->x - Point1->x, Point2->y - Point1->y, TRUE);
 	}
 
 	BOOL SetCoord(LPPOINT Point)
@@ -865,12 +879,12 @@ public:
 
 	BOOL SetRelParentCoord(RECT & Rect)
 	{
-	    return MoveWindow(hWnd, Rect.left, Rect.top, Rect.right - Rect.left, Rect.bottom - Rect.top, TRUE);
+		return MoveWindow(hWnd, Rect.left, Rect.top, Rect.right - Rect.left, Rect.bottom - Rect.top, TRUE);
 	}
 
 	BOOL SetRelParentCoord(LPPOINT Point1, LPPOINT Point2)
 	{
-	    return MoveWindow(hWnd, Point1->x, Point1->y, Point2->x - Point1->x, Point2->y - Point1->y, TRUE);
+		return MoveWindow(hWnd, Point1->x, Point1->y, Point2->x - Point1->x, Point2->y - Point1->y, TRUE);
 	}
 
 	BOOL SetRelParentCoord(LPPOINT Point)
@@ -914,52 +928,291 @@ public:
 
 	////
 
+	/*Close window.*/
 	inline BOOL Close()
 	{
 		return ::CloseWindow(hWnd);
 	}
 
+	/*Destroys window. */
 	inline BOOL Destoy()
 	{
 		return ::DestroyWindow(hWnd); 
 	}
 
-    inline HDC GetDC()
+	inline HDC GetDC()
 	{
 		return ::GetDC(hWnd);
 	}
 
+	/*The CreateCompatibleDC function creates a memory device context (DC) compatible with the window.*/
 	inline HDC CreateCompatibleDC()
 	{
 		return ::CreateCompatibleDC(::GetDC(hWnd));
 	}
 
+	/*The BeginPaint function prepares the specified window for painting and fills
+	a PAINTSTRUCT structure with information about the painting.*/
 	inline HDC BeginPaint(LPPAINTSTRUCT ps)
 	{
 		return ::BeginPaint(hWnd, ps);
 	}
 
+	/*The EndPaint function marks the end of painting in the specified window.*/
 	inline BOOL EndPaint(LPPAINTSTRUCT ps)
 	{
 		return ::EndPaint(hWnd, ps);
 	}
 
+	/*Destroys a modal dialog box, causing the system to end any processing for the dialog box.*/
 	inline BOOL EndDialog(INT_PTR Result = 0)
 	{
 		return ::EndDialog(hWnd, Result);
 	}
 
+	/*Creates a timer with the specified time-out value.*/
 	inline UINT_PTR SetTimer(UINT Time, UINT_PTR nIDEvent = NULL, TIMERPROC tp = NULL)
 	{
 		return ::SetTimer(hWnd,nIDEvent,Time,tp);
 	}
 
+	/*Destroys the specified timer.*/
 	inline BOOL KillTimer(UINT_PTR nIDEvent = NULL)
 	{
 		return ::KillTimer(hWnd,nIDEvent);
 	}
 
+	/*Presents window as combo box.*/
+	inline WND_COMBO AsComboBox();
+
+	inline void SwitchToThisWindow(BOOL fAltTab = FALSE)
+	{
+		return ::SwitchToThisWindow(hWnd, fAltTab);
+	}
+
+	/*Determines whether the specified window is a native Unicode window.*/
+	inline BOOL isUnicode()
+	{
+		return ::IsWindowUnicode(hWnd);
+	}
+
+	private:
+		typedef struct
+		{
+			unsigned MaxElements;
+			unsigned CurElement;
+			HWND * Buf;
+		} FOR_ENUM_WINDOWS;
+		static BOOL CALLBACK EnumChildProc(HWND hwnd,LPARAM lParam)
+		{
+			FOR_ENUM_WINDOWS * arg = (FOR_ENUM_WINDOWS *)lParam;
+			if(arg->CurElement < arg->MaxElements)
+			{
+				arg->Buf[arg->CurElement++] = hwnd;
+				return TRUE;
+			}
+			return FALSE;
+		}
+	public:
+
+		inline BOOL GetChildWindows(HWND * hWndBuf, unsigned MaxElemInBuf)
+		{
+			FOR_ENUM_WINDOWS arg;
+			arg.Buf = hWndBuf;
+			arg.MaxElements = MaxElemInBuf;
+			arg.CurElement = 0;
+			return EnumChildWindows(hWnd, EnumChildProc,(LPARAM)&arg);
+		}
+
+		inline BOOL GetChildWindows(HWND * hWndBuf, unsigned MaxElemInBuf, unsigned * CountGetted)
+		{
+			FOR_ENUM_WINDOWS arg;
+			arg.Buf = hWndBuf;
+			arg.MaxElements = MaxElemInBuf;
+			arg.CurElement = 0;
+			BOOL Res = EnumChildWindows(hWnd, EnumChildProc,(LPARAM)&arg);
+			*CountGetted = arg.CurElement;
+			return Res;
+		}
+
 };
+
+class WND_COMBO : public EX_WND
+{
+public:
+	WND_COMBO()
+	{
+	};
+
+	WND_COMBO(EX_WND Wnd)
+	{
+		hWnd = Wnd;
+	}
+
+	operator HWND()
+	{
+		return hWnd;
+	}
+
+	inline int AddItemData(LPARAM Data)
+	{
+		return ComboBox_AddItemData(hWnd, Data);
+	}
+
+	template<typename T>
+	inline int AddString(std::basic_string<T> & Str)
+	{
+		if(typeid(T) == typeid(WCHAR))
+			return (int)SendMessageW(hWnd, CB_ADDSTRING, 0L, (LPARAM)Str.c_str());
+		else
+			return (int)SendMessageA(hWnd, CB_ADDSTRING, 0L, (LPARAM)Str.c_str());
+	}
+
+	inline int AddString(LPCSTR Str)
+	{
+		return (int)SendMessageA(hWnd, CB_ADDSTRING, 0L, (LPARAM)Str);
+	}
+
+	inline int AddString(LPCWSTR Str)
+	{
+		return (int)SendMessageW(hWnd, CB_ADDSTRING, 0L, (LPARAM)Str);
+	}
+
+	inline int DeleteString(int Index)
+	{
+		return ComboBox_DeleteString(hWnd, Index);
+	}
+
+	inline int SetCurSel(int Index)
+	{
+		return ComboBox_SetCurSel(hWnd, Index);
+	}
+
+	inline int GetCurSel(int Index)
+	{
+		return ComboBox_SetCurSel(hWnd, Index);
+	}
+
+	inline int FindString(LPCSTR Str, int StartIndex = 0)
+	{
+		return (int)SendMessageA(hWnd, CB_FINDSTRING, (WPARAM)StartIndex, (LPARAM)Str);
+	}
+
+	inline int FindString(LPCWSTR Str, int StartIndex = 0)
+	{
+		return (int)SendMessageW(hWnd, CB_FINDSTRING, (WPARAM)StartIndex, (LPARAM)Str);
+	}
+
+	template<typename T>
+	inline int FindString(std::basic_string<T> & Str, int StartIndex = 0)
+	{
+		if(typeid(T) == typeid(WCHAR))
+			return (int)SendMessageW(hWnd, CB_FINDSTRING, (WPARAM)StartIndex, (LPARAM)Str.c_str());
+		else
+			return (int)SendMessageA(hWnd, CB_FINDSTRING, (WPARAM)StartIndex, (LPARAM)Str.c_str());
+	}
+
+	inline int FindItemData(LPARAM data, int StartIndex = 0)
+	{
+		return ComboBox_FindItemData(hWnd, StartIndex, data);
+	}
+
+	int operator[](LPCWSTR FindStr)
+	{
+		return FindString(FindStr);
+	}
+
+	int operator[](LPCSTR FindStr)
+	{
+		return FindString(FindStr);
+	}
+
+	template<typename T>
+	int operator[](std::basic_string<T> & Str)
+	{
+		return FindString(Str);
+	}
+
+	int GetCount()
+	{
+		return ComboBox_GetCount(hWnd);
+	}
+
+	int ResetContent()
+	{
+		return ComboBox_ResetContent(hWnd);
+	}
+
+	/*Adds a string to a list in a combo box at the specified location.*/
+	int InsertString(LPCSTR Str, int Index = 0)
+	{
+		return (int)SendMessageA(hWnd, CB_INSERTSTRING, (WPARAM)Index, (LPARAM)Str);
+	}
+
+
+	int InsertString(LPCWSTR Str, int Index = 0)
+	{
+		return (int)SendMessageW(hWnd, CB_INSERTSTRING, (WPARAM)Index, (LPARAM)Str);
+	}
+
+	/*Enable control*/
+	BOOL Enable()
+	{
+		return ComboBox_Enable(hWnd, TRUE);
+	}
+
+	/*Disable control*/
+	BOOL Disable()
+	{
+		return ComboBox_Enable(hWnd, FALSE);
+	}
+
+	int GetLenTextItem(int Index = 0)
+	{
+		return ComboBox_GetLBTextLen(hWnd, Index);
+	}
+
+
+	/*Gets a string from a list in a combo box.*/
+	inline int GetTextItem(LPSTR Str, int Index = 0)
+	{
+		return (int)SendMessageA(hWnd, CB_GETLBTEXT, (WPARAM)Index, (LPARAM)Str);
+	}
+
+	inline int GetTextItem(LPCWSTR Str, int Index = 0)
+	{
+		return (int)SendMessageW(hWnd, CB_GETLBTEXT, (WPARAM)Index, (LPARAM)Str);
+	}
+
+	template<typename T>
+	inline int GetTextItem(std::basic_string<T> & Str, int Index = 0)
+	{
+		Str.resize(ComboBox_GetLBTextLen(hWnd, Index));
+		if(typeid(T) == typeid(WCHAR))
+			return (int)SendMessageW(hWnd, CB_GETLBTEXT, (WPARAM)Index, (LPARAM)Str.c_str());
+		else
+			return (int)SendMessageA(hWnd, CB_GETLBTEXT, (WPARAM)Index, (LPARAM)Str.c_str());
+	}
+
+
+	/*Limits the length of the text the user may type into the edit control of a combo box.*/
+	inline int SetLimit(int cchMax)
+	{
+		return ComboBox_LimitText(hWnd, cchMax);
+	}
+
+	inline LRESULT GetItemData(int Index)
+	{
+		return ComboBox_GetItemData(hWnd, Index);
+	}
+
+
+};
+
+WND_COMBO EX_WND::AsComboBox()
+{
+	return (WND_COMBO)hWnd;
+}
 
 #endif
 
