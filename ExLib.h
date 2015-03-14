@@ -244,6 +244,120 @@ public:
 
 };
 
+
+class DYN_MEM
+{
+public:
+    void * Last;
+	void * Max;
+
+public:
+
+	void * operator new(size_t, unsigned NewSize)
+	{
+	   DYN_MEM * s = (DYN_MEM *)malloc(NewSize + sizeof(DYN_MEM));
+	   if(s == NULL)
+		   return NULL;
+	   s->Last = s + 1;
+	   s->Max = (char*)s + (sizeof(DYN_MEM) + NewSize);
+	   return s;
+	}
+
+
+	unsigned GetSize()
+	{
+	    return (unsigned)Max - (unsigned)this - sizeof(DYN_MEM);
+	}
+
+	unsigned SizeFree()
+	{
+	    return (unsigned)Max - (unsigned)Last; 
+	}
+
+};
+
+
+
+template<DYN_MEM ** StartDynMem, class T = void>
+class PBUF
+{
+
+	const unsigned SezeT(void*)
+	{
+	   return 1;
+	}
+
+	template<class F>
+	const unsigned SezeT(F*)
+	{
+	   return sizeof(F);
+	}
+	void * StartBlock;
+public:
+
+	PBUF()
+	{
+		void * EndBlock = (void*)((unsigned)(*StartDynMem)->Last + SezeT((T*)0));
+		if(EndBlock >= (*StartDynMem)->Max)
+		{
+			StartBlock = NULL;
+			return;
+		}
+		StartBlock = (*StartDynMem)->Last;
+		(*StartDynMem)->Last = EndBlock;
+	}
+
+	
+	PBUF(unsigned NewCount)
+	{
+		void * EndBlock = (void*)((unsigned)(*StartDynMem)->Last + SezeT((T*)0) * NewCount);
+		if(EndBlock >= (*StartDynMem)->Max)
+		{
+			StartBlock = NULL;
+			return;
+		}
+		StartBlock = (*StartDynMem)->Last;
+		(*StartDynMem)->Last = EndBlock;
+	}
+
+	operator T*()
+	{
+	   return (T*)StartBlock;
+	}
+
+	bool Resize(unsigned NewSize)
+	{
+		void NewEndBlock = (void*)((unsigned)StartBlock + NewSize);
+		if(NewEndBlock >= (*StartDynMem)->Max)
+			return false;
+		(*StartDynMem)->Last = NewEndBlock;
+		return true;
+	}
+
+	unsigned GetSize()
+	{
+	  return (unsigned)(*StartDynMem)->Last - (unsigned)StartBlock;
+	}
+
+	unsigned GetCont()
+	{
+	  return ((unsigned)(*StartDynMem)->Last - (unsigned)StartBlock) / SezeT((T*)0);
+	}
+
+	~PBUF()
+	{
+		if(StartBlock == NULL)
+			return;
+		if(StartBlock >= (*StartDynMem)->Last)
+			throw 0;
+		(*StartDynMem)->Last = StartBlock;
+	}
+
+};
+
+
+
+
 #ifdef WIN32
 
 class WND_COMBO;
