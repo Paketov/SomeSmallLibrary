@@ -171,6 +171,8 @@ std::basic_string<T> & operator<<(std::basic_string<T> & StrDest, std::basic_str
 	return StrDest;
 }
 
+
+
 template<typename T>
 std::basic_string<T> & operator<<(std::basic_string<T> & StrDest,const T * Val)
 {
@@ -186,6 +188,13 @@ int & operator<<(int & Dest, std::basic_string<T> & InStr)
 	else
 		sscanf((char*)InStr.c_str(),"%i", &Dest);
 	return Dest;
+}
+
+template<typename T>
+std::basic_string<T> & operator<<(std::basic_string<T> & StrDest, T Ch)
+{
+	StrDest += Ch;
+	return StrDest;
 }
 
 template<typename _Elem, typename _Traits = std::char_traits<_Elem>, typename _Ax = std::allocator<_Elem> >
@@ -248,6 +257,7 @@ public:
 class DYN_MEM
 {
 public:
+
     void * Last;
 	void * Max;
 
@@ -278,10 +288,10 @@ public:
 
 
 
-template<DYN_MEM ** StartDynMem, class T = void>
+template<DYN_MEM ** StartDynMem, class T = void, const bool DontDel = false>
 class PBUF
 {
-
+protected:
 	const unsigned SezeT(void*)
 	{
 	   return 1;
@@ -292,7 +302,8 @@ class PBUF
 	{
 	   return sizeof(F);
 	}
-	void * StartBlock;
+
+	T * StartBlock;
 public:
 
 	PBUF()
@@ -303,7 +314,7 @@ public:
 			StartBlock = NULL;
 			return;
 		}
-		StartBlock = (*StartDynMem)->Last;
+		StartBlock = (T*)(*StartDynMem)->Last;
 		(*StartDynMem)->Last = EndBlock;
 	}
 
@@ -316,43 +327,83 @@ public:
 			StartBlock = NULL;
 			return;
 		}
-		StartBlock = (*StartDynMem)->Last;
+		StartBlock = (T*)(*StartDynMem)->Last;
 		(*StartDynMem)->Last = EndBlock;
 	}
 
 	operator T*()
 	{
-	   return (T*)StartBlock;
+	   return StartBlock;
 	}
 
 	bool Resize(unsigned NewSize)
 	{
-		void NewEndBlock = (void*)((unsigned)StartBlock + NewSize);
+		void * NewEndBlock = (void*)((unsigned)StartBlock + NewSize);
 		if(NewEndBlock >= (*StartDynMem)->Max)
 			return false;
 		(*StartDynMem)->Last = NewEndBlock;
 		return true;
 	}
 
-	unsigned GetSize()
-	{
-	  return (unsigned)(*StartDynMem)->Last - (unsigned)StartBlock;
-	}
-
-	unsigned GetCont()
-	{
-	  return ((unsigned)(*StartDynMem)->Last - (unsigned)StartBlock) / SezeT((T*)0);
-	}
-
 	~PBUF()
 	{
-		if(StartBlock == NULL)
-			return;
-		if(StartBlock >= (*StartDynMem)->Last)
-			throw 0;
-		(*StartDynMem)->Last = StartBlock;
+		if(!DontDel)
+		{
+			if(StartBlock == NULL)
+				return;
+			if(StartBlock >= (*StartDynMem)->Last)
+				throw 0;
+			(*StartDynMem)->Last = StartBlock;
+		}
 	}
 
+};
+
+template<DYN_MEM ** StartDynMem, class T = void, const bool DontDel = false>
+class PBUFEX : public PBUF<StartDynMem,T, DontDel>
+{
+	unsigned Size;
+public:
+
+	PBUFEX() : PBUF()
+	{
+	   Size = SezeT((T*)0);
+	}
+
+	PBUFEX(unsigned NewCount) : PBUF(NewCount)
+	{
+	   Size = SezeT((T*)0) * NewCount;
+	}
+
+	unsigned GetSize()
+	{
+		return Size;
+	}
+
+	unsigned GetCount()
+	{
+		return GetSize() / SezeT((T*)0);
+	}
+
+	bool isLastBlock()
+	{
+	   return ((char*)StartBlock + Size) == (*StartDynMem)->Last;
+	}
+
+	void * GetNextBlock()
+	{
+	   return ((char*)StartBlock + Size);
+	}
+
+	bool Resize(unsigned NewSize)
+	{
+		if(PBUF::Resize(NewSize))
+		{
+			Size = NewSize;
+			return true;
+		}
+		return false;
+	}
 };
 
 
