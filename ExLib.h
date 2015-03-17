@@ -155,9 +155,9 @@ void ConvertCodePageString(unsigned InCp, unsigned OutCp, const char * InStr, Ou
 template<typename T>
 std::basic_string<T> & operator<<(std::basic_string<T> & StrDest, const int Val)
 {
-	T Buf[200];
+	T Buf[20];
 	if(typeid(T) == typeid(wchar_t))
-		swprintf((wchar_t*)Buf,200,L"%i", Val);
+		swprintf((wchar_t*)Buf,20,L"%i", Val);
 	else
 		sprintf((char*)Buf,"%i", Val);
 	StrDest += Buf;
@@ -250,38 +250,49 @@ public:
 		return Ret * Negative;
 	}
 
+	template<class T>
+	static ex_basic_string ToString(T Val)
+	{
+		ex_basic_string s;
+		s << Val;
+		return s;
+	}
 
 };
+
+
+
+
 
 
 class DYN_MEM
 {
 public:
 
-    void * Last;
+	void * Last;
 	void * Max;
 
 public:
 
 	void * operator new(size_t, unsigned NewSize)
 	{
-	   DYN_MEM * s = (DYN_MEM *)malloc(NewSize + sizeof(DYN_MEM));
-	   if(s == NULL)
-		   return NULL;
-	   s->Last = s + 1;
-	   s->Max = (char*)s + (sizeof(DYN_MEM) + NewSize);
-	   return s;
+		DYN_MEM * s = (DYN_MEM *)malloc(NewSize + sizeof(DYN_MEM));
+		if(s == NULL)
+			return NULL;
+		s->Last = s + 1;
+		s->Max = (char*)s + (sizeof(DYN_MEM) + NewSize);
+		return s;
 	}
 
 
 	unsigned GetSize()
 	{
-	    return (unsigned)Max - (unsigned)this - sizeof(DYN_MEM);
+		return (unsigned)Max - (unsigned)this - sizeof(DYN_MEM);
 	}
 
 	unsigned SizeFree()
 	{
-	    return (unsigned)Max - (unsigned)Last; 
+		return (unsigned)Max - (unsigned)Last; 
 	}
 
 };
@@ -294,13 +305,13 @@ class PBUF
 protected:
 	const unsigned SezeT(void*)
 	{
-	   return 1;
+		return 1;
 	}
 
 	template<class F>
 	const unsigned SezeT(F*)
 	{
-	   return sizeof(F);
+		return sizeof(F);
 	}
 
 	T * StartBlock;
@@ -318,7 +329,7 @@ public:
 		(*StartDynMem)->Last = EndBlock;
 	}
 
-	
+
 	PBUF(unsigned NewCount)
 	{
 		void * EndBlock = (void*)((unsigned)(*StartDynMem)->Last + SezeT((T*)0) * NewCount);
@@ -333,7 +344,7 @@ public:
 
 	operator T*()
 	{
-	   return StartBlock;
+		return StartBlock;
 	}
 
 	bool Resize(unsigned NewSize)
@@ -367,12 +378,12 @@ public:
 
 	PBUFEX() : PBUF()
 	{
-	   Size = SezeT((T*)0);
+		Size = SezeT((T*)0);
 	}
 
 	PBUFEX(unsigned NewCount) : PBUF(NewCount)
 	{
-	   Size = SezeT((T*)0) * NewCount;
+		Size = SezeT((T*)0) * NewCount;
 	}
 
 	unsigned GetSize()
@@ -387,12 +398,12 @@ public:
 
 	bool isLastBlock()
 	{
-	   return ((char*)StartBlock + Size) == (*StartDynMem)->Last;
+		return ((char*)StartBlock + Size) == (*StartDynMem)->Last;
 	}
 
 	void * GetNextBlock()
 	{
-	   return ((char*)StartBlock + Size);
+		return ((char*)StartBlock + Size);
 	}
 
 	bool Resize(unsigned NewSize)
@@ -411,14 +422,356 @@ public:
 
 #ifdef WIN32
 
+#ifdef USE_WONDER_CONTROLS
+
+#pragma comment(linker, "\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#pragma comment(lib, "comctl32.lib")
+
+#endif
+
 class WND_COMBO;
+
+
 
 class EX_WND
 {
-protected:
-	HWND hWnd;
-
 public:
+	union
+	{	
+		HWND hWnd;
+
+		class{
+		public:
+			union{
+				HWND hWnd;
+				class{
+					HWND hWnd;
+				public:
+					operator int()
+					{
+						return GetWindowTextLength(hWnd);
+					}
+				} length;
+			};
+
+			template <class T>
+			operator std::basic_string<T>()
+			{
+				std::basic_string<T> Str;
+				if(typeid(T) == typeid(WCHAR))
+				{
+					int Length = GetWindowTextLengthW(hWnd);
+					Str.resize(Length);
+					GetWindowTextW(hWnd,(LPWSTR)Str.c_str(),Length + 1);
+				}else
+				{
+					int Length = GetWindowTextLengthA(hWnd);
+					Str.resize(Length);
+					GetWindowTextA(hWnd,(LPSTR)Str.c_str(),Length + 1);
+				}
+				return Str;
+			}
+
+			std::basic_string<WCHAR> & operator=(std::basic_string<WCHAR> & Str)
+			{
+				SetWindowTextW(hWnd, (LPCWSTR)Str.c_str());
+				return Str;
+			}
+
+			template <class T>
+			std::basic_string<T> & operator=(std::basic_string<T> & Str)
+			{
+
+				SetWindowTextA(hWnd, (LPCSTR)Str.c_str());
+				return Str;
+			}
+
+			LPCSTR operator=(LPCSTR Str)
+			{
+				SetWindowTextA(hWnd, Str);
+				return Str;
+			}
+
+			LPCWSTR operator=(LPCWSTR Str)
+			{
+				SetWindowTextW(hWnd, Str);
+				return Str;
+			}
+			//For int
+
+			operator int()
+			{
+				return GetDlgItemInt(::GetParent(hWnd),GetDlgCtrlID(hWnd), NULL, TRUE);
+			}
+
+			operator unsigned()
+			{
+				return GetDlgItemInt(::GetParent(hWnd),GetDlgCtrlID(hWnd), NULL, FALSE);
+			}
+
+			int operator=(int Val)
+			{
+				SetDlgItemInt(::GetParent(hWnd),GetDlgCtrlID(hWnd), Val, TRUE);
+				return Val;
+			}
+
+			unsigned operator=(unsigned Val)
+			{
+				SetDlgItemInt(::GetParent(hWnd),GetDlgCtrlID(hWnd), Val, FALSE);
+				return Val;
+			}
+
+
+			inline int operator()(LPWSTR Buffer, int Len = 0x0fffffff)
+			{
+				return GetWindowTextW(hWnd, Buffer, Len);	
+			}
+
+			inline int operator()(LPSTR Buffer, int Len = 0x0fffffff)
+			{
+				return GetWindowTextA(hWnd, Buffer, Len);
+			}
+		} Text;
+
+		class {
+			HWND hWnd;
+		public:
+			inline operator int()
+			{
+				return GetDlgCtrlID(hWnd);
+			}
+
+			int operator=(int NewId)
+			{
+				return (int)SetWindowLongPtr(hWnd, GWLP_ID, (LONG_PTR)NewId);
+			}
+		} Id;
+
+		class
+		{
+			HWND hWnd;
+		public:
+			inline operator WNDPROC()
+			{
+				return (WNDPROC)GetWindowLongPtrW(hWnd, GWLP_WNDPROC);
+			}
+
+			inline WNDPROC operator=(WNDPROC NewProc)
+			{
+				return (WNDPROC)SetWindowLongPtrW(hWnd, GWLP_WNDPROC, (LONG_PTR)NewProc);
+			}
+
+			inline LRESULT CALLBACK operator()(UINT Msg, WPARAM wParam, LPARAM lParam)
+			{
+				return ::SendMessageW(hWnd, Msg,wParam, lParam);
+			}
+
+		} WndProcW;
+
+		class
+		{
+			HWND hWnd;
+		public:
+			inline operator WNDPROC()
+			{
+				return (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
+			}
+
+			inline WNDPROC operator=(WNDPROC NewProc)
+			{
+				return (WNDPROC)SetWindowLongPtrA(hWnd, GWLP_WNDPROC, (LONG_PTR)NewProc);
+			}
+
+			inline LRESULT CALLBACK operator()(UINT Msg, WPARAM wParam, LPARAM lParam)
+			{
+				return ::SendMessageA(hWnd, Msg,wParam, lParam);
+			}
+		} WndProcA;
+
+		class
+		{
+			HWND hWnd;
+		public:
+			template<class T>
+			inline operator T()
+			{
+				return (T)GetWindowLongPtr(hWnd, GWL_USERDATA);
+			}
+
+			template<class T>
+			inline T operator=(T NewData)
+			{
+				return (T)SetWindowLongPtr(hWnd, GWL_USERDATA, (LONG_PTR)NewData);
+			}
+		} UserData;
+
+		class{
+			HWND hWnd;
+		public:
+			inline operator LONG_PTR()
+			{
+				return GetWindowLongPtr(hWnd, GWL_EXSTYLE);
+			}
+
+			inline LONG_PTR operator=(LONG_PTR NewStyle)
+			{
+				return SetWindowLongPtr(hWnd, GWL_EXSTYLE, NewStyle);
+			}
+
+		} ExStyle;	
+
+		class{
+			HWND hWnd;
+		public:
+			inline operator LONG_PTR()
+			{
+				return GetWindowLongPtr(hWnd, GWL_STYLE);
+			}
+
+			inline LONG_PTR operator=(LONG_PTR NewStyle)
+			{
+				return SetWindowLongPtr(hWnd, GWL_STYLE, NewStyle);
+			}
+		} Style;
+
+		class{
+			HWND hWnd;
+		public:
+
+			inline operator EX_WND()
+			{
+				return GetParent(hWnd);
+			}
+
+			inline operator HWND()
+			{
+				return GetParent(hWnd);
+			}
+
+			inline EX_WND operator=(EX_WND NewStyle)
+			{
+				return ::SetParent(hWnd, NewStyle);
+			}
+
+			inline HWND operator=(HWND NewStyle)
+			{
+				return ::SetParent(hWnd, NewStyle);
+			}
+
+			EX_WND * operator->()
+			{
+				return (EX_WND *)&hWnd;
+			}
+		} Parent;
+
+		class
+		{
+			HWND hWnd;
+		public:
+			inline operator HINSTANCE()
+			{
+				return (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE);
+			}
+
+			inline HINSTANCE operator=(HINSTANCE NewInst)
+			{
+				return (HINSTANCE)SetWindowLongPtr(hWnd, GWLP_HINSTANCE, (LONG_PTR)NewInst);
+			}
+		} Instance;
+
+		class{
+			HWND hWnd;
+		public:
+
+			inline operator std::basic_string<WCHAR>()
+			{
+				std::basic_string<WCHAR> Str;
+				Str.resize(255);
+				GetClassNameW(hWnd,(LPWSTR)Str.c_str(),254);
+				return Str;
+			}
+
+			inline operator std::basic_string<char>()
+			{
+				std::basic_string<char> Str;
+				Str.resize(255);
+				GetClassNameA(hWnd,(LPSTR)Str.c_str(),254);
+				return Str;
+			}
+		} NameClass;
+
+		class{
+			HWND hWnd;
+		public:
+			inline operator HDC()
+			{
+				return ::GetDC(hWnd);
+			}
+		} Dc;
+
+		class
+		{
+			HWND hWnd;
+		public:
+			inline operator bool()
+			{
+				return ::IsWindow(hWnd);
+			}
+		} IsWindow;
+
+		class
+		{
+			HWND hWnd;
+		public:
+			inline operator bool()
+			{
+				return ::IsWindowVisible(hWnd);
+			}
+		} IsVisible;
+
+		class
+		{
+			HWND hWnd;
+		public:
+			inline operator bool()
+			{
+				return ::IsWindowUnicode(hWnd);
+			}
+		} IsUnicode;
+
+		class{
+		   HWND hWnd;
+		public:
+			operator bool()
+			{
+				return ::IsIconic(hWnd);
+			}
+		} IsIconic;
+
+		class
+		{
+			HWND hWnd;
+		public:
+			inline WND_COMBO * operator->()
+			{
+				return (WND_COMBO *)&hWnd;
+			}
+
+			inline operator HWND()
+			{
+				return hWnd;
+			}
+
+			inline operator EX_WND()
+			{
+				return hWnd;
+			}
+		} AsCombo;
+
+
+	};
+
+
 
 	inline operator HWND()
 	{
@@ -476,270 +829,16 @@ public:
 		return Wnd.hWnd != hWnd;
 	}
 
-	inline BOOL SetText(LPCWSTR NewText)
-	{
-		return SetWindowTextW(hWnd, NewText);	
-	}
-
-	inline BOOL SetText(LPCSTR NewText)
-	{
-		return SetWindowTextA(hWnd, NewText);
-	}
-
-	inline BOOL SetTextItem(LPCWSTR NewText, int nIDDlgItem)
-	{
-		return SetDlgItemTextW(hWnd,nIDDlgItem, NewText);	
-	}
-
-	inline BOOL SetTextItem(LPCSTR NewText, int nIDDlgItem)
-	{
-		return SetDlgItemTextA(hWnd,nIDDlgItem,NewText);
-	}
-
-	template<typename T>
-	inline BOOL SetText(std::basic_string<T> & Str)
-	{
-		if(typeid(T) == typeid(WCHAR))
-		{
-			return SetWindowTextW(hWnd, (LPCWSTR)Str.c_str());
-		}else
-		{
-			return SetWindowTextA(hWnd, (LPCSTR)Str.c_str());
-		}
-	}
-
-	template<typename T>
-	inline BOOL SetTextItem(std::basic_string<T> & Str, int nIDDlgItem)
-	{
-		if(typeid(T) == typeid(WCHAR))
-		{
-			return SetDlgItemTextW(hWnd,nIDDlgItem,(LPCWSTR)Str.c_str());
-		}else
-		{
-			return SetDlgItemTextA(hWnd,nIDDlgItem,(LPCSTR)Str.c_str());
-		}
-	}
-
-	//////
-
-	inline int GetTextLength()
-	{
-		return GetWindowTextLengthW(hWnd);
-	}
-
-	inline int GetText(LPWSTR Buffer, int Len = 0x0fffffff)
-	{
-		return GetWindowTextW(hWnd, Buffer, Len);	
-	}
-
-	inline int GetText(LPSTR Buffer, int Len = 0x0fffffff)
-	{
-		return GetWindowTextA(hWnd, Buffer, Len);
-	}
-
-	inline UINT GetTextItem(LPWSTR Buffer, int nIDDlgItem, int Len = 0x0fffffff)
-	{
-		return GetDlgItemTextW(hWnd,nIDDlgItem, Buffer, Len);	
-	}
-
-	inline UINT GetTextItem(LPSTR Buffer, int nIDDlgItem, int Len = 0x0fffffff)
-	{
-		return GetDlgItemTextA(hWnd,nIDDlgItem, Buffer, Len);	
-	}
-
-	template<typename T>
-	inline int GetText(std::basic_string<T> & Str)
-	{
-		if(typeid(T) == typeid(WCHAR))
-		{
-			int Length = GetWindowTextLengthW(hWnd);
-			Str.resize(Length);
-			return GetWindowTextW(hWnd,(LPWSTR)Str.c_str(),Length + 1);
-		}else
-		{
-			int Length = GetWindowTextLengthA(hWnd);
-			Str.resize(Length);
-			return GetWindowTextA(hWnd,(LPSTR)Str.c_str(),Length + 1);
-		}
-	}
-
-	template<typename T>
-	inline int GetTextItem(std::basic_string<T> & Str, int nIDDlgItem)
-	{		
-		HWND Wnd = GetDlgItem(hWnd, nIDDlgItem);
-		if(Wnd == NULL)
-		{
-			Str.clear();
-			return 0;
-		}
-		if(typeid(T) == typeid(WCHAR))
-		{
-			int Length = GetWindowTextLengthW(Wnd);
-			Str.resize(Length);
-			return GetWindowTextW(Wnd,(LPWSTR)Str.c_str(),Length + 1);
-		}else
-		{
-			int Length = GetWindowTextLengthA(Wnd);
-			Str.resize(Length);
-			return GetWindowTextA(Wnd,(LPSTR)Str.c_str(),Length + 1);
-		}
-	}
-	//
-
-	inline unsigned GetUnsigned(BOOL * lpTranslated = NULL)
-	{
-		return GetDlgItemInt(::GetParent(hWnd),GetDlgCtrlID(hWnd), lpTranslated, FALSE);
-	}
-
-	inline int GetInt(BOOL * lpTranslated = NULL)
-	{
-		return GetDlgItemInt(::GetParent(hWnd),GetDlgCtrlID(hWnd), lpTranslated, TRUE);
-	}
-
-	inline unsigned GetUnsignedItem(int nIDDlgItem,BOOL * lpTranslated = NULL)
-	{
-		return GetDlgItemInt(hWnd,nIDDlgItem, lpTranslated, FALSE);
-	}
-
-	inline int GetIntItem(int nIDDlgItem, BOOL * lpTranslated = NULL)
-	{
-		return GetDlgItemInt(hWnd,nIDDlgItem, lpTranslated, TRUE);
-	}
-
-	///
-
-	inline BOOL SetUnsigned(unsigned Val)
-	{
-		return SetDlgItemInt(::GetParent(hWnd),GetDlgCtrlID(hWnd), Val, FALSE);
-	}
-
-	inline BOOL SetInt(int Val)
-	{
-		return SetDlgItemInt(::GetParent(hWnd),GetDlgCtrlID(hWnd), Val, TRUE);
-	}
-
-	inline BOOL SetUnsignedItem(unsigned Val, int nIDDlgItem)
-	{
-		return SetDlgItemInt(hWnd,nIDDlgItem, Val, FALSE);
-	}
-
-	inline BOOL SetIntItem(int Val, int nIDDlgItem)
-	{
-		return SetDlgItemInt(hWnd,nIDDlgItem, Val, TRUE);
-	}
-
 	///
 
 	inline EX_WND operator[](int nIDDlgItem)
 	{
-		return GetItem(nIDDlgItem);
+		return GetDlgItem(hWnd, nIDDlgItem);
 	}
 
-	inline EX_WND GetItem(int nIDDlgItem)
+	inline BOOL BringToTop()
 	{
-		return (EX_WND)GetDlgItem(hWnd,nIDDlgItem);
-	}
-
-	inline EX_WND GetParent()
-	{
-		return (EX_WND)::GetParent(hWnd);
-	}
-
-	inline EX_WND SetParent(HWND NewParent)
-	{
-		return (EX_WND)::SetParent(hWnd, NewParent);
-	}
-
-	inline int GetId()
-	{
-		return GetDlgCtrlID(hWnd);
-	}
-
-	inline int SetId(int NewId)
-	{
-		return (int)SetWindowLongPtr(hWnd, GWLP_ID, (LONG_PTR)NewId);
-	}
-
-	////
-
-	inline WNDPROC GetProcW()
-	{
-		return (WNDPROC)GetWindowLongPtrW(hWnd, GWLP_WNDPROC);
-	}
-
-	inline WNDPROC SetProcW(WNDPROC NewProc)
-	{
-		return (WNDPROC)SetWindowLongPtrA(hWnd, GWLP_WNDPROC, (LONG_PTR)NewProc);
-	}
-
-	inline WNDPROC GetProcA()
-	{
-		return (WNDPROC)GetWindowLongPtrW(hWnd, GWLP_WNDPROC);
-	}
-
-	inline WNDPROC SetProcA(WNDPROC NewProc)
-	{
-		return (WNDPROC)SetWindowLongPtrA(hWnd, GWLP_WNDPROC, (LONG_PTR)NewProc);
-	}
-
-	// 
-
-	inline LONG_PTR GetUserData()
-	{
-		return GetWindowLongPtr(hWnd, GWL_USERDATA);
-	}
-
-	inline LONG_PTR GetUserData(LONG_PTR NewData)
-	{
-		return SetWindowLongPtr(hWnd, GWL_USERDATA, NewData);
-	}
-
-	//
-
-	inline HINSTANCE GetInstance()
-	{
-		return (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE);
-	}
-
-	inline HINSTANCE SetInstance(HINSTANCE NewInst)
-	{
-		return (HINSTANCE)SetWindowLongPtr(hWnd, GWLP_HINSTANCE, (LONG_PTR)NewInst);
-	}
-	///
-
-	inline LONG_PTR GetStyle()
-	{
-		return GetWindowLongPtr(hWnd, GWL_STYLE);
-	}
-
-	inline LONG_PTR SetStyle(LONG_PTR NewStyle)
-	{
-		return SetWindowLongPtr(hWnd, GWL_STYLE, NewStyle);
-	}
-
-	//
-	inline LONG_PTR GetExStyle()
-	{
-		return GetWindowLongPtr(hWnd, GWL_EXSTYLE);
-	}
-
-	inline LONG_PTR SetExStyle(LONG_PTR NewStyle)
-	{
-		return SetWindowLongPtr(hWnd, GWL_EXSTYLE, NewStyle);
-	}
-
-	//
-	template<typename T>
-	inline int GetNameClass(std::basic_string<T> & Str)
-	{
-		Str.resize(255);
-		if(typeid(T) == typeid(WCHAR))
-		{
-			return GetClassNameW(hWnd,(LPWSTR)Str.c_str(),254);
-		}else
-		{
-			return GetClassNameA(hWnd,(LPSTR)Str.c_str(),254);
-		}
+	   return BringWindowToTop(hWnd);
 	}
 
 	//
@@ -1080,17 +1179,6 @@ public:
 		return ::IsChild(hWnd, Wnd) == TRUE;
 	}
 
-
-	inline bool isWindow()
-	{
-		return ::IsWindow(hWnd);
-	}
-
-	bool isVisible()
-	{
-		return ::IsWindowVisible(hWnd);
-	}
-
 	////
 
 	/*Close window.*/
@@ -1100,14 +1188,9 @@ public:
 	}
 
 	/*Destroys window. */
-	inline BOOL Destoy()
+	inline BOOL Destroy()
 	{
 		return ::DestroyWindow(hWnd); 
-	}
-
-	inline HDC GetDC()
-	{
-		return ::GetDC(hWnd);
 	}
 
 	/*The CreateCompatibleDC function creates a memory device context (DC) compatible with the window.*/
@@ -1147,64 +1230,125 @@ public:
 		return ::KillTimer(hWnd,nIDEvent);
 	}
 
-	/*Presents window as combo box.*/
-	inline WND_COMBO AsComboBox();
-
 	inline void SwitchToThisWindow(BOOL fAltTab = FALSE)
 	{
 		return ::SwitchToThisWindow(hWnd, fAltTab);
 	}
 
-	/*Determines whether the specified window is a native Unicode window.*/
-	inline BOOL isUnicode()
+private:
+	typedef struct
 	{
-		return ::IsWindowUnicode(hWnd);
+		unsigned MaxElements;
+		unsigned CurElement;
+		HWND * Buf;
+	} FOR_ENUM_WINDOWS;
+	static BOOL CALLBACK EnumChildProc(HWND hwnd,LPARAM lParam)
+	{
+		FOR_ENUM_WINDOWS * arg = (FOR_ENUM_WINDOWS *)lParam;
+		if(arg->CurElement < arg->MaxElements)
+		{
+			arg->Buf[arg->CurElement++] = hwnd;
+			return TRUE;
+		}
+		return FALSE;
+	}
+public:
+
+	inline BOOL GetChildWindows(HWND * hWndBuf, unsigned MaxElemInBuf)
+	{
+		FOR_ENUM_WINDOWS arg;
+		arg.Buf = hWndBuf;
+		arg.MaxElements = MaxElemInBuf;
+		arg.CurElement = 0;
+		return EnumChildWindows(hWnd, EnumChildProc,(LPARAM)&arg);
 	}
 
-	private:
-		typedef struct
-		{
-			unsigned MaxElements;
-			unsigned CurElement;
-			HWND * Buf;
-		} FOR_ENUM_WINDOWS;
-		static BOOL CALLBACK EnumChildProc(HWND hwnd,LPARAM lParam)
-		{
-			FOR_ENUM_WINDOWS * arg = (FOR_ENUM_WINDOWS *)lParam;
-			if(arg->CurElement < arg->MaxElements)
-			{
-				arg->Buf[arg->CurElement++] = hwnd;
-				return TRUE;
-			}
-			return FALSE;
-		}
-	public:
-
-		inline BOOL GetChildWindows(HWND * hWndBuf, unsigned MaxElemInBuf)
-		{
-			FOR_ENUM_WINDOWS arg;
-			arg.Buf = hWndBuf;
-			arg.MaxElements = MaxElemInBuf;
-			arg.CurElement = 0;
-			return EnumChildWindows(hWnd, EnumChildProc,(LPARAM)&arg);
-		}
-
-		inline BOOL GetChildWindows(HWND * hWndBuf, unsigned MaxElemInBuf, unsigned * CountGetted)
-		{
-			FOR_ENUM_WINDOWS arg;
-			arg.Buf = hWndBuf;
-			arg.MaxElements = MaxElemInBuf;
-			arg.CurElement = 0;
-			BOOL Res = EnumChildWindows(hWnd, EnumChildProc,(LPARAM)&arg);
-			*CountGetted = arg.CurElement;
-			return Res;
-		}
+	inline BOOL GetChildWindows(HWND * hWndBuf, unsigned MaxElemInBuf, unsigned * CountGetted)
+	{
+		FOR_ENUM_WINDOWS arg;
+		arg.Buf = hWndBuf;
+		arg.MaxElements = MaxElemInBuf;
+		arg.CurElement = 0;
+		BOOL Res = EnumChildWindows(hWnd, EnumChildProc,(LPARAM)&arg);
+		*CountGetted = arg.CurElement;
+		return Res;
+	}
 
 };
 
-class WND_COMBO : public EX_WND
+
+
+#define EX_WND_FIELD_AND_METHODS \
+			EX_WND::BringToTop;\
+			EX_WND::BeginPaint;\
+			EX_WND::ByPoint;\
+			EX_WND::CreateCompatibleDC;\
+			EX_WND::Close;\
+			EX_WND::Destroy;\
+			EX_WND::EndDialog;\
+			EX_WND::EndPaint;\
+			EX_WND::EX_WND;\
+			EX_WND::GetChildWindows;\
+			EX_WND::GetClientCoord;\
+			EX_WND::GetClientHeight;\
+			EX_WND::GetClientWidth;\
+			EX_WND::GetCoord;\
+			EX_WND::GetFocus;\
+			EX_WND::GetHeight;\
+			EX_WND::GetRelParentCoord;\
+			EX_WND::GetSize;\
+			EX_WND::GetWidth;\
+			EX_WND::Invalidate;\
+			EX_WND::isChild;\
+			EX_WND::KillTimer;\
+			EX_WND::SetCoord;\
+			EX_WND::SetFocus;\
+			EX_WND::SetRelParentCoord;\
+			EX_WND::SetSize;\
+			EX_WND::SetTimer;\
+			EX_WND::Show;\
+			EX_WND::SwitchToThisWindow;\
+			EX_WND::Update;\
+			EX_WND::Validate;\
+			EX_WND::AsCombo;\
+			EX_WND::Dc;\
+			EX_WND::ExStyle;\
+			EX_WND::Id;\
+			EX_WND::Instance;\
+			EX_WND::IsUnicode;\
+			EX_WND::IsWindow;\
+			EX_WND::IsVisible;\
+			EX_WND::IsIconic;\
+			EX_WND::NameClass;\
+			EX_WND::Parent;\
+			EX_WND::Style;\
+			EX_WND::Text;\
+			EX_WND::UserData;\
+			EX_WND::WndProcA;\
+			EX_WND::WndProcW;\
+			EX_WND::operator !;\
+			EX_WND::operator !=;\
+			EX_WND::operator &;\
+			EX_WND::operator [];\
+			EX_WND::operator ==;\
+			EX_WND::operator bool;\
+			EX_WND::operator EX_WND*;\
+			EX_WND::operator HWND;
+
+class WND_COMBO
 {
 public:
+
+	union
+	{
+		HWND hWnd;
+		class : public EX_WND
+		{
+		public:
+			EX_WND_FIELD_AND_METHODS;
+		};
+	};
+
 	WND_COMBO()
 	{
 	};
@@ -1373,11 +1517,6 @@ public:
 
 
 };
-
-WND_COMBO EX_WND::AsComboBox()
-{
-	return (WND_COMBO)hWnd;
-}
 
 #endif
 
