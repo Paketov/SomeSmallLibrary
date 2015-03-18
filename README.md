@@ -19,6 +19,7 @@ Example using:
   int g = MainWindow[IDC_EDIT2].Text.length;  //return: 11
   HWND hParent = MainWindow.Parent;           //Analog: HWND hParent = GetParent(hWnd);
   int i = 1, * MyData = &i, *GettedData;
+  
   MainWindow.UserData = MyData;               //Analog: SetWindowLongPtr(hWnd, GWL_USERDATA, (LONG_PTR)MyData);
   GettedData = MainWindow.UserData;           //instead of: GettedData =(int*)GetWindowLongPtr(hWnd, GWL_USERDATA);
   
