@@ -258,6 +258,11 @@ public:
 		return s;
 	}
 
+	static ex_basic_string ToString()
+	{
+		ex_basic_string s;
+		return s;
+	}
 };
 
 
@@ -497,7 +502,81 @@ public:
 				SetWindowTextW(hWnd, Str);
 				return Str;
 			}
+
+			template<class T>
+			bool operator==(std::basic_string<T> & Str2)
+			{
+				return (std::basic_string<T>)*this == Str2;
+			}
+
+			bool operator==(LPWSTR Str2)
+			{
+				return (std::basic_string<WCHAR>)*this == Str2;
+			}
+
+			bool operator==(LPCSTR Str2)
+			{
+				return (std::basic_string<CHAR>)*this == Str2;
+			}
+
+			template<class T>
+			bool operator!=(T Val)
+			{
+			    return !operator==(Val);
+			}
+
+
 			//For int
+
+			bool operator>(unsigned Val)
+			{
+			    return (unsigned)*this > Val;
+			}
+			
+			bool operator<(unsigned Val)
+			{
+			    return (unsigned)*this < Val;
+			}
+
+			bool operator>=(unsigned Val)
+			{
+			    return (unsigned)*this > Val;
+			}
+			
+			bool operator<=(unsigned Val)
+			{
+			    return (unsigned)*this < Val;
+			}
+
+			bool operator>(int Val)
+			{
+			    return (int)*this > Val;
+			}
+			
+			bool operator<(int Val)
+			{
+			    return (int)*this < Val;
+			}
+
+			bool operator>=(int Val)
+			{
+			    return (int)*this > Val;
+			}
+			
+			bool operator<=(int Val)
+			{
+			    return (int)*this < Val;
+			}
+
+			bool operator==(int Val)
+			{
+				return (int)*this == Val;
+			}
+
+			bool operator==(unsigned Val)
+			{
+				return (unsigned)*this == Val;
+			}
 
 			operator int()
 			{
