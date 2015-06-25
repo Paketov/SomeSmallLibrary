@@ -428,15 +428,11 @@ public:
 #ifdef WIN32
 
 #ifdef USE_WONDER_CONTROLS
-
 #pragma comment(linker, "\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #pragma comment(lib, "comctl32.lib")
-
 #endif
 
 class WND_COMBO;
-
-
 
 class EX_WND
 {
@@ -445,7 +441,7 @@ public:
 	{	
 		HWND hWnd;
 
-		class{
+		class {
 		public:
 			union{
 				HWND hWnd;
@@ -502,7 +498,7 @@ public:
 				SetWindowTextW(hWnd, Str);
 				return Str;
 			}
-
+ 
 			template<class T>
 			bool operator==(std::basic_string<T> & Str2)
 			{
@@ -524,7 +520,6 @@ public:
 			{
 			    return !operator==(Val);
 			}
-
 
 			//For int
 
@@ -642,9 +637,8 @@ public:
 
 			inline LRESULT CALLBACK operator()(UINT Msg, WPARAM wParam, LPARAM lParam)
 			{
-				return ::SendMessageW(hWnd, Msg,wParam, lParam);
+				return ::SendMessageW(hWnd, Msg, wParam, lParam);
 			}
-
 		} WndProcW;
 
 		class
@@ -713,36 +707,6 @@ public:
 			}
 		} Style;
 
-		class{
-			HWND hWnd;
-		public:
-
-			inline operator EX_WND()
-			{
-				return GetParent(hWnd);
-			}
-
-			inline operator HWND()
-			{
-				return GetParent(hWnd);
-			}
-
-			inline EX_WND operator=(EX_WND NewStyle)
-			{
-				return ::SetParent(hWnd, NewStyle);
-			}
-
-			inline HWND operator=(HWND NewStyle)
-			{
-				return ::SetParent(hWnd, NewStyle);
-			}
-
-			EX_WND * operator->()
-			{
-				return (EX_WND *)&hWnd;
-			}
-		} Parent;
-
 		class
 		{
 			HWND hWnd;
@@ -779,6 +743,28 @@ public:
 			}
 		} NameClass;
 
+		class 
+		{
+			HWND hWnd;
+		public:
+
+			inline operator WNDCLASS()
+			{		
+				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
+				WNDCLASS WndClass = {0};
+				GetClassInfoW(((EX_WND*)this)->Instance,Name.c_str(),&WndClass);
+				return WndClass;
+			}
+
+			inline bool operator()(LPWNDCLASS lpWndClass)
+			{		
+				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
+				return GetClassInfoW(((EX_WND*)this)->Instance,Name.c_str(),lpWndClass) != 0;
+			}
+		} Class;
+
+
+
 		class{
 			HWND hWnd;
 		public:
@@ -787,6 +773,37 @@ public:
 				return ::GetDC(hWnd);
 			}
 		} Dc;
+	    
+		class
+		{
+			HWND hWnd;
+		public:
+
+			inline operator EX_WND()
+			{
+				return GetParent(hWnd);
+			}
+
+			inline operator HWND()
+			{
+				return GetParent(hWnd);
+			}
+
+			inline EX_WND operator=(EX_WND NewStyle)
+			{
+				return ::SetParent(hWnd, NewStyle);
+			}
+
+			inline HWND operator=(HWND NewStyle)
+			{
+				return ::SetParent(hWnd, NewStyle);
+			}
+
+			inline EX_WND operator()()
+			{
+			   return GetParent(hWnd);
+			}
+		} Parent;
 
 		class
 		{
@@ -846,11 +863,7 @@ public:
 				return hWnd;
 			}
 		} AsCombo;
-
-
 	};
-
-
 
 	inline operator HWND()
 	{
@@ -867,7 +880,6 @@ public:
 		hWnd = nhWnd;
 	}
 
-
 	inline operator bool()
 	{
 		return hWnd != NULL;
@@ -883,9 +895,26 @@ public:
 		return hWnd == NULL;
 	}
 
-	inline HWND * operator &()
+	private:
+	class _FOR_GET_ADDRESS
 	{
-		return &hWnd;
+		HWND hWnd;
+	public:
+		inline operator HWND*()
+		{
+			return &hWnd;
+		}
+
+		inline operator EX_WND*()
+		{
+			return (EX_WND*)&hWnd;
+		}
+	};
+	public:
+
+	inline _FOR_GET_ADDRESS & operator &()
+	{
+		return *(_FOR_GET_ADDRESS*)this;
 	}
 
 	inline bool operator==(HWND Wnd)
@@ -909,7 +938,6 @@ public:
 	}
 
 	///
-
 	inline EX_WND operator[](int nIDDlgItem)
 	{
 		return GetDlgItem(hWnd, nIDDlgItem);
