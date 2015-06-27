@@ -813,33 +813,62 @@ public:
 			HWND hWnd;
 		public:
 
-			inline operator WNDCLASS()
+			inline operator WNDCLASSW()
 			{		
 				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
-				WNDCLASS WndClass = {0};
+				WNDCLASSW WndClass = {0};
 				GetClassInfoW(((EX_WND*)this)->Instance,Name.c_str(),&WndClass);
 				return WndClass;
 			}
 
-			inline operator WNDCLASSEX()
+			inline operator WNDCLASSA()
+			{		
+				std::basic_string<CHAR> Name = ((EX_WND*)this)->NameClass;
+				WNDCLASSA WndClass = {0};
+				GetClassInfoA(((EX_WND*)this)->Instance,Name.c_str(),&WndClass);
+				return WndClass;
+			}
+
+			inline operator WNDCLASSEXW()
 			{
 			   	std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
-				WNDCLASSEX WndClass = {0};
+				WNDCLASSEXW WndClass = {0};
 				WndClass.cbSize = sizeof(WndClass);
 				GetClassInfoExW(((EX_WND*)this)->Instance, Name.c_str(),&WndClass);
 				return WndClass;
 			}
+			
+			inline operator WNDCLASSEXA()
+			{
+			   	std::basic_string<CHAR> Name = ((EX_WND*)this)->NameClass;
+				WNDCLASSEXA WndClass = {0};
+				WndClass.cbSize = sizeof(WndClass);
+				GetClassInfoExA(((EX_WND*)this)->Instance, Name.c_str(),&WndClass);
+				return WndClass;
+			}
 
-			inline bool operator()(LPWNDCLASS lpWndClass)
+			inline bool operator()(LPWNDCLASSW lpWndClass)
 			{		
 				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
 				return GetClassInfoW(((EX_WND*)this)->Instance,Name.c_str(),lpWndClass) != 0;
 			}
 
-			inline bool operator()(LPWNDCLASSEX lpWndClass)
+			inline bool operator()(LPWNDCLASSA lpWndClass)
+			{		
+				std::basic_string<CHAR> Name = ((EX_WND*)this)->NameClass;
+				return GetClassInfoA(((EX_WND*)this)->Instance,Name.c_str(),lpWndClass) != 0;
+			}
+
+			inline bool operator()(LPWNDCLASSEXW lpWndClass)
 			{		
 				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
 				return GetClassInfoExW(((EX_WND*)this)->Instance,Name.c_str(),lpWndClass) != 0;
+			}
+
+			inline bool operator()(LPWNDCLASSEXA lpWndClass)
+			{		
+				std::basic_string<CHAR> Name = ((EX_WND*)this)->NameClass;
+				return GetClassInfoExA(((EX_WND*)this)->Instance,Name.c_str(),lpWndClass) != 0;
 			}
 		} Class;
 
