@@ -441,6 +441,10 @@ public:
 	{	
 		HWND hWnd;
 
+		/*
+		*std::string, LPCWSTR, LPSTR, int; Set, Get;
+		*Changes the text of the specified window's title bar.
+		*/
 		class {
 		public:
 			union{
@@ -455,21 +459,21 @@ public:
 				} length;
 			};
 
-			template <class T>
-			operator std::basic_string<T>()
+			operator std::basic_string<WCHAR>()
 			{
-				std::basic_string<T> Str;
-				if(typeid(T) == typeid(WCHAR))
-				{
-					int Length = GetWindowTextLengthW(hWnd);
-					Str.resize(Length);
-					GetWindowTextW(hWnd,(LPWSTR)Str.c_str(),Length + 1);
-				}else
-				{
-					int Length = GetWindowTextLengthA(hWnd);
-					Str.resize(Length);
-					GetWindowTextA(hWnd,(LPSTR)Str.c_str(),Length + 1);
-				}
+				std::basic_string<WCHAR> Str;
+				int Length = GetWindowTextLengthW(hWnd);
+				Str.resize(Length);
+				GetWindowTextW(hWnd,(LPWSTR)Str.c_str(),Length + 1);
+				return Str;
+			}
+
+			operator std::basic_string<CHAR>()
+			{
+				std::basic_string<CHAR> Str;
+				int Length = GetWindowTextLengthA(hWnd);
+				Str.resize(Length);
+				GetWindowTextA(hWnd,(LPSTR)Str.c_str(),Length + 1);
 				return Str;
 			}
 
@@ -479,10 +483,8 @@ public:
 				return Str;
 			}
 
-			template <class T>
-			std::basic_string<T> & operator=(std::basic_string<T> & Str)
+			std::basic_string<char> & operator=(std::basic_string<CHAR> & Str)
 			{
-
 				SetWindowTextA(hWnd, (LPCSTR)Str.c_str());
 				return Str;
 			}
@@ -595,7 +597,6 @@ public:
 				return Val;
 			}
 
-
 			inline int operator()(LPWSTR Buffer, int Len = 0x0fffffff)
 			{
 				return GetWindowTextW(hWnd, Buffer, Len);	
@@ -607,12 +608,16 @@ public:
 			}
 		} Text;
 
+		/*
+		*int; Set, Get;
+		*Sets a new identifier of the child window. The window cannot be a top-level window.
+		*/
 		class {
 			HWND hWnd;
 		public:
 			inline operator int()
 			{
-				return GetDlgCtrlID(hWnd);
+				return ::GetDlgCtrlID(hWnd);
 			}
 
 			int operator=(int NewId)
@@ -621,6 +626,29 @@ public:
 			}
 		} Id;
 
+		/*
+		*BOOL; Set, Get;
+		*Enables or disables mouse and keyboard input to the specified window or control.
+		*/
+		class 
+		{
+			HWND hWnd;
+		public:
+			operator BOOL()
+			{
+				return ::IsWindowEnabled(hWnd);
+			}
+
+			BOOL operator=(BOOL isEnable)
+			{ 
+				return ::EnableWindow(hWnd, isEnable);
+			}
+		} Enable;
+
+		/*
+		*WNDPROC; Set, Get;
+		*Sets a new address for the window procedure.
+		*/
 		class
 		{
 			HWND hWnd;
@@ -641,6 +669,10 @@ public:
 			}
 		} WndProcW;
 
+		/*
+		*WNDPROC; Set, Get;
+		*Sets a new address for the window procedure.
+		*/
 		class
 		{
 			HWND hWnd;
@@ -661,6 +693,10 @@ public:
 			}
 		} WndProcA;
 
+		/*
+		*<variant 4 or 8 bytes>; Set, Get;
+		*Sets the user data associated with the window.
+		*/
 		class
 		{
 			HWND hWnd;
@@ -668,16 +704,20 @@ public:
 			template<class T>
 			inline operator T()
 			{
-				return (T)GetWindowLongPtr(hWnd, GWL_USERDATA);
+				return (T)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 			}
 
 			template<class T>
 			inline T operator=(T NewData)
 			{
-				return (T)SetWindowLongPtr(hWnd, GWL_USERDATA, (LONG_PTR)NewData);
+				return (T)SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)NewData);
 			}
 		} UserData;
 
+		/*
+		*LONG_PTR; Set, Get;
+		*Sets a new extended window style. 
+		*/
 		class{
 			HWND hWnd;
 		public:
@@ -690,9 +730,12 @@ public:
 			{
 				return SetWindowLongPtr(hWnd, GWL_EXSTYLE, NewStyle);
 			}
-
 		} ExStyle;	
 
+		/*
+		*LONG_PTR; Set, Get;
+		*Sets a new window style.
+		*/
 		class{
 			HWND hWnd;
 		public:
@@ -707,6 +750,10 @@ public:
 			}
 		} Style;
 
+		/*
+		*HINSTANCE; Set, Get;
+		*Sets a new application instance handle.
+		*/
 		class
 		{
 			HWND hWnd;
@@ -722,6 +769,10 @@ public:
 			}
 		} Instance;
 
+		/*
+		*std::string, LPWSTR, LPSTR; Get;
+		*Retrieves the name of the class to which the specified window belongs. 
+		*/
 		class{
 			HWND hWnd;
 		public:
@@ -734,15 +785,29 @@ public:
 				return Str;
 			}
 
-			inline operator std::basic_string<char>()
+			inline operator std::basic_string<CHAR>()
 			{
-				std::basic_string<char> Str;
+				std::basic_string<CHAR> Str;
 				Str.resize(255);
 				GetClassNameA(hWnd,(LPSTR)Str.c_str(),254);
 				return Str;
 			}
+
+			inline int operator()(LPSTR Buf, unsigned Len)
+			{
+				return GetClassNameA(hWnd, Buf, Len);
+			}
+
+			inline int operator()(LPWSTR Buf, unsigned Len)
+			{
+				return GetClassNameW(hWnd, Buf, Len);
+			}
 		} NameClass;
 
+		/*
+		*WNDCLASS, WNDCLASSEX; Get;
+		*Retrieves information about a window class, including a handle to the small icon associated with the window class.
+		*/
 		class 
 		{
 			HWND hWnd;
@@ -756,15 +821,32 @@ public:
 				return WndClass;
 			}
 
+			inline operator WNDCLASSEX()
+			{
+			   	std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
+				WNDCLASSEX WndClass = {0};
+				WndClass.cbSize = sizeof(WndClass);
+				GetClassInfoExW(((EX_WND*)this)->Instance, Name.c_str(),&WndClass);
+				return WndClass;
+			}
+
 			inline bool operator()(LPWNDCLASS lpWndClass)
 			{		
 				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
 				return GetClassInfoW(((EX_WND*)this)->Instance,Name.c_str(),lpWndClass) != 0;
 			}
+
+			inline bool operator()(LPWNDCLASSEX lpWndClass)
+			{		
+				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
+				return GetClassInfoExW(((EX_WND*)this)->Instance,Name.c_str(),lpWndClass) != 0;
+			}
 		} Class;
 
-
-
+		/*
+		*HDC; Get;
+		*Retrieves a handle to a device context (DC) for the client area of a specified window or for the entire screen.
+		*/
 		class{
 			HWND hWnd;
 		public:
@@ -774,6 +856,10 @@ public:
 			}
 		} Dc;
 	    
+		/*
+		*EX_WND, HWND; Get, Set;
+		*Changes the parent window of the specified child window. 
+		*/
 		class
 		{
 			HWND hWnd;
@@ -781,12 +867,12 @@ public:
 
 			inline operator EX_WND()
 			{
-				return GetParent(hWnd);
+				return ::GetParent(hWnd);
 			}
 
 			inline operator HWND()
 			{
-				return GetParent(hWnd);
+				return ::GetParent(hWnd);
 			}
 
 			inline EX_WND operator=(EX_WND NewStyle)
@@ -801,20 +887,28 @@ public:
 
 			inline EX_WND operator()()
 			{
-			   return GetParent(hWnd);
+			   return ::GetParent(hWnd);
 			}
 		} Parent;
 
+		/*
+		*bool; Get;
+		*Determines whether the specified window handle identifies an existing window. 
+		*/
 		class
 		{
 			HWND hWnd;
 		public:
 			inline operator bool()
 			{
-				return ::IsWindow(hWnd);
+				return ::IsWindow(hWnd) != 0;
 			}
 		} IsWindow;
 
+		/*
+		*bool; Get;
+		*Determines the visibility state of the specified window. 
+		*/
 		class
 		{
 			HWND hWnd;
@@ -825,6 +919,10 @@ public:
 			}
 		} IsVisible;
 
+		/*
+		*bool; Get;
+		*Determines whether the specified window is a native Unicode window. 
+		*/
 		class
 		{
 			HWND hWnd;
@@ -835,6 +933,10 @@ public:
 			}
 		} IsUnicode;
 
+		/*
+		*bool; Get;
+		*Determines whether the specified window is minimized (iconic).
+		*/
 		class{
 		   HWND hWnd;
 		public:
@@ -844,6 +946,10 @@ public:
 			}
 		} IsIconic;
 
+		/*
+		*WND_COMBO, HWND, EX_WND; Get;
+		*Represet window as ComboBox.
+		*/
 		class
 		{
 			HWND hWnd;
@@ -863,6 +969,7 @@ public:
 				return hWnd;
 			}
 		} AsCombo;
+
 	};
 
 	inline operator HWND()
@@ -1386,6 +1493,7 @@ public:
 
 
 #define EX_WND_FIELD_AND_METHODS \
+			EX_WND::Class;\
 			EX_WND::BringToTop;\
 			EX_WND::BeginPaint;\
 			EX_WND::ByPoint;\
@@ -1454,6 +1562,31 @@ public:
 		public:
 			EX_WND_FIELD_AND_METHODS;
 		};
+
+		class 
+		{
+			HWND hWnd;
+		public:
+			inline operator int()
+			{
+				return ComboBox_GetCurSel(hWnd);
+			}
+
+			inline int operator=(int Index)
+			{
+				return ComboBox_SetCurSel(hWnd, Index);
+			}
+		} CurSel;
+
+		class 
+		{
+					HWND hWnd;
+		public:
+			inline operator int()
+			{
+				return ComboBox_GetCount(hWnd);
+			}
+		} Count;
 	};
 
 	WND_COMBO()
@@ -1473,6 +1606,21 @@ public:
 	inline int AddItemData(LPARAM Data)
 	{
 		return ComboBox_AddItemData(hWnd, Data);
+	}
+
+	inline int SetItemData(LPARAM Data, int Index)
+	{
+		return ComboBox_SetItemData(hWnd, Index, Data);
+	}
+
+	inline LRESULT GetItemData(int Index)
+	{
+	   return ComboBox_GetItemData(hWnd, Index);
+	}
+
+	inline LRESULT GetItemData()
+	{
+	   return ComboBox_GetItemData(hWnd, CurSel);
 	}
 
 	template<typename T>
@@ -1497,16 +1645,6 @@ public:
 	inline int DeleteString(int Index)
 	{
 		return ComboBox_DeleteString(hWnd, Index);
-	}
-
-	inline int SetCurSel(int Index)
-	{
-		return ComboBox_SetCurSel(hWnd, Index);
-	}
-
-	inline int GetCurSel(int Index)
-	{
-		return ComboBox_SetCurSel(hWnd, Index);
 	}
 
 	inline int FindString(LPCSTR Str, int StartIndex = 0)
@@ -1549,11 +1687,6 @@ public:
 		return FindString(Str);
 	}
 
-	int GetCount()
-	{
-		return ComboBox_GetCount(hWnd);
-	}
-
 	int ResetContent()
 	{
 		return ComboBox_ResetContent(hWnd);
@@ -1569,18 +1702,6 @@ public:
 	int InsertString(LPCWSTR Str, int Index = 0)
 	{
 		return (int)SendMessageW(hWnd, CB_INSERTSTRING, (WPARAM)Index, (LPARAM)Str);
-	}
-
-	/*Enable control*/
-	BOOL Enable()
-	{
-		return ComboBox_Enable(hWnd, TRUE);
-	}
-
-	/*Disable control*/
-	BOOL Disable()
-	{
-		return ComboBox_Enable(hWnd, FALSE);
 	}
 
 	int GetLenTextItem(int Index = 0)
@@ -1616,13 +1737,6 @@ public:
 	{
 		return ComboBox_LimitText(hWnd, cchMax);
 	}
-
-	inline LRESULT GetItemData(int Index)
-	{
-		return ComboBox_GetItemData(hWnd, Index);
-	}
-
-
 };
 
 #endif
