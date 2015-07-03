@@ -266,10 +266,6 @@ public:
 };
 
 
-
-
-
-
 class DYN_MEM
 {
 public:
@@ -433,6 +429,7 @@ public:
 #endif
 
 class WND_COMBO;
+class WND_LIST;
 
 class EX_WND
 {
@@ -500,7 +497,7 @@ public:
 				SetWindowTextW(hWnd, Str);
 				return Str;
 			}
- 
+
 			template<class T>
 			bool operator==(std::basic_string<T> & Str2)
 			{
@@ -520,49 +517,49 @@ public:
 			template<class T>
 			bool operator!=(T Val)
 			{
-			    return !operator==(Val);
+				return !operator==(Val);
 			}
 
 			//For int
 
 			bool operator>(unsigned Val)
 			{
-			    return (unsigned)*this > Val;
+				return (unsigned)*this > Val;
 			}
-			
+
 			bool operator<(unsigned Val)
 			{
-			    return (unsigned)*this < Val;
+				return (unsigned)*this < Val;
 			}
 
 			bool operator>=(unsigned Val)
 			{
-			    return (unsigned)*this > Val;
+				return (unsigned)*this > Val;
 			}
-			
+
 			bool operator<=(unsigned Val)
 			{
-			    return (unsigned)*this < Val;
+				return (unsigned)*this < Val;
 			}
 
 			bool operator>(int Val)
 			{
-			    return (int)*this > Val;
+				return (int)*this > Val;
 			}
-			
+
 			bool operator<(int Val)
 			{
-			    return (int)*this < Val;
+				return (int)*this < Val;
 			}
 
 			bool operator>=(int Val)
 			{
-			    return (int)*this > Val;
+				return (int)*this > Val;
 			}
-			
+
 			bool operator<=(int Val)
 			{
-			    return (int)*this < Val;
+				return (int)*this < Val;
 			}
 
 			bool operator==(int Val)
@@ -831,16 +828,16 @@ public:
 
 			inline operator WNDCLASSEXW()
 			{
-			   	std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
+				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
 				WNDCLASSEXW WndClass = {0};
 				WndClass.cbSize = sizeof(WndClass);
 				GetClassInfoExW(((EX_WND*)this)->Instance, Name.c_str(),&WndClass);
 				return WndClass;
 			}
-			
+
 			inline operator WNDCLASSEXA()
 			{
-			   	std::basic_string<CHAR> Name = ((EX_WND*)this)->NameClass;
+				std::basic_string<CHAR> Name = ((EX_WND*)this)->NameClass;
 				WNDCLASSEXA WndClass = {0};
 				WndClass.cbSize = sizeof(WndClass);
 				GetClassInfoExA(((EX_WND*)this)->Instance, Name.c_str(),&WndClass);
@@ -884,7 +881,7 @@ public:
 				return ::GetDC(hWnd);
 			}
 		} Dc;
-	    
+
 		/*
 		*EX_WND, HWND; Get, Set;
 		*Changes the parent window of the specified child window. 
@@ -916,7 +913,7 @@ public:
 
 			inline EX_WND operator()()
 			{
-			   return ::GetParent(hWnd);
+				return ::GetParent(hWnd);
 			}
 		} Parent;
 
@@ -967,7 +964,7 @@ public:
 		*Determines whether the specified window is minimized (iconic).
 		*/
 		class{
-		   HWND hWnd;
+			HWND hWnd;
 		public:
 			operator bool()
 			{
@@ -979,25 +976,7 @@ public:
 		*WND_COMBO, HWND, EX_WND; Get;
 		*Represet window as ComboBox.
 		*/
-		class
-		{
-			HWND hWnd;
-		public:
-			inline WND_COMBO * operator->()
-			{
-				return (WND_COMBO *)&hWnd;
-			}
-
-			inline operator HWND()
-			{
-				return hWnd;
-			}
-
-			inline operator EX_WND()
-			{
-				return hWnd;
-			}
-		} AsCombo;
+		//WND_COMBO AsCombo;
 
 	};
 
@@ -1031,7 +1010,7 @@ public:
 		return hWnd == NULL;
 	}
 
-	private:
+private:
 	class _FOR_GET_ADDRESS
 	{
 		HWND hWnd;
@@ -1046,7 +1025,7 @@ public:
 			return (EX_WND*)&hWnd;
 		}
 	};
-	public:
+public:
 
 	inline _FOR_GET_ADDRESS & operator &()
 	{
@@ -1081,7 +1060,7 @@ public:
 
 	inline BOOL BringToTop()
 	{
-	   return BringWindowToTop(hWnd);
+		return BringWindowToTop(hWnd);
 	}
 
 	//
@@ -1522,66 +1501,178 @@ public:
 
 
 #define EX_WND_FIELD_AND_METHODS \
-			EX_WND::Class;\
-			EX_WND::BringToTop;\
-			EX_WND::BeginPaint;\
-			EX_WND::ByPoint;\
-			EX_WND::CreateCompatibleDC;\
-			EX_WND::Close;\
-			EX_WND::Destroy;\
-			EX_WND::EndDialog;\
-			EX_WND::EndPaint;\
-			EX_WND::EX_WND;\
-			EX_WND::GetChildWindows;\
-			EX_WND::GetClientCoord;\
-			EX_WND::GetClientHeight;\
-			EX_WND::GetClientWidth;\
-			EX_WND::GetCoord;\
-			EX_WND::GetFocus;\
-			EX_WND::GetHeight;\
-			EX_WND::GetRelParentCoord;\
-			EX_WND::GetSize;\
-			EX_WND::GetWidth;\
-			EX_WND::Invalidate;\
-			EX_WND::isChild;\
-			EX_WND::KillTimer;\
-			EX_WND::SetCoord;\
-			EX_WND::SetFocus;\
-			EX_WND::SetRelParentCoord;\
-			EX_WND::SetSize;\
-			EX_WND::SetTimer;\
-			EX_WND::Show;\
-			EX_WND::SwitchToThisWindow;\
-			EX_WND::Update;\
-			EX_WND::Validate;\
-			EX_WND::AsCombo;\
-			EX_WND::Dc;\
-			EX_WND::ExStyle;\
-			EX_WND::Id;\
-			EX_WND::Instance;\
-			EX_WND::IsUnicode;\
-			EX_WND::IsWindow;\
-			EX_WND::IsVisible;\
-			EX_WND::IsIconic;\
-			EX_WND::NameClass;\
-			EX_WND::Parent;\
-			EX_WND::Style;\
-			EX_WND::Text;\
-			EX_WND::UserData;\
-			EX_WND::WndProcA;\
-			EX_WND::WndProcW;\
-			EX_WND::operator !;\
-			EX_WND::operator !=;\
-			EX_WND::operator &;\
-			EX_WND::operator [];\
-			EX_WND::operator ==;\
-			EX_WND::operator bool;\
-			EX_WND::operator EX_WND*;\
-			EX_WND::operator HWND;
+	EX_WND::Class;\
+	EX_WND::BringToTop;\
+	EX_WND::BeginPaint;\
+	EX_WND::ByPoint;\
+	EX_WND::CreateCompatibleDC;\
+	EX_WND::Close;\
+	EX_WND::Destroy;\
+	EX_WND::EndDialog;\
+	EX_WND::EndPaint;\
+	EX_WND::EX_WND;\
+	EX_WND::GetChildWindows;\
+	EX_WND::GetClientCoord;\
+	EX_WND::GetClientHeight;\
+	EX_WND::GetClientWidth;\
+	EX_WND::GetCoord;\
+	EX_WND::GetFocus;\
+	EX_WND::GetHeight;\
+	EX_WND::GetRelParentCoord;\
+	EX_WND::GetSize;\
+	EX_WND::GetWidth;\
+	EX_WND::Invalidate;\
+	EX_WND::isChild;\
+	EX_WND::KillTimer;\
+	EX_WND::SetCoord;\
+	EX_WND::SetFocus;\
+	EX_WND::SetRelParentCoord;\
+	EX_WND::SetSize;\
+	EX_WND::SetTimer;\
+	EX_WND::Show;\
+	EX_WND::SwitchToThisWindow;\
+	EX_WND::Update;\
+	EX_WND::Validate;\
+	/*EX_WND::AsCombo;*/\
+	EX_WND::Dc;\
+	EX_WND::ExStyle;\
+	EX_WND::Id;\
+	EX_WND::Instance;\
+	EX_WND::IsUnicode;\
+	EX_WND::IsWindow;\
+	EX_WND::IsVisible;\
+	EX_WND::IsIconic;\
+	EX_WND::NameClass;\
+	EX_WND::Parent;\
+	EX_WND::Style;\
+	EX_WND::Text;\
+	EX_WND::UserData;\
+	EX_WND::WndProcA;\
+	EX_WND::WndProcW;\
+	EX_WND::operator !;\
+	EX_WND::operator !=;\
+	EX_WND::operator &;\
+	EX_WND::operator [];\
+	EX_WND::operator ==;\
+	EX_WND::operator bool;\
+	EX_WND::operator EX_WND*;\
+	EX_WND::operator HWND;
 
 class WND_COMBO
 {
 public:
+	class ITEM
+	{
+	public:
+		union
+		{
+			struct
+			{
+				HWND hWnd;
+				int Index;
+			};
+
+			class TEXT_PROP_
+			{
+			public:
+
+				class 
+				{
+					HWND hWnd;
+					int Index;
+					friend TEXT_PROP_;
+				public:
+					inline operator int()
+					{
+						return ComboBox_GetLBTextLen(hWnd, Index);
+					}
+				} length;
+
+
+				LPCSTR operator=(LPCSTR Str)
+				{		
+					auto Data = ComboBox_GetItemData(length.hWnd, length.Index);
+					ComboBox_DeleteString(length.hWnd, length.Index);
+					length.Index = SendMessageA(length.hWnd, CB_INSERTSTRING, (WPARAM)length.Index, (LPARAM)Str);
+					ComboBox_SetItemData(length.hWnd, length.Index, Data);
+					return Str;
+				}
+
+				LPCWSTR operator=(LPCWSTR Str)
+				{
+					auto Data = ComboBox_GetItemData(length.hWnd, length.Index);
+					ComboBox_DeleteString(length.hWnd, length.Index);
+					length.Index = SendMessageW(length.hWnd, CB_INSERTSTRING, (WPARAM)length.Index, (LPARAM)Str);
+					ComboBox_SetItemData(length.hWnd, length.Index, Data);
+					return Str;
+				}
+
+				template<class T>
+				inline std::basic_string<T> & operator=(std::basic_string<T> & Str)
+				{
+					*this = Str.c_str();
+					return Str;
+				}
+
+				inline operator std::basic_string<CHAR>()
+				{
+					std::basic_string<CHAR> Str;
+					Str.resize(length + 1);
+					SendMessageA(length.hWnd, CB_GETLBTEXT, (WPARAM)length.Index, (LPARAM)Str.c_str());
+					return Str;
+				}
+
+				inline operator std::basic_string<WCHAR>()
+				{
+					std::basic_string<WCHAR> Str;
+					Str.resize(length + 1);
+					SendMessageW(length.hWnd, CB_GETLBTEXT, (WPARAM)length.Index, (LPARAM)Str.c_str());
+					return Str;
+				}
+
+				inline int operator()(LPCWSTR Str)
+				{
+					return (int)SendMessageW(length.hWnd, CB_GETLBTEXT, (WPARAM)length.Index, (LPARAM)Str);
+				}
+
+				inline int operator()(LPCSTR Str)
+				{
+					return (int)SendMessageW(length.hWnd, CB_GETLBTEXT, (WPARAM)length.Index, (LPARAM)Str);
+				}
+
+			} Text;
+
+			class 
+			{
+				HWND hWnd;
+				int Index;
+			public:
+				template<class T>
+				operator T()
+				{
+					return (T)ComboBox_GetItemData(hWnd, Index);
+				}
+
+				template<class T>
+				T operator =(T Data)
+				{
+					ComboBox_SetItemData(hWnd, Index, Data);
+					return Data;
+				}
+			} Data;
+		};
+
+		ITEM(int Index, HWND hWnd)
+		{
+			this->hWnd = hWnd;
+			this->Index = Index;
+		}
+
+		int Delete()
+		{
+			return ComboBox_DeleteString(hWnd, Index);
+		}
+	};
 
 	union
 	{
@@ -1605,11 +1696,27 @@ public:
 			{
 				return ComboBox_SetCurSel(hWnd, Index);
 			}
+
+			inline ITEM & operator=(ITEM & Item)
+			{
+				ComboBox_SetCurSel(hWnd, Item.Index);
+				return Item;
+			}
+
+			inline operator ITEM()
+			{
+				return ITEM(operator int(), hWnd);
+			}
+
+			inline ITEM operator()()
+			{
+				return ITEM(operator int(), hWnd);
+			}
 		} CurSel;
 
 		class 
 		{
-					HWND hWnd;
+			HWND hWnd;
 		public:
 			inline operator int()
 			{
@@ -1617,6 +1724,49 @@ public:
 			}
 		} Count;
 	};
+
+	inline ITEM operator[](int Index)
+	{
+		return ITEM(Index, hWnd);
+	}
+
+	inline ITEM Add()
+	{
+		int Index = (int)SendMessageA(hWnd, CB_ADDSTRING, 0L, (LPARAM)"");
+		return ITEM(Index, hWnd);
+	}
+
+	inline ITEM Add(LPCWSTR Str)
+	{
+		int Index = (int)SendMessageW(hWnd, CB_ADDSTRING, 0L, (LPARAM)Str);
+		return ITEM(Index, hWnd);
+	}
+
+	inline ITEM Add(LPCSTR Str)
+	{
+		int Index = (int)SendMessageA(hWnd, CB_ADDSTRING, 0L, (LPARAM)Str);
+		return ITEM(Index, hWnd);
+	}
+
+	inline ITEM Add(std::basic_string<WCHAR> & Str)
+	{
+		int Index = (int)SendMessageW(hWnd, CB_ADDSTRING, 0L, (LPARAM)Str.c_str());
+		return ITEM(Index, hWnd);
+	}
+
+	inline ITEM Add(std::basic_string<CHAR> & Str)
+	{
+		int Index = (int)SendMessageA(hWnd, CB_ADDSTRING, 0L, (LPARAM)Str.c_str());
+		return ITEM(Index, hWnd);
+	}
+
+	template<class TSTR, class TDATA>
+	inline ITEM Add(TSTR Str, TDATA Data)
+	{
+		ITEM Item = Add(Str);
+		Item.Data = Data;
+		return Item;
+	}
 
 	WND_COMBO()
 	{
@@ -1632,134 +1782,39 @@ public:
 		return hWnd;
 	}
 
-	inline int AddItemData(LPARAM Data)
+	inline ITEM FindByString(LPCSTR Str, int StartIndex = 0)
 	{
-		return ComboBox_AddItemData(hWnd, Data);
+		int Index = (int)SendMessageA(hWnd, CB_FINDSTRING, (WPARAM)StartIndex, (LPARAM)Str);
+		return ITEM(Index, hWnd);
 	}
 
-	inline int SetItemData(LPARAM Data, int Index)
+	inline ITEM FindByString(LPCWSTR Str, int StartIndex = 0)
 	{
-		return ComboBox_SetItemData(hWnd, Index, Data);
+		int Index = (int)SendMessageW(hWnd, CB_FINDSTRING, (WPARAM)StartIndex, (LPARAM)Str);
+		return ITEM(Index, hWnd);
 	}
 
-	inline LRESULT GetItemData(int Index)
+	inline ITEM FindByString(std::basic_string<CHAR> & Str, int StartIndex = 0)
 	{
-	   return ComboBox_GetItemData(hWnd, Index);
+		int Index = (int)SendMessageA(hWnd, CB_FINDSTRING, (WPARAM)StartIndex, (LPARAM)Str.c_str());
+		return ITEM(Index, hWnd);
 	}
 
-	inline LRESULT GetItemData()
+	inline ITEM FindByString(std::basic_string<WCHAR> & Str, int StartIndex = 0)
 	{
-	   return ComboBox_GetItemData(hWnd, CurSel);
+		int Index = (int)SendMessageW(hWnd, CB_FINDSTRING, (WPARAM)StartIndex, (LPARAM)Str.c_str());
+		return ITEM(Index, hWnd);
 	}
 
-	template<typename T>
-	inline int AddString(std::basic_string<T> & Str)
+	inline ITEM FindByItemData(LPARAM data, int StartIndex = 0)
 	{
-		if(typeid(T) == typeid(WCHAR))
-			return (int)SendMessageW(hWnd, CB_ADDSTRING, 0L, (LPARAM)Str.c_str());
-		else
-			return (int)SendMessageA(hWnd, CB_ADDSTRING, 0L, (LPARAM)Str.c_str());
-	}
-
-	inline int AddString(LPCSTR Str)
-	{
-		return (int)SendMessageA(hWnd, CB_ADDSTRING, 0L, (LPARAM)Str);
-	}
-
-	inline int AddString(LPCWSTR Str)
-	{
-		return (int)SendMessageW(hWnd, CB_ADDSTRING, 0L, (LPARAM)Str);
-	}
-
-	inline int DeleteString(int Index)
-	{
-		return ComboBox_DeleteString(hWnd, Index);
-	}
-
-	inline int FindString(LPCSTR Str, int StartIndex = 0)
-	{
-		return (int)SendMessageA(hWnd, CB_FINDSTRING, (WPARAM)StartIndex, (LPARAM)Str);
-	}
-
-	inline int FindString(LPCWSTR Str, int StartIndex = 0)
-	{
-		return (int)SendMessageW(hWnd, CB_FINDSTRING, (WPARAM)StartIndex, (LPARAM)Str);
-	}
-
-	template<typename T>
-	inline int FindString(std::basic_string<T> & Str, int StartIndex = 0)
-	{
-		if(typeid(T) == typeid(WCHAR))
-			return (int)SendMessageW(hWnd, CB_FINDSTRING, (WPARAM)StartIndex, (LPARAM)Str.c_str());
-		else
-			return (int)SendMessageA(hWnd, CB_FINDSTRING, (WPARAM)StartIndex, (LPARAM)Str.c_str());
-	}
-
-	inline int FindItemData(LPARAM data, int StartIndex = 0)
-	{
-		return ComboBox_FindItemData(hWnd, StartIndex, data);
-	}
-
-	int operator[](LPCWSTR FindStr)
-	{
-		return FindString(FindStr);
-	}
-
-	int operator[](LPCSTR FindStr)
-	{
-		return FindString(FindStr);
-	}
-
-	template<typename T>
-	int operator[](std::basic_string<T> & Str)
-	{
-		return FindString(Str);
+		return ITEM(ComboBox_FindItemData(hWnd, StartIndex, data), hWnd);
 	}
 
 	int ResetContent()
 	{
 		return ComboBox_ResetContent(hWnd);
 	}
-
-	/*Adds a string to a list in a combo box at the specified location.*/
-	int InsertString(LPCSTR Str, int Index = 0)
-	{
-		return (int)SendMessageA(hWnd, CB_INSERTSTRING, (WPARAM)Index, (LPARAM)Str);
-	}
-
-
-	int InsertString(LPCWSTR Str, int Index = 0)
-	{
-		return (int)SendMessageW(hWnd, CB_INSERTSTRING, (WPARAM)Index, (LPARAM)Str);
-	}
-
-	int GetLenTextItem(int Index = 0)
-	{
-		return ComboBox_GetLBTextLen(hWnd, Index);
-	}
-
-
-	/*Gets a string from a list in a combo box.*/
-	inline int GetTextItem(LPSTR Str, int Index = 0)
-	{
-		return (int)SendMessageA(hWnd, CB_GETLBTEXT, (WPARAM)Index, (LPARAM)Str);
-	}
-
-	inline int GetTextItem(LPCWSTR Str, int Index = 0)
-	{
-		return (int)SendMessageW(hWnd, CB_GETLBTEXT, (WPARAM)Index, (LPARAM)Str);
-	}
-
-	template<typename T>
-	inline int GetTextItem(std::basic_string<T> & Str, int Index = 0)
-	{
-		Str.resize(ComboBox_GetLBTextLen(hWnd, Index));
-		if(typeid(T) == typeid(WCHAR))
-			return (int)SendMessageW(hWnd, CB_GETLBTEXT, (WPARAM)Index, (LPARAM)Str.c_str());
-		else
-			return (int)SendMessageA(hWnd, CB_GETLBTEXT, (WPARAM)Index, (LPARAM)Str.c_str());
-	}
-
 
 	/*Limits the length of the text the user may type into the edit control of a combo box.*/
 	inline int SetLimit(int cchMax)
@@ -1768,6 +1823,840 @@ public:
 	}
 };
 
+class WND_LIST
+{
+public:
+	class COLUMN
+	{
+
+	public:	
+		union
+		{
+			struct
+			{
+				HWND hWnd;
+				int Index;
+			};
+
+			class
+			{
+				struct
+				{
+					HWND hWnd;
+					int Index;
+				};
+
+				inline LPSTR operator =(LPSTR Val)
+				{
+					LV_COLUMNA Col;
+					Col.mask = LVCF_TEXT;
+					Col.pszText = Val;
+					SendMessageA(hWnd, LVM_SETCOLUMNA, (WPARAM)Index, (LPARAM)&Col);
+					return Val;
+				}
+
+				inline LPWSTR operator =(LPWSTR Val)
+				{
+					LV_COLUMNW Col;
+					Col.mask = LVCF_TEXT;
+					Col.pszText = Val;
+					SendMessageW(hWnd, LVM_SETCOLUMNW, (WPARAM)Index, (LPARAM)&Col);
+					return Val;
+				}
+
+				template <class T>
+				inline std::basic_string<T> & operator =(std::basic_string<T> & Val)
+				{
+					*this = Val.c_str();
+					return Val;
+				}
+
+				inline operator std::basic_string<CHAR>()
+				{
+					std::basic_string<CHAR> Str;
+					LV_COLUMNA Col;
+					Col.mask = LVCF_TEXT;
+					Col.cchTextMax = 0;
+					do
+					{
+						Col.cchTextMax = (Col.cchTextMax | 1111) + 1;
+						Str.resize(Col.cchTextMax);
+						Col.pszText = (LPSTR)Str.c_str();
+						SendMessageA(hWnd, LVM_GETCOLUMNA, (WPARAM)Index, (LPARAM)&Col);
+					}while(Str.length() < (Col.cchTextMax - 1));
+					return Str;
+				}
+
+				inline operator std::basic_string<WCHAR>()
+				{
+					std::basic_string<WCHAR> Str;
+					LV_COLUMNW Col;
+					Col.mask = LVCF_TEXT;
+					Col.cchTextMax = 0;
+					do
+					{
+						Col.cchTextMax = (Col.cchTextMax | 1111) + 1;
+						Str.resize(Col.cchTextMax);
+						Col.pszText = (LPWSTR)Str.c_str();
+						SendMessageW(hWnd, LVM_GETCOLUMNW, (WPARAM)Index, (LPARAM)&Col);
+					}while(Str.length() < (Col.cchTextMax - 1));
+					return Str;
+				}
+
+				BOOL operator()(LPWSTR Buf, int LenBuf)
+				{
+					LV_COLUMNW Col;
+					Col.mask = LVCF_TEXT;
+					Col.cchTextMax = LenBuf;
+					Col.pszText = Buf;
+					return (BOOL)SendMessageW(hWnd, LVM_GETCOLUMNW, (WPARAM)Index, (LPARAM)&Col);
+				}
+
+				BOOL operator()(LPSTR Buf, int LenBuf)
+				{
+					LV_COLUMNA Col;
+					Col.mask = LVCF_TEXT;
+					Col.cchTextMax = LenBuf;
+					Col.pszText = Buf;
+					return (BOOL)SendMessageA(hWnd, LVM_GETCOLUMNA, (WPARAM)Index, (LPARAM)&Col);
+				}
+			} Text;
+
+			class
+			{
+				HWND hWnd;
+				int Index;
+			public:
+
+				inline int operator =(int Val)
+				{
+					LV_COLUMNW Col;
+					Col.mask = LVCF_FMT;
+					Col.fmt = Val;
+					SendMessageW(hWnd, LVM_SETCOLUMNW, (WPARAM)Index, (LPARAM)&Col);
+					return Val;
+				}
+
+				inline operator int()
+				{
+					LV_COLUMNW Col;
+					Col.mask = LVCF_FMT;
+					SendMessageW(hWnd, LVM_GETCOLUMNW, (WPARAM)Index, (LPARAM)&Col);
+					return Col.fmt;
+				}
+			} Alignment;
+
+			class
+			{
+				HWND hWnd;
+				int Index;
+			public:
+
+				inline int operator =(int Val)
+				{
+					LV_COLUMNW Col;
+					Col.mask = LVCF_WIDTH;
+					Col.cx = Val;
+					SendMessageW(hWnd, LVM_SETCOLUMNW, (WPARAM)Index, (LPARAM)&Col);
+					return Val;
+				}
+
+				inline operator int()
+				{
+					LV_COLUMNW Col;
+					Col.mask = LVCF_WIDTH;
+					SendMessageW(hWnd, LVM_GETCOLUMNW, (WPARAM)Index, (LPARAM)&Col);
+					return Col.cx;
+				}
+			} Width;
+
+		};
+
+		COLUMN(HWND hWnd, int Index)
+		{
+			this->hWnd = hWnd;
+			this->Index = Index;
+		}
+
+		inline operator LVCOLUMNA()
+		{
+			LVCOLUMNA Col;
+			Col.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
+			SendMessageA(hWnd, LVM_SETCOLUMNA, (WPARAM)Index, (LPARAM)&Col);
+			return Col;
+		}
+
+		inline operator LVCOLUMNW()
+		{
+			LVCOLUMNW Col;
+			Col.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
+			SendMessageW(hWnd, LVM_SETCOLUMNW, (WPARAM)Index, (LPARAM)&Col);
+			return Col;
+		}
+
+		inline BOOL operator()(LPLVCOLUMNA Column)
+		{
+			return (BOOL)SendMessageA(hWnd, LVM_SETCOLUMNA, (WPARAM)Index, (LPARAM)Column);
+		}
+
+		inline BOOL operator()(LPLVCOLUMNW Column)
+		{
+			return (BOOL)SendMessageW(hWnd, LVM_SETCOLUMNW, (WPARAM)Index, (LPARAM)Column);
+		}
+
+		inline LPLVCOLUMNA operator=(LPLVCOLUMNA Column)
+		{
+			SendMessageA(hWnd, LVM_SETCOLUMNA, (WPARAM)Index, (LPARAM)Column);
+			return Column;
+		}
+
+		inline LPLVCOLUMNW operator=(LPLVCOLUMNW Column)
+		{
+			SendMessageW(hWnd, LVM_SETCOLUMNW, (WPARAM)Index, (LPARAM)Column);
+			return Column;
+		}
+
+		inline BOOL Delete()
+		{
+			return ListView_DeleteColumn(hWnd, Index);
+		}
+	};
+
+	class SUBITEM
+	{
+	public:
+		union
+		{
+			struct
+			{
+				HWND hWnd;
+				int Index;
+				int SubItem;
+			};
+
+			class
+			{
+				struct
+				{
+					HWND hWnd;
+					int Index;
+					int SubItem;
+				};
+
+			public:
+
+				inline LPSTR operator =(LPSTR Val)
+				{
+					LV_ITEMA It;
+					It.iSubItem = SubItem;
+					It.pszText = Val;
+					SendMessageA(hWnd, LVM_SETITEMTEXTA, (WPARAM)Index, (LPARAM)&It);
+					return Val;
+				}
+
+				inline LPWSTR operator =(LPWSTR Val)
+				{
+					LV_ITEMW It;
+					It.iSubItem = SubItem;
+					It.iItem = Index;
+					It.pszText = Val;
+					SendMessageW(hWnd, LVM_SETITEMTEXTW, (WPARAM)Index, (LPARAM)&It);
+					return Val;
+				}
+
+				template <class T>
+				inline std::basic_string<T> & operator =(std::basic_string<T> & Val)
+				{
+					*this = Val.c_str();
+					return Val;
+				}
+
+				inline operator std::basic_string<CHAR>()
+				{
+					std::basic_string<CHAR> Str;
+					LV_ITEMA It;
+					It.iSubItem = SubItem;
+					It.iItem = Index;
+					It.cchTextMax = 0;
+					do
+					{
+						It.cchTextMax = (It.cchTextMax | 1111) + 1;
+						Str.resize(It.cchTextMax);
+						It.pszText = (LPSTR)Str.c_str();
+						SendMessageA(hWnd, LVM_GETITEMTEXTA, (WPARAM)Index, (LPARAM)&It);
+					}while(Str.length() < (It.cchTextMax - 1));
+					return Str;
+				}
+
+				inline operator std::basic_string<WCHAR>()
+				{
+					std::basic_string<WCHAR> Str;
+					LV_ITEMW It;
+					It.iSubItem = SubItem;
+					It.iItem = Index;
+					It.cchTextMax = 0;
+					do
+					{
+						It.cchTextMax = (It.cchTextMax | 1111) + 1;
+						Str.resize(It.cchTextMax);
+						It.pszText = (LPWSTR)Str.c_str();
+						SendMessageW(hWnd, LVM_GETITEMTEXTW, (WPARAM)Index, (LPARAM)&It);
+					}while(Str.length() < (It.cchTextMax - 1));
+					return Str;
+				}
+
+				BOOL operator()(LPWSTR Buf, int LenBuf)
+				{
+					LV_ITEMW It;
+					It.iSubItem = SubItem;
+					It.iItem = Index;
+					It.cchTextMax = LenBuf;
+					It.pszText = Buf;
+					return (BOOL)SendMessageW(hWnd, LVM_GETITEMTEXTW, (WPARAM)Index, (LPARAM)&It);
+				}
+
+				BOOL operator()(LPSTR Buf, int LenBuf)
+				{
+					LV_ITEMA It;
+					It.iSubItem = SubItem;
+					It.iItem = Index;
+					It.cchTextMax = LenBuf;
+					It.pszText = Buf;
+					return (BOOL)SendMessageA(hWnd, LVM_GETITEMTEXTA, (WPARAM)Index, (LPARAM)&It);
+				}
+			} Text;
+
+			class
+			{
+				struct
+				{
+					HWND hWnd;
+					int Index;
+					int SubItem;
+				};
+			public:
+				inline operator RECT()
+				{
+					RECT Rect;
+					ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_ICON,&Rect);
+					return Rect;
+				}
+				inline BOOL operator()(LPRECT Rect)
+				{
+					return ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_ICON ,Rect);
+				}
+			} RectIcon;
+
+			class
+			{
+				struct
+				{
+					HWND hWnd;
+					int Index;
+					int SubItem;
+				};
+			public:
+				inline operator RECT()
+				{
+					RECT Rect;
+					ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_BOUNDS ,&Rect);
+					return Rect;
+				}
+				inline BOOL operator()(LPRECT Rect)
+				{
+					return ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_BOUNDS ,Rect);
+				}
+
+			} RectBonus;
+
+			class
+			{
+				struct
+				{
+					HWND hWnd;
+					int Index;
+					int SubItem;
+				};
+			public:
+				inline operator RECT()
+				{
+					RECT Rect;
+					ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_LABEL,&Rect);
+					return Rect;
+				}
+				inline BOOL operator()(LPRECT Rect)
+				{
+					return ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_LABEL ,Rect);
+				}
+
+			} RectLabel;
+
+			class 
+			{
+				struct
+				{
+					HWND hWnd;
+					int Index;
+					int SubItem;
+				};
+
+			public:
+
+				inline operator int()
+				{
+					LV_ITEM It;
+					It.mask = LVIF_IMAGE;
+					It.iSubItem = SubItem;
+					It.iItem = Index;
+					ListView_GetItem(hWnd,&It);
+					return It.iImage;
+				}
+
+				int operator =(int iImage)
+				{
+					LV_ITEM It;
+					It.mask = LVIF_IMAGE;
+					It.iSubItem = SubItem;
+					It.iItem = Index;
+					It.iImage = iImage;
+					ListView_SetItem(hWnd,&It);
+					return iImage;
+				}
+			} Image;
+
+			class 
+			{
+				struct
+				{
+					HWND hWnd;
+					int Index;
+					int SubItem;
+				};
+			public:
+				template <class T>
+				inline operator T()
+				{
+				   LVITEM It;
+				   It.mask = LVIF_PARAM;
+				   It.iItem = Index;
+				   It.iSubItem = SubItem;
+				   ListView_GetItem(hWnd,&It);
+				   return (T)It.lParam;
+				}
+
+				template <class T>
+				inline T operator=(T Val)
+				{
+				   LVITEM It;
+				   It.mask = LVIF_PARAM;
+				   It.iItem = Index;
+				   It.iSubItem = SubItem;
+				   It.lParam = (LPARAM)Val;
+				   ListView_SetItem(hWnd,&It);
+				   return Val;
+				}
+			} UserData;
+		};
+
+		inline operator LV_ITEMW()
+		{
+			LV_ITEMW li;
+			li.mask = LVIF_IMAGE|LVIF_PARAM|LVIF_STATE|LVIF_INDENT;
+			li.stateMask = LVIS_CUT|LVIS_DROPHILITED|LVIS_FOCUSED|LVIS_SELECTED|LVIS_OVERLAYMASK|LVIS_STATEIMAGEMASK;
+			li.iItem = Index;
+			li.iSubItem = SubItem;
+		    SendMessageW(hWnd, LVM_GETITEMW, 0, (LPARAM)&li);
+			return li;
+		}
+
+		inline operator LV_ITEMA()
+		{
+			LV_ITEMA li;
+			li.mask = LVIF_IMAGE|LVIF_PARAM|LVIF_STATE|LVIF_INDENT;
+			li.stateMask = LVIS_CUT|LVIS_DROPHILITED|LVIS_FOCUSED|LVIS_SELECTED|LVIS_OVERLAYMASK|LVIS_STATEIMAGEMASK;
+			li.iItem = Index;
+			li.iSubItem = SubItem;
+		    SendMessageA(hWnd, LVM_GETITEMA, 0, (LPARAM)&li);
+			return li;
+		}
+
+		inline LV_ITEMW & operator =(LV_ITEMW & Val)
+		{
+		   LV_ITEMW Item = Val;
+		   Item.iItem = Index;
+		   Item.iSubItem = SubItem;
+		   SendMessageW(hWnd, LVM_SETITEMW, 0, (LPARAM)&Item);
+		   return Val;
+		}
+
+		inline LV_ITEMA & operator =(LV_ITEMA & Val)
+		{
+		   LV_ITEMA Item = Val;
+		   Item.iItem = Index;
+		   Item.iSubItem = SubItem;
+		   SendMessageA(hWnd, LVM_SETITEMA, 0, (LPARAM)&Item);
+		   return Val;
+		}
+
+		SUBITEM(HWND hWnd, int Index, int SubItem)
+		{
+			this->hWnd = hWnd;
+			this->Index = Index;
+			this->SubItem = SubItem;
+		}
+	};
+
+	class ITEM
+	{
+	public:
+		union
+		{
+			struct
+			{
+				HWND hWnd;
+				int Index;
+			};
+
+			class
+			{
+				struct
+				{
+					HWND hWnd;
+					int Index;
+				};
+			public:
+				inline operator UINT()
+				{
+					return ListView_GetItemState(hWnd, Index, LVIS_CUT|LVIS_DROPHILITED|LVIS_FOCUSED|LVIS_SELECTED|LVIS_OVERLAYMASK|LVIS_STATEIMAGEMASK);
+				}
+
+				inline UINT operator()(UINT Mask)
+				{
+					return ListView_GetItemState(hWnd, Index, Mask);
+				}
+
+				inline UINT operator=(UINT NewState)
+				{
+					ListView_SetItemState(hWnd, Index, NewState, LVIS_CUT|LVIS_DROPHILITED|LVIS_FOCUSED|LVIS_SELECTED|LVIS_OVERLAYMASK|LVIS_STATEIMAGEMASK);
+					return NewState;
+				}
+
+				inline void operator()(UINT NewState, UINT Mask)
+				{
+				    ListView_SetItemState(hWnd, Index, NewState, Mask);
+				}
+			} State;
+
+			class
+			{
+				struct
+				{
+					HWND hWnd;
+					int Index;
+				};
+			public:
+				operator bool()
+				{
+					return ListView_IsItemVisible(hWnd,Index) == TRUE;
+				}
+			} IsVisible;
+		};
+
+		ITEM(HWND hWnd, int Index)
+		{
+			this->hWnd = hWnd;
+			this->Index = Index;
+		}
+
+		HWND EditLabel()
+		{
+			return ListView_EditLabel(hWnd, Index);
+		}
+
+		inline BOOL Delete()
+		{
+			return ListView_DeleteItem(hWnd, Index);
+		}
+
+		inline BOOL Update()
+		{
+			return ListView_Update(hWnd, Index);
+		}
+
+		inline SUBITEM operator[](int SubItem)
+		{
+			return SUBITEM(hWnd, Index, SubItem);
+		}
+	};
+
+	union
+	{
+		HWND hWnd;
+		class : public EX_WND
+		{
+		public:
+			EX_WND_FIELD_AND_METHODS;
+		};
+
+		class 
+		{
+			HWND hWnd;
+		public:
+			inline operator COLORREF()
+			{
+				return ListView_GetBkColor(hWnd);
+			}
+
+			inline COLORREF operator=(COLORREF Val)
+			{
+				ListView_SetBkColor(hWnd,Val);
+				return Val;
+			}
+		} BkColor;
+
+		class 
+		{
+			HWND hWnd;
+		public:
+			inline operator COLORREF()
+			{
+				return ListView_GetTextColor(hWnd);
+			}
+
+			inline COLORREF operator=(COLORREF Val)
+			{
+				ListView_SetTextColor(hWnd,Val);
+				return Val;
+			}
+		} TextColor;
+
+		class 
+		{
+			HWND hWnd;
+		public:
+			inline operator COLORREF()
+			{
+				return ListView_GetTextBkColor(hWnd);
+			}
+
+			inline COLORREF operator=(COLORREF Val)
+			{
+				ListView_SetTextBkColor(hWnd,Val);
+				return Val;
+			}
+		} TextBkColor;
+
+		class
+		{
+
+		public:
+			union
+			{
+				HWND hWnd;
+
+				class
+				{
+					HWND hWnd;
+				public:
+					inline operator int()
+					{
+						LV_COLUMNW Col = {LVCF_FMT};
+						int Count = 0;
+						for(;(BOOL)SendMessageW(hWnd, LVM_GETCOLUMNW, (WPARAM)Count, (LPARAM)&Col) == TRUE; Count++);
+						return Count;
+					}
+				} Count;
+
+				class 
+				{	
+				public:
+
+					union
+					{
+						HWND hWnd;
+						class
+						{
+							HWND hWnd;
+						public:
+							operator unsigned()
+							{
+								return ListView_GetSelectedCount(hWnd);
+							}
+						} Count;
+					};
+
+					inline operator int()
+					{
+						return ListView_GetSelectedColumn(hWnd);
+					}
+
+					inline operator COLUMN()
+					{
+						int Index = ListView_GetSelectedColumn(hWnd);
+						return COLUMN(hWnd, Index);
+					}
+
+					inline COLUMN operator()()
+					{
+						int Index = ListView_GetSelectedColumn(hWnd);
+						return COLUMN(hWnd, Index);
+					}
+
+					inline int operator=(int Index)
+					{
+						ListView_SetSelectedColumn(hWnd, Index);
+						return Index;
+					}
+
+					inline COLUMN & operator=(COLUMN & Col)
+					{
+						ListView_SetSelectedColumn(hWnd, Col.Index);
+						return Col;
+					}
+				} CurSel;
+			};
+
+			inline COLUMN operator[](int Index)
+			{
+				return COLUMN(hWnd, Index);
+			}
+
+			inline COLUMN New()
+			{
+				LVCOLUMNW Col = {LVCF_FMT|LVCF_TEXT|LVCF_SUBITEM|LVCF_WIDTH,LVCFMT_CENTER,10,L"",0,0};
+				int Index = (int)SendMessageW(hWnd, LVM_INSERTCOLUMNW, (WPARAM)(int)Count, (LPARAM)&Col);
+				return COLUMN(hWnd, Index);
+			}
+
+			inline COLUMN New(LVCOLUMNW & Col)
+			{
+				int Index = (int)SendMessageW(hWnd, LVM_INSERTCOLUMNW, (WPARAM)(int)Count, (LPARAM)&Col);
+				return COLUMN(hWnd, Index);
+			}
+
+			inline COLUMN New(LVCOLUMNA & Col)
+			{
+				int Index = (int)SendMessageA(hWnd, LVM_INSERTCOLUMNA, (WPARAM)(int)Count, (LPARAM)&Col);
+				return COLUMN(hWnd, Index);
+			}
+
+			inline COLUMN New(LPSTR Str, int Width = 10, int Align = LVCFMT_CENTER, int SubItem = 0)
+			{
+				LVCOLUMNA Col = {LVCF_FMT|LVCF_TEXT|LVCF_SUBITEM|LVCF_WIDTH,Align,Width,Str,0,SubItem};
+				int Index = (int)SendMessageA(hWnd, LVM_INSERTCOLUMNA, (WPARAM)(int)Count, (LPARAM)&Col);
+				return COLUMN(hWnd, Index);
+			}
+
+			inline COLUMN New(LPWSTR Str, int Width = 10, int Align = LVCFMT_CENTER, int SubItem = 0)
+			{
+				LVCOLUMNW Col = {LVCF_FMT|LVCF_TEXT|LVCF_SUBITEM|LVCF_WIDTH,Align,Width,Str,0,SubItem};
+				int Index = (int)SendMessageW(hWnd, LVM_INSERTCOLUMNW, (WPARAM)(int)Count, (LPARAM)&Col);
+				return COLUMN(hWnd, Index);
+			}
+
+		} Columns;
+
+		class 
+		{
+		public:
+			union
+			{
+				HWND hWnd;
+
+				class
+				{
+					HWND hWnd;
+				public:
+					inline operator int()
+					{
+						return ListView_GetItemCount(hWnd);
+					}
+
+					inline int operator=(int NewCount)
+					{
+						return ListView_SetItemCount(hWnd, NewCount);
+					}
+				} Count;
+
+				class
+				{
+					HWND hWnd;
+				public:
+
+					inline operator int()
+					{
+						return  ListView_GetHotItem(hWnd);
+					}
+
+					inline int operator=(int Index)
+					{
+						return ListView_SetHotItem(hWnd, Index);
+					}
+
+					inline operator ITEM()
+					{
+						int Index = ListView_GetHotItem(hWnd);
+						return ITEM(hWnd, Index);
+					}
+
+					inline ITEM operator()()
+					{
+						int Index = ListView_GetHotItem(hWnd);
+						return ITEM(hWnd, Index);
+					}
+
+					inline ITEM & operator=(ITEM & It)
+					{
+						ListView_SetHotItem(hWnd, It.Index);
+						return It;
+					}
+				} CurSel;
+			};
+
+			inline ITEM operator [](int Index)
+			{
+				return ITEM(hWnd, Index);
+			}
+
+			ITEM New()
+			{
+				LV_ITEM li = {LVIF_TEXT,0,0,0,0,TEXT(""),0,0};
+				int Index = ListView_InsertItem(hWnd, &li);
+				return ITEM(hWnd, Index);
+			}
+
+			ITEM New(LV_ITEMA & Item)
+			{
+			    int Index = (int)SendMessageA(hWnd, LVM_INSERTITEMA, 0, (LPARAM)&Item);
+				return ITEM(hWnd, Index);
+			}
+
+			ITEM New(LV_ITEMW & Item)
+			{
+			    int Index = (int)SendMessageW(hWnd, LVM_INSERTITEMW, 0, (LPARAM)&Item);
+				return ITEM(hWnd, Index);
+			}
+
+			ITEM Set(LV_ITEMA & Item)
+			{
+			    int Index =  (BOOL)SendMessageA(hWnd, LVM_SETITEMA, 0, (LPARAM)&Item);
+				return ITEM(hWnd, Index);
+			}
+
+			ITEM Set(LV_ITEMW & Item)
+			{
+			    int Index =  (BOOL)SendMessageW(hWnd, LVM_SETITEMW, 0, (LPARAM)&Item);
+				return ITEM(hWnd, Index);
+			}
+
+			BOOL DeleteAll()
+			{
+				return ListView_DeleteAllItems(hWnd);
+			}
+		} Items;
+	};
+
+};
 #endif
 
 template<typename InString, typename OutString>
@@ -1812,7 +2701,5 @@ void CodeUrl(const InString & InStr, OutString & OutStr, unsigned InCodePage = C
 		}
 	}
 }
-
-
 
 #endif
