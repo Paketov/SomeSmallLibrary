@@ -25,8 +25,8 @@
 #endif
 
 
-#define STR(c,Str) ((typeid(c) == typeid(wchar_t))?((c*)L ## Str):((c*)Str))
-
+#define STR_TYPE(c,Str) ((typeid(c) == typeid(wchar_t))?((c*)L ## Str):((c*)Str))
+#define CHAR_TYPE(Type, Char)  ((sizeof(Type) == sizeof(char))?(Char):(L ## Char))
 
 template<typename OutString>
 void ConvertCodePageString(unsigned InCp, unsigned OutCp, const wchar_t * InStr, OutString & OutStr)
@@ -219,7 +219,7 @@ public:
 		}
 	}
 
-#define CHAR_TYPE(Type, Char)  ((sizeof(Type) == sizeof(char))?(Char):(L ## Char))
+
 
 	int ToInt(unsigned char Radix = 10)
 	{
@@ -263,9 +263,49 @@ public:
 };
 
 
+
+
+
 //Converting from number to string
 template<class TypeChar>
-inline TypeChar * NumberToString(int Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
+inline size_t NumberToString(int Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
+{
+	return _i_NumberToString(Number, Str, Len, Radix) - Str;
+}
+
+template<class TypeChar>
+inline size_t NumberToString(unsigned Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
+{
+	return _u_NumberToString(Number, Str, Len, Radix) - Str;
+}
+
+template<class TypeChar>
+inline size_t NumberToString(long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
+{
+	return _i_NumberToString(Number, Str, Len, Radix) - Str;
+}
+
+template<class TypeChar>
+inline size_t NumberToString(unsigned long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
+{
+	return _u_NumberToString(Number, Str, Len, Radix) - Str;
+}
+
+
+template<class TypeChar>
+inline size_t NumberToString(long long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
+{
+	return _i_NumberToString(Number, Str, Len, Radix) - Str;
+}
+
+template<class TypeChar>
+inline size_t NumberToString(unsigned long long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
+{
+	return _u_NumberToString(Number, Str, Len, Radix) - Str;
+}
+
+template<class TypeNumber, class TypeChar>
+inline TypeChar * _i_NumberToString(TypeNumber Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	TypeChar * pCur = Str, *MaxIndex = Str + Len;
 	if((pCur < MaxIndex) && (Number < 0))
@@ -274,11 +314,10 @@ inline TypeChar * NumberToString(int Number, TypeChar * Str, size_t Len, unsigne
 		Number = -Number;
 	}
 
-	int t = 0;
+	TypeNumber t = 0;
 	do
-	{
 	      t = t * Radix + Number % Radix;
-	}while((Number /= Radix) > 0);
+	while((Number /= Radix) > 0);
 	do 
 	{
 		unsigned char  digval = (unsigned char)(t % Radix);
@@ -290,15 +329,14 @@ inline TypeChar * NumberToString(int Number, TypeChar * Str, size_t Len, unsigne
 	return pCur;
 }
 
-template<class TypeChar>
-inline TypeChar * NumberToString(unsigned Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
+template<class TypeNumber, class TypeChar>
+inline TypeChar * _u_NumberToString(TypeNumber Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	TypeChar * pCur = Str, *MaxIndex = Str + Len;
-	unsigned t = 0;
+	TypeNumber t = 0;
 	do
-	{
 	      t = t * Radix + Number % Radix;
-	}while((Number /= Radix) > 0);
+	while((Number /= Radix) > 0);
 	do 
 	{
 		unsigned char  digval = (unsigned char) (t % Radix);
@@ -309,140 +347,63 @@ inline TypeChar * NumberToString(unsigned Number, TypeChar * Str, size_t Len, un
 	*pCur = CHAR_TYPE(TypeChar,'\0');
 	return pCur;
 }
-
-template<class TypeChar>
-inline TypeChar * NumberToString(long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
-{
-	TypeChar * pCur = Str, *MaxIndex = Str + Len;
-	if((pCur < MaxIndex) && (Number < 0))
-	{
-		*(pCur++) = CHAR_TYPE(TypeChar,'-');
-		Number = -Number;
-	}
-
-	long t = 0;
-	do
-	{
-	      t = t * Radix + Number % Radix;
-	}while((Number /= Radix) > 0);
-	do 
-	{
-		unsigned char  digval = (unsigned char)(t % Radix);
-		*pCur = (digval > 9)? (digval + (CHAR_TYPE(TypeChar,'a') - 10)): (digval + CHAR_TYPE(TypeChar,'0'));
-	} while ((++pCur < MaxIndex) && (t /= Radix) > 0);
-	if(MaxIndex <= pCur)
-		return pCur;
-	*pCur = CHAR_TYPE(TypeChar,'\0');
-	return pCur;
-}
-
-template<class TypeChar>
-inline TypeChar * NumberToString(unsigned long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
-{
-	TypeChar * pCur = Str, *MaxIndex = Str + Len;
-	unsigned long t = 0;
-	do
-	{
-	      t = t * Radix + Number % Radix;
-	}while((Number /= Radix) > 0);
-	do 
-	{
-		unsigned char  digval = (unsigned char) (t % Radix);
-		*pCur = (digval > 9)? (digval + (CHAR_TYPE(TypeChar,'a') - 10)): (digval + CHAR_TYPE(TypeChar,'0'));
-	} while ((++pCur < MaxIndex) && (t /= Radix) > 0);
-	if(MaxIndex <= pCur)
-		return pCur;
-	*pCur = CHAR_TYPE(TypeChar,'\0');
-	return pCur;
-}
-
-
-template<class TypeChar>
-inline TypeChar * NumberToString(long long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
-{
-	TypeChar * pCur = Str, *MaxIndex = Str + Len;
-	if((pCur < MaxIndex) && (Number < 0))
-	{
-		*(pCur++) = CHAR_TYPE(TypeChar,'-');
-		Number = -Number;
-	}
-
-	long long t = 0;
-	do
-	{
-	      t = t * Radix + Number % Radix;
-	}while((Number /= Radix) > 0);
-	do 
-	{
-		unsigned char  digval = (unsigned char)(t % Radix);
-		*pCur = (digval > 9)? (digval + (CHAR_TYPE(TypeChar,'a') - 10)): (digval + CHAR_TYPE(TypeChar,'0'));
-	} while ((++pCur < MaxIndex) && (t /= Radix) > 0);
-	if(MaxIndex <= pCur)
-		return pCur;
-	*pCur = CHAR_TYPE(TypeChar,'\0');
-	return pCur;
-}
-
-template<class TypeChar>
-inline TypeChar * NumberToString(unsigned long long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
-{
-	TypeChar * pCur = Str, *MaxIndex = Str + Len;
-	unsigned long long t = 0;
-	do
-	{
-	      t = t * Radix + Number % Radix;
-	}while((Number /= Radix) > 0);
-	do 
-	{
-		unsigned char  digval = (unsigned char) (t % Radix);
-		*pCur = (digval > 9)? (digval + (CHAR_TYPE(TypeChar,'a') - 10)): (digval + CHAR_TYPE(TypeChar,'0'));
-	} while ((++pCur < MaxIndex) && (t /= Radix) > 0);
-	if(MaxIndex <= pCur)
-		return pCur;
-	*pCur = CHAR_TYPE(TypeChar,'\0');
-	return pCur;
-}
-
-
-
 
 ///Float point
 template<class TypeChar>
-inline TypeChar * NumberToString(float Val, TypeChar * Buf, size_t LenBuf, unsigned char RadX, long double Eps)
+inline size_t NumberToString(float Val, TypeChar * Str, size_t LenBuf, unsigned char RadX, long double Eps)
 {
-	return _e_NumberToString((long double)Val, Buf, LenBuf, RadX, Eps);
+	return _e_NumberToString((long double)Val, Str, LenBuf, RadX, Eps) - Str;
 }
 
 template<class TypeChar>
-inline TypeChar * NumberToString(float Val, TypeChar * Buf, size_t LenBuf, unsigned char RadX = 10)
+inline size_t NumberToString(float Val, TypeChar * Str, size_t LenBuf, unsigned char RadX = 10)
 {
-	return _d_NumberToString((long double)Val, Buf, LenBuf, RadX, 0.000000001);
+	return _d_NumberToString((long double)Val, Str, LenBuf, RadX, 0.000000001) - Str;
 }
 
 
 template<class TypeChar>
-inline TypeChar * NumberToString(double Val, TypeChar * Buf, size_t LenBuf, unsigned char RadX, long double Eps)
+inline size_t NumberToString(double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX, long double Eps)
 {
-	return _e_NumberToString((long double)Val, Buf, LenBuf, RadX, Eps);
+	return _e_NumberToString((long double)Val, Str, LenBuf, RadX, Eps) - Str;
 }
 
 template<class TypeChar>
-inline TypeChar * NumberToString(double Val, TypeChar * Buf, size_t LenBuf, unsigned char RadX = 10)
+inline size_t NumberToString(double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX = 10)
 {
-	return _d_NumberToString((long double)Val, Buf, LenBuf, RadX, 0.00000000000000001);
+	return _d_NumberToString((long double)Val, Str, LenBuf, RadX, 0.00000000000000001) - Str;
 }
 
 template<class TypeChar>
-inline TypeChar * NumberToString(long double Val, TypeChar * Buf, size_t LenBuf, unsigned char RadX, long double Eps)
+inline size_t NumberToString(long double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX, long double Eps)
 {
-	return _e_NumberToString(Val, Buf, LenBuf, RadX, Eps);
+	return _e_NumberToString(Val, Str, LenBuf, RadX, Eps) - Str;
 }
 
 template<class TypeChar>
-inline TypeChar * NumberToString(long double Val, TypeChar * Buf, size_t LenBuf, unsigned char RadX = 10)
+inline size_t NumberToString(long double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX = 10)
 {
-	return _d_NumberToString(Val, Buf, LenBuf, RadX, 0.00000000000000001);
+	return _d_NumberToString(Val, Str, LenBuf, RadX, 0.00000000000000001) - Str;
 }
+
+template<class TypeChar, class TypeNumber>
+inline size_t NumberToString(TypeNumber Val, std::basic_string<TypeChar> & Str, size_t LenBuf = 0,unsigned char RadX = 10)
+{
+   TypeChar Buf[70];
+   size_t Ret = NumberToString(Val, Buf, 70, RadX);
+   Str += Buf;
+   return Ret;
+}
+
+template<class TypeChar, class TypeNumber>
+inline size_t NumberToString(TypeNumber Val, std::basic_string<TypeChar> & Str, size_t LenBuf, unsigned char RadX, long double Eps)
+{
+   TypeChar Buf[70];
+   size_t Ret = NumberToString(Val, Buf, 70, RadX, Eps);
+   Str += Buf;
+   return Ret;
+}
+
 
 
 template<class TypeChar>
@@ -514,7 +475,7 @@ inline TypeChar * _d_NumberToString(long double Number, TypeChar * Str, size_t L
 			return pCur;
 		if(Exp > 0)
 			*(pCur++) = CHAR_TYPE(TypeChar, '+');
-		pCur = NumberToString(Exp, pCur, MaxIndex - pCur, Radix);
+		pCur = _i_NumberToString(Exp, pCur, MaxIndex - pCur, Radix);
 		if(MaxIndex <= pCur)
 			return pCur;
 	}
@@ -588,7 +549,7 @@ inline TypeChar * _e_NumberToString(long double Number, TypeChar * Str, size_t L
 			return pCur;
 		if(Exp > 0)
 			*(pCur++) = CHAR_TYPE(TypeChar, '+');
-		pCur = NumberToString(Exp, pCur, MaxIndex - pCur, Radix);
+		pCur = _i_NumberToString(Exp, pCur, MaxIndex - pCur, Radix);
 		if(MaxIndex <= pCur)
 			return pCur;
 	}
@@ -639,5 +600,106 @@ void CodeUrl(const InString & InStr, OutString & OutStr, unsigned InCodePage = C
 	}
 }
 
+
+
+namespace std
+{		
+	
+	template <class Type, unsigned Offset = 0>
+	class decl_spec_val
+	{
+		char __a[Offset];
+	public:
+		Type Val;
+
+		inline Type operator()() const
+		{
+		    return Val;
+		}
+
+		inline Type operator()(const Type NewVal)
+		{
+			return Val = NewVal;
+		}
+	};
+
+	template <class Type>
+	class decl_spec_val<Type, 0>
+	{ 	
+	public:
+		Type Val;
+
+		inline Type operator()() const
+		{
+		    return Val;
+		}
+
+		inline Type operator()(const Type NewVal)
+		{
+			return Val = NewVal;
+		}
+	};
+	
+	template <class Type, unsigned Offset, size_t Len>
+	class decl_spec_val<Type[Len], Offset>
+	{
+		char __a[Offset];
+	public:
+
+		Type Val[Len];
+
+	    inline Type * operator()()
+		{
+		    return Val;
+		}
+
+	  	inline Type * operator()(Type * NewVal)
+		{
+			memcpy(Val, NewVal, sizeof(Val));
+			return NewVal;
+		}
+	};
+
+	template <class Type, size_t Len>
+	class decl_spec_val<Type[Len], 0>
+	{ 	
+	public:
+		Type Val[Len];
+
+	    inline Type * operator()()
+		{
+		    return Val;
+		}
+
+	  	inline Type * operator()(Type * NewVal)
+		{
+			memcpy(Val, NewVal, sizeof(Val));
+			return NewVal;
+		}
+	};
+
+	template <class Type, Type InitVal, bool OnWriteErr = false>
+	class decl_const_val
+	{	
+	public:
+
+		static const Type Val = InitVal;
+
+		inline Type operator()() const
+		{
+		    return Val;
+		}
+
+		inline Type operator()(const Type NewVal) const
+		{
+			typedef std::enable_if<!OnWriteErr>::type;
+			return NewVal;
+		}
+
+	};
+
+
+
+};
 
 #endif
