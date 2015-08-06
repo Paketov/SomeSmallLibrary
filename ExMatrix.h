@@ -711,7 +711,7 @@ public:
 	template<class _T, unsigned _i, unsigned _j>
 	void GetMiniMap(MATRIX<_T, _i, _j> & Result, unsigned StartRow, unsigned StartColumn)
 	{
-		typedef typename std::enable_if<(ci >= _i) && (cj > _j)>::type;
+		typedef typename std::enable_if<(ci >= _i) && (cj >= _j)>::type;
 		MATRIX & This = *this;
 		for(unsigned i = StartRow, _i = 0; i < CountRows;i++, _i++)
 			for(unsigned j = StartColumn, _j = 0;j < CountColumns;j++, _j++)
