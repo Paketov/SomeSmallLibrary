@@ -393,9 +393,9 @@ inline size_t NumberToString(TypeNumber Val, std::basic_string<TypeChar> & Str, 
 
 
 template<class TypeChar, class TypeNumber, size_t BufSize>
-inline size_t NumberToString(TypeNumber Val, TypeChar (&Buf)[BufSize], size_t LenBuf = BufSize, unsigned char RadX = 10)
+inline size_t NumberToString(TypeNumber Val, TypeChar (&Buf)[BufSize])
 {
-   return NumberToString(Val, Buf, BufSize, RadX);
+   return NumberToString(Val, (TypeChar*)Buf, BufSize, 10);
 }
 
 template<class TypeChar>
