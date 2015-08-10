@@ -107,8 +107,17 @@ namespace std
 
 
 
-	
-
+	template<bool Cond, typename RetType>
+	struct gen_err_type
+	{
+	private:
+	   class type__
+	   {
+		   RetType * v;
+	   };
+	public:
+		typedef typename conditional<Cond, RetType, type__>::type type;
+	};
 
 };
 #endif
