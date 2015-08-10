@@ -608,6 +608,12 @@ inline size_t StringToNumber(TypeNumber * Number, const TypeChar (&Buf)[BufSize]
 	   return _i_StringToNumber(Number, Buf, BufSize, 10) - Buf;
 }
 
+template<class TypeChar, class TypeNumber>
+inline size_t StringToNumber(TypeNumber * Number, const std::basic_string<TypeChar> & Str, size_t Len = 0, unsigned char Radix = 10)
+{
+     return StringToNumber(Number, Str.c_str(), Str.length(), Radix);
+}
+
 //From string to number
 
 template<class TypeChar, class TypeNumber>
