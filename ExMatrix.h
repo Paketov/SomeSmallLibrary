@@ -4,7 +4,7 @@
 #include <malloc.h>
 #include <string.h>
 #include <string>
-#include <type_traits>
+#include "ExTypeTraits.h"
 #include "ExString.h"
 
 #ifdef _MATRIX_CHECK
@@ -12,6 +12,14 @@
 #else
 #define matrix_check(Check, Message)  (Check);
 #endif
+
+#ifdef _MATRIX_CHECK_INDEXES
+#define matrix_check_index(Check, Message)  if(!(Check)) throw (Message)
+#else
+#define matrix_check_index(Check, Message)  
+#endif
+
+//Retrive, row as multi reference
 
 template<class T, unsigned cj = 0>
 class ROW
@@ -98,7 +106,13 @@ public:
 				}
 				return Cur;
 			}
-		} AsString;
+
+			template <class TypeChar, unsigned BufSize> 
+			inline TypeChar * operator()(TypeChar (&Buf)[BufSize]) 
+			{
+				return operator()(Buf, BufSize);
+			}
+		} Text;
 	};
 private:
 	ROW(T * Column, unsigned Count)
@@ -162,7 +176,7 @@ public:
 
 	T & operator[](const unsigned Index)
 	{
-		matrix_check(Index < _Fields._Count, "Column out of bound");
+		matrix_check_index(Index < _Fields._Count, "Column out of bound");
 		return _Fields.v[Index];
 	}
 
@@ -199,8 +213,8 @@ private:
 			return true;
 		}
 
-		template<unsigned _ci, unsigned _cj>
-		inline bool Copy(const MATRIX<T, _ci, _cj> & Enother)
+		template<unsigned _i, unsigned _j>
+		inline bool Copy(const MATRIX<T, _i, _j> & Enother)
 		{
 			T * NewVal = (T*)realloc(v, sizeof(T) * Enother.CountColumns * Enother.CountRows);
 			if(NewVal == NULL)
@@ -212,24 +226,24 @@ private:
 			return true;
 		}
 
-		template<class _T, unsigned _ci, unsigned _cj>
-		inline bool Copy(const MATRIX<_T, _ci, _cj> & Enother)
+		template<class _T, unsigned _i, unsigned _j>
+		inline bool Copy(const MATRIX<_T, _i, _j> & Enother)
 		{
 			typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
-
-			T * NewVal = (T*)realloc(v, sizeof(T) * Enother.CountColumns * Enother.CountRows);
+			unsigned  m = Enother.CountColumns * Enother.CountRows;
+			T * NewVal = (T*)realloc(v, sizeof(T) * m);
 			if(NewVal == NULL)
 				return false;
 			_CColumns = Enother.CountColumns;
 			_CRows = Enother.CountRows;
 			v = NewVal;
-			for(unsigned i = 0;i < (_i * _j);i++)
-				((T*)v)[i] = Enother[i];
+			for(unsigned i = 0;i < m;i++)
+				((T*)v)[i] = ((_T*)Enother._Fields.v)[i];
 			return true;
 		}
 
-		template<unsigned _j, unsigned _i>
-		inline bool Copy(T * Enother)
+		template <unsigned _i, unsigned _j> 
+		inline bool Copy(const T (&Enother)[_i][_j])
 		{
 			T * NewVal = (T*)realloc(v, sizeof(T) * _i * _j);
 			if(NewVal == NULL)
@@ -241,8 +255,8 @@ private:
 			return true;
 		}
 
-		template<class _T, unsigned _j, unsigned _i>
-		inline bool Copy(_T * Enother)
+		template <class _T, unsigned _i, unsigned _j> 
+		inline bool Copy(const _T (&Enother)[_i][_j])
 		{
 			typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
 
@@ -253,7 +267,7 @@ private:
 			_CRows = _j;
 			v = NewVal;
 			for(unsigned i = 0;i < (_i * _j);i++)
-				((T*)v)[i] = Enother[i];
+				((T*)v)[i] = ((const _T*)Enother)[i];
 			return true;
 		}
 
@@ -298,8 +312,8 @@ private:
 			return true;
 		}
 
-		template<unsigned _ci, unsigned _cj>
-		inline bool Copy(const MATRIX<T, _ci, _cj> & Enother)
+		template<unsigned _i, unsigned _j>
+		inline bool Copy(const MATRIX<T, _i, _j> & Enother)
 		{
 			typedef typename std::enable_if<false>::type;
 			return true;
@@ -308,24 +322,24 @@ private:
 		template<>
 		inline bool Copy(const MATRIX<T, 0, 0> & Enother)
 		{
-			matrix_check((_CColumns != Enother.CountColumns) || (_CRows != Enother.CountRows), "Count column and row not equal.");
-			memcpy(v, Enother._Fileds.v, sizeof(v));
+			matrix_check((_CColumns == Enother.CountColumns) && (_CRows == Enother.CountRows), "Count column and row not equal.");
+			memcpy(v, Enother._Fields.v, sizeof(v));
 			return true;
 		}
 
-		template<class _T, unsigned _ci, unsigned _cj>
-		inline bool Copy(const MATRIX<_T, _ci, _cj> & Enother)
+		template<class _T, unsigned _i, unsigned _j>
+		inline bool Copy(const MATRIX<_T, _i, _j> & Enother)
 		{
 			typedef typename std::enable_if<(ci == _i) && (cj == _j)>::type;
 			typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
-			matrix_check((_CColumns != Enother.CountColumns) || (_CRows != Enother.CountRows), "Count column and row not equal.");
-			for(unsigned i = 0;i < (_i * _j);i++)
-				((T*)v)[i] = Enother[i];
+			matrix_check((_CColumns == Enother.CountColumns) && (_CRows == Enother.CountRows), "Count column and row not equal.");
+			for(unsigned i = 0, m = _CColumns * _CRows;i < m;i++)
+				((T*)v)[i] = ((_T*)Enother._Fields.v)[i];
 			return true;
 		}
 
-		template<unsigned _j, unsigned _i>
-		inline bool Copy(T * Enother)
+		template <unsigned _i, unsigned _j> 
+		inline bool Copy(const T (&Enother)[_i][_j])
 		{
 			typedef typename std::enable_if<(ci == _i) && (cj == _j)>::type;
 
@@ -333,13 +347,13 @@ private:
 			return true;
 		}
 
-		template<class _T, unsigned _j, unsigned _i>
-		inline bool Copy(_T * Enother)
+		template <class _T, unsigned _i, unsigned _j> 
+		inline bool Copy(const _T (&Enother)[_i][_j])
 		{
 			typedef typename std::enable_if<(ci == _i) && (cj == _j)>::type;
 			typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
 			for(unsigned i = 0;i < (_i * _j);i++)
-				((T*)v)[i] = Enother[i];
+				((T*)v)[i] = ((const _T*)Enother)[i];
 			return true;
 		}
 
@@ -371,8 +385,6 @@ public:
 	union
 	{
 		__MATRIX_FIELDS_DEF;
-
-
 		class
 		{
 			__MATRIX_FIELDS_DEF;
@@ -455,11 +467,11 @@ public:
 			}
 
 		public:
-			operator T()
+			operator T() const
 			{
 				//Error: if static count rows and columns not equal
 				typedef typename std::enable_if<ci == cj>::type;
-				MATRIX This(*(MATRIX*)this);
+				MATRIX This = *(MATRIX*)this;
 				matrix_check(This.CountRows == This.CountColumns, "Count column and row not equal.");
 				return Solution(This);
 			}
@@ -477,7 +489,7 @@ public:
 				MATRIX & This = *(MATRIX*)this;
 				std::basic_string<TypeChar> OutStr;
 				for(unsigned i = 0;i < This.CountRows;i++)
-					OutStr += (std::basic_string<TypeChar>)This[i].AsString + STR_TYPE(TypeChar, "\n");
+					OutStr += (std::basic_string<TypeChar>)This[i].Text + STR_TYPE(TypeChar, "\n");
 				return OutStr;
 			}
 
@@ -488,20 +500,28 @@ public:
 				TypeChar * Maxindex = Buf + BufSize, *Cur = Buf;
 				for(unsigned i = 0; i < This.CountColumns; i++)
 				{			
-					Cur = (*(MATRIX*)this)[i].AsString(Cur, Maxindex - Cur);
+					Cur = (*(MATRIX*)this)[i].Text(Cur, Maxindex - Cur);
 					if((Cur < Maxindex))
 						*(Cur++) = CHAR_TYPE(TypeChar, '\n');
 				}
+				*Cur = CHAR_TYPE(TypeChar, '\0');
 				return Cur;
 			}
-		} AsString;
+
+			template <class TypeChar, unsigned BufSize> 
+			inline TypeChar * operator()(TypeChar (&Buf)[BufSize]) 
+			{
+				return operator()(Buf, BufSize);
+			}
+
+		} Text;
 	};
 
 public:
 
 	typename std::conditional<IsStaticArr,ROW<T, cj> &, ROW<T, cj>>::type operator[](const unsigned Index)
 	{
-		matrix_check(Index < _Fields._CRows, "Row out of bound");
+		matrix_check_index(Index < _Fields._CRows, "Row out of bound");
 		if(IsStaticArr)
 			return *(ROW<T, cj>*)((T*)_Fields.v + CountColumns * Index);
 		else
@@ -545,35 +565,68 @@ public:
 		matrix_check(_Fields.Allocate(N, N), "Not alloc memory");
 	}
 
-	template<unsigned _i, unsigned _j>
-	MATRIX(MATRIX<T, _i, _j> & New)
-	{
+	MATRIX(const MATRIX & New)
+	{ 
+		_Fields.Init();
+		matrix_check(_Fields.Copy(New),  "Matrix not copied");
+	}
+
+	template<class _T, unsigned _i, unsigned _j>
+	 MATRIX(const MATRIX<_T, _i, _j> & New)
+	{ 
+	    //Is types not convertible, have compile error
+		typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
 		//Is matrix static, and count row or column not equal
 		typedef typename std::enable_if<!IsStaticArr || !New.IsStaticArr || ((ci == _i) && (cj == _j))>::type;
 		_Fields.Init();
 		matrix_check(_Fields.Copy(New),  "Matrix not copied");
 	}
 
+	 
 	template <unsigned _i, unsigned _j> 
-	MATRIX(T (&New)[_i][_j]) 
+	 MATRIX(const T (&New)[_i][_j]) 
 	{ 
 		//Is matrix static, and count row or column not equal
 		typedef typename std::enable_if<!IsStaticArr || ((ci == _i) && (cj == _j))>::type;
 		_Fields.Init();
-		_Fields.Copy<_i, _j>((T*)New);
+		matrix_check(_Fields.Copy(New),  "Matrix not copied");
 	}
 
 	template <class _T, unsigned _i, unsigned _j> 
-	MATRIX(_T (&New)[_i][_j]) 
+	 MATRIX(const _T (&New)[_i][_j]) 
 	{ 
 		//Is types not convertible, have compile error
 		typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
 		//Is matrix static, and count row or column not equal
 		typedef typename std::enable_if<!IsStaticArr || ((ci == _i) && (cj == _j))>::type;
 		_Fields.Init();
-		_Fields.Copy<_T, _i, _j>((_T*)New);
+		matrix_check(_Fields.Copy(New),  "Matrix not copied");
 	}
 
+	 MATRIX & operator =(const MATRIX & New)
+	{
+		matrix_check(_Fields.Copy(New),  "Matrix not copied");
+	}
+
+	template<class _T, unsigned _i, unsigned _j>
+	 MATRIX & operator =(const MATRIX<_T, _i, _j> & New)
+	{
+	    //Is types not convertible, have compile error
+		typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
+		//Is matrix static, and count row or column not equal
+		typedef typename std::enable_if<!IsStaticArr || !New.IsStaticArr || ((ci == _i) && (cj == _j))>::type;
+		matrix_check(_Fields.Copy(New),  "Matrix not copied");
+	}
+
+	template <class _T, unsigned _i, unsigned _j> 
+	 MATRIX & operator =(const _T (&New)[_i][_j]) 
+	{ 
+		//Is types not convertible, have compile error
+		typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
+		//Is matrix static, and count row or column not equal
+		typedef typename std::enable_if<!IsStaticArr || ((ci == _i) && (cj == _j))>::type;
+		matrix_check(_Fields.Copy(New),  "Matrix not copied");
+	}
 
 	~MATRIX()
 	{
@@ -601,16 +654,21 @@ public:
 		}
 	}
 
-	MATRIX & operator *=(T Val)
+	//Mul on scalar
+	template<class _T>
+	MATRIX & operator *=(_T Val)
 	{
+		typedef typename std::enable_if< std::is_convertible<_T, T>::value>::type;
 		for(unsigned i = 0;i < CountRows;i++)
 			for(unsigned j = 0;j < CountColumns;j++)
 				(*this)[i][j] *= Val;
 		return *this;
 	}
 
-	MATRIX operator *(T Val)
+	template<class _T>
+	MATRIX operator *(_T Val)
 	{
+		typedef typename std::enable_if< std::is_convertible<_T, T>::value>::type;
 		MATRIX Ret = *this;
 		for(unsigned i = 0;i < CountRows;i++)
 			for(unsigned j = 0;j < CountColumns;j++)
@@ -618,15 +676,38 @@ public:
 		return Ret;
 	}
 
-	MATRIX operator *(const MATRIX & Val)
+	//////////////
+
+	//Mul on enother matrix
+	template<class _T, unsigned _i, unsigned _j>
+	MATRIX<
+				T, 
+				((!IsStaticArr || !MATRIX<_T, _i, _j>::IsStaticArr)?0:ci), 
+				((!IsStaticArr || !MATRIX<_T, _i, _j>::IsStaticArr)?0:_j)
+	      >  operator *(const MATRIX<_T, _i, _j> & Val)
 	{
+		typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
+		typedef typename std::enable_if<!IsStaticArr || !Val.IsStaticArr || (ci == _j) && (cj == _i)>::type;
+		
+
 		matrix_check(CountRows == Val.CountColumns, "Count column and row not equal.");
-		MATRIX m(CountColumns, Val.CountRows, T(0));
+
+
+		MATRIX & This = *this;
+		MATRIX<
+				T, 
+				((!IsStaticArr || !MATRIX<_T, _i, _j>::IsStaticArr)?0:ci), 
+				((!IsStaticArr || !MATRIX<_T, _i, _j>::IsStaticArr)?0:_j)
+	    > Ret(CountColumns, Val.CountRows);
 		for(unsigned i = 0;i < CountRows;i++)
 			for(unsigned j = 0;j < CountColumns;j++)
+			{
+				T Summ = T(0);
 				for(unsigned k = 0;k < CountRows;k++)
-					m[i][j] += (*this)[i][k] * Val[k][j];
-		return m;
+					Summ += This[i][k] * ((MATRIX<_T, _i, _j> &)Val)[k][j];
+				Ret[i][j] = Summ;
+			}
+		return Ret;
 	}
 
 
@@ -639,11 +720,21 @@ public:
 
 	void SwapRows(unsigned r1, unsigned r2)
 	{
-		for (int j=0; j < CountColumns; j++) 
+		for (unsigned j = 0; j < CountColumns; j++) 
 		{
-			T tmp = (*this)[r2][j];
+			register T tmp = (*this)[r2][j];
 			(*this)[r2][j] = (*this)[r1][j];
 			(*this)[r1][j] = tmp;
+		}
+	}
+
+	void SwapColumns(unsigned r1, unsigned r2)
+	{
+		for (unsigned i = 0; i < CountRows; i++) 
+		{
+			register T tmp = (*this)[i][r2];
+			(*this)[i][r2] = (*this)[i][r1];
+			(*this)[i][r2] = tmp;
 		}
 	}
 
@@ -696,6 +787,15 @@ public:
 		return A;
 	}
 
+	template<class _T, unsigned _i, unsigned _j>
+	void GetMiniMap(MATRIX<_T, _i, _j> & Result, unsigned StartRow, unsigned StartColumn)
+	{
+		MATRIX & This = *this;
+		for(unsigned i = StartRow, _i = 0; i < CountRows;i++, _i++)
+			for(unsigned j = StartColumn, _j = 0;j < CountColumns;j++, _j++)
+				Result[_i][_j] = This[i][j];
+	}	
+	
 	void ToTranspose()
 	{
 		typedef typename std::enable_if<cj == ci>::type;
@@ -706,16 +806,6 @@ public:
 				(*this)[i][j] = (*this)[j][i];
 				(*this)[j][i] = temp;
 			}
-	}
-
-	template<class _T, unsigned _i, unsigned _j>
-	void GetMiniMap(MATRIX<_T, _i, _j> & Result, unsigned StartRow, unsigned StartColumn)
-	{
-		typedef typename std::enable_if<(ci >= _i) && (cj >= _j)>::type;
-		MATRIX & This = *this;
-		for(unsigned i = StartRow, _i = 0; i < CountRows;i++, _i++)
-			for(unsigned j = StartColumn, _j = 0;j < CountColumns;j++, _j++)
-				Result[_i][_j] = This[i][j];
 	}
 
 	MATRIX GetTranspose()
@@ -745,7 +835,7 @@ public:
 		return RetMatrix *= ((T)1 / d);
 	}
 
-	void ToMinor()
+	inline void ToMinor()
 	{
 		*this = GetMinor();
 	}
@@ -801,7 +891,6 @@ public:
 			}
 			This = Ret;
 	}
-
 
 	MATRIX GetСofactor()
 	{
