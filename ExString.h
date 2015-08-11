@@ -29,6 +29,9 @@
 #define STR_TYPE(c,Str)			((std::is_equal<c, wchar_t>::value)?(c*)(L ## Str):(c*)(Str))
 #define CHAR_TYPE(Type, Char)	((std::is_equal<Type, char>::value)?(Char):(L ## Char))
 
+
+
+
 template<typename OutString>
 void ConvertCodePageString(unsigned InCp, unsigned OutCp, const wchar_t * InStr, OutString & OutStr)
 {
@@ -267,45 +270,45 @@ public:
 
 
 //Converting from number to string
-template<class TypeChar>
+template<typename TypeChar>
 inline size_t NumberToString(int Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	return _i_NumberToString(Number, Str, Len, Radix) - Str;
 }
 
-template<class TypeChar>
+template<typename TypeChar>
 inline size_t NumberToString(unsigned Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	return _i_NumberToString(Number, Str, Len, Radix) - Str;
 }
 
-template<class TypeChar>
+template<typename TypeChar>
 inline size_t NumberToString(long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	return _i_NumberToString(Number, Str, Len, Radix) - Str;
 }
 
-template<class TypeChar>
+template<typename TypeChar>
 inline size_t NumberToString(unsigned long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	return _i_NumberToString(Number, Str, Len, Radix) - Str;
 }
 
 
-template<class TypeChar>
+template<typename TypeChar>
 inline size_t NumberToString(long long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	return _i_NumberToString(Number, Str, Len, Radix) - Str;
 }
 
-template<class TypeChar>
+template<typename TypeChar>
 inline size_t NumberToString(unsigned long long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	return _i_NumberToString(Number, Str, Len, Radix) - Str;
 }
 
  
-template<class TypeNumber, class TypeChar>
+template<typename TypeNumber, typename TypeChar>
 inline TypeChar * _i_NumberToString(TypeNumber Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	TypeChar * pCur = Str, *MaxIndex = Str + Len;
@@ -336,44 +339,44 @@ inline TypeChar * _i_NumberToString(TypeNumber Number, TypeChar * Str, size_t Le
 }
 
 ///Float point
-template<class TypeChar>
+template<typename TypeChar>
 inline size_t NumberToString(float Val, TypeChar * Str, size_t LenBuf, unsigned char RadX, long double Eps)
 {
 	return _e_NumberToString((long double)Val, Str, LenBuf, RadX, Eps) - Str;
 }
 
-template<class TypeChar>
+template<typename TypeChar>
 inline size_t NumberToString(float Val, TypeChar * Str, size_t LenBuf, unsigned char RadX = 10)
 {
 	return _d_NumberToString((long double)Val, Str, LenBuf, RadX, 0.000000001) - Str;
 }
 
 
-template<class TypeChar>
+template<typename TypeChar>
 inline size_t NumberToString(double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX, long double Eps)
 {
 	return _e_NumberToString((long double)Val, Str, LenBuf, RadX, Eps) - Str;
 }
 
-template<class TypeChar>
+template<typename TypeChar>
 inline size_t NumberToString(double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX = 10)
 {
 	return _d_NumberToString((long double)Val, Str, LenBuf, RadX, 0.00000000000000001) - Str;
 }
 
-template<class TypeChar>
+template<typename TypeChar>
 inline size_t NumberToString(long double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX, long double Eps)
 {
 	return _e_NumberToString(Val, Str, LenBuf, RadX, Eps) - Str;
 }
 
-template<class TypeChar>
+template<typename TypeChar>
 inline size_t NumberToString(long double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX = 10)
 {
 	return _d_NumberToString(Val, Str, LenBuf, RadX, 0.00000000000000001) - Str;
 }
 
-template<class TypeChar, class TypeNumber>
+template<typename TypeChar, typename TypeNumber>
 inline size_t NumberToString(TypeNumber Val, std::basic_string<TypeChar> & Str, size_t LenBuf = 0,unsigned char RadX = 10)
 {
    TypeChar Buf[70];
@@ -382,7 +385,7 @@ inline size_t NumberToString(TypeNumber Val, std::basic_string<TypeChar> & Str, 
    return Ret;
 }
 
-template<class TypeChar, class TypeNumber>
+template<typename TypeChar, typename TypeNumber>
 inline size_t NumberToString(TypeNumber Val, std::basic_string<TypeChar> & Str, size_t LenBuf, unsigned char RadX, long double Eps)
 {
    TypeChar Buf[70];
@@ -392,13 +395,13 @@ inline size_t NumberToString(TypeNumber Val, std::basic_string<TypeChar> & Str, 
 }
 
 
-template<class TypeChar, class TypeNumber, size_t BufSize>
+template<typename TypeChar, typename TypeNumber, size_t BufSize>
 inline size_t NumberToString(TypeNumber Val, TypeChar (&Buf)[BufSize])
 {
    return NumberToString(Val, (TypeChar*)Buf, BufSize, 10);
 }
 
-template<class TypeChar>
+template<typename TypeChar>
 inline TypeChar * _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsigned char Radix, long double Eps1)
 {
 	static const long double MinExp = 1.0e-5;
@@ -495,7 +498,7 @@ inline TypeChar * _d_NumberToString(long double Number, TypeChar * Str, size_t L
 }
 
 
-template<class TypeChar>
+template<typename TypeChar>
 inline TypeChar * _e_NumberToString(long double Number, TypeChar * Str, size_t Len, unsigned char Radix, long double Eps1)
 {
 	static const long double MinExp = 1.0e-5;
@@ -589,7 +592,7 @@ inline TypeChar * _e_NumberToString(long double Number, TypeChar * Str, size_t L
 }
 
 
-template<class TypeChar, class TypeNumber>
+template<typename TypeChar, typename TypeNumber>
 inline size_t StringToNumber(TypeNumber * Number, const TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
    if(std::is_floating_point<TypeNumber>::value)
@@ -599,7 +602,7 @@ inline size_t StringToNumber(TypeNumber * Number, const TypeChar * Str, size_t L
 }
 
 
-template<class TypeChar, class TypeNumber, size_t BufSize>
+template<typename TypeChar, typename TypeNumber, size_t BufSize>
 inline size_t StringToNumber(TypeNumber * Number, const TypeChar (&Buf)[BufSize])
 {
    if(std::is_floating_point<TypeNumber>::value)
@@ -608,7 +611,7 @@ inline size_t StringToNumber(TypeNumber * Number, const TypeChar (&Buf)[BufSize]
 	   return _i_StringToNumber(Number, Buf, BufSize, 10) - Buf;
 }
 
-template<class TypeChar, class TypeNumber>
+template<typename TypeChar, typename TypeNumber>
 inline size_t StringToNumber(TypeNumber * Number, const std::basic_string<TypeChar> & Str, size_t Len = 0, unsigned char Radix = 10)
 {
      return StringToNumber(Number, Str.c_str(), Str.length(), Radix);
@@ -616,7 +619,7 @@ inline size_t StringToNumber(TypeNumber * Number, const std::basic_string<TypeCh
 
 //From string to number
 
-template<class TypeChar, class TypeNumber>
+template<typename TypeChar, typename TypeNumber>
 const TypeChar * _i_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {		
 	char Negative = 1;
@@ -651,7 +654,7 @@ const TypeChar * _i_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size
 }
 
 
-template<bool InfInd, class TypeNumber, class TypeChar>
+template<bool InfInd, typename TypeNumber, typename TypeChar>
 const TypeChar * _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	const TypeChar * pCur = Str, *MaxIndex = Str + Len;
@@ -743,7 +746,7 @@ lblSingOut:
 
 	if((*pCur == CHAR_TYPE(TypeChar, 'e')) || (*pCur == CHAR_TYPE(TypeChar, 'E')))
 	{
-	   int Exp = 0;
+	   int Exp;
 	   const TypeChar * pCur_ = _i_StringToNumber(&Exp, pCur + 1, MaxIndex - (pCur + 1), Radix);
 	   if(pCur_ != (pCur + 1))
 	   {
@@ -756,6 +759,215 @@ lblSingOut:
 	return pCur;
 }
 
+
+template<typename TypeNumber, typename TypeChar>
+size_t StreamToNumber(TypeNumber * Dest, std::basic_istream<TypeChar> & Stream, unsigned char Radix = 10)
+{
+
+	struct ld
+	{
+		static inline TypeChar GetChar(std::basic_istream<TypeChar> & s)
+		{
+			TypeChar c;
+			s.get(c);
+			return c;
+		}
+		static inline void UnGetChar(std::basic_istream<TypeChar> & s, TypeChar v)
+		{
+			s.unget();
+		}
+	};
+	if(std::is_floating_point<TypeNumber>::value)
+		return _d_StreamToNumber<true, TypeNumber, TypeChar, std::basic_istream<TypeChar> &, ld::GetChar, ld::UnGetChar>(Dest, Stream, Radix);
+	else
+		return _i_StreamToNumber<TypeNumber, TypeChar, std::basic_istream<TypeChar> &, ld::GetChar, ld::UnGetChar>(Dest, Stream, Radix);
+}
+
+
+template<typename TypeNumber>
+size_t StreamToNumber(TypeNumber * Dest, FILE * Stream, unsigned char Radix = 10)
+{
+
+	struct ld
+	{
+		static inline wchar_t GetChar(FILE * s)
+		{
+			return getwc(s);
+		}
+		static inline void UnGetChar(FILE * s, wchar_t v)
+		{
+			ungetwc(v, s);
+		}
+	};
+	if(std::is_floating_point<TypeNumber>::value)
+		return _d_StreamToNumber<true, TypeNumber, wchar_t, FILE *, ld::GetChar, ld::UnGetChar>(Dest, Stream, Radix);
+	else
+		return _i_StreamToNumber<TypeNumber, wchar_t, FILE *, ld::GetChar, ld::UnGetChar>(Dest, Stream, Radix);
+}
+
+template<typename TypeNumber, typename TypeChar, typename StreamType,  TypeChar (*GetChar)(StreamType), void (*UngetChar)(StreamType, TypeChar)>
+size_t _i_StreamToNumber(TypeNumber * Dest, StreamType InStream, unsigned char Radix = 10)
+{		
+	char Negative = 1;
+	size_t CountReaded = 0;
+	TypeChar Cur = GetChar(InStream);
+	CountReaded++;
+	if(std::is_signed<TypeNumber>::value)
+		switch(Cur)
+	{
+		case CHAR_TYPE(TypeChar, '-'):
+			Negative = -1;
+		case CHAR_TYPE(TypeChar, '+'):
+			Cur = GetChar(InStream);
+			CountReaded++;
+	}
+	TypeNumber Ret = (TypeNumber)0;
+
+	for(;;Cur = GetChar(InStream), CountReaded++)
+	{
+		unsigned char Digit = Cur - CHAR_TYPE(TypeChar, '0');
+		if(Digit > 9)
+		{
+			Digit = Cur - (CHAR_TYPE(TypeChar, 'a') - 10);
+			if(Digit >= Radix)
+				Digit = Cur - (CHAR_TYPE(TypeChar, 'A') - 10);
+			if(Digit >= Radix)
+				break;
+		}
+		Ret = Ret * Radix + Digit;
+	}
+	UngetChar(InStream, Cur);
+	CountReaded--;
+	*Dest =  Ret * Negative;
+	return CountReaded;
+}
+
+
+template<bool InfInd, typename TypeNumber, typename TypeChar, typename StreamType, TypeChar (*GetChar)(StreamType), void (*UngetChar)(StreamType, TypeChar)>
+size_t _d_StreamToNumber(TypeNumber * Dest, StreamType InStream, unsigned char Radix = 10)
+{
+	long long IntegerPart = 0;
+	size_t CountReaded = 0;
+	static const long double Inf = 9999e+200 * 9999e+200 * 9999e+200;
+	static const long double Ind = Inf * 0;
+	static const long double Qnan = -Ind;
+
+	CountReaded = _i_StreamToNumber<long long, TypeChar, StreamType, GetChar, UngetChar>(&IntegerPart, InStream, Radix);
+
+
+	TypeChar Cur = GetChar(InStream);
+	CountReaded++;
+	if(Cur != CHAR_TYPE(TypeChar, '.'))
+	{		
+		*Dest = (TypeNumber)IntegerPart;
+		UngetChar(InStream, Cur);
+		return CountReaded - 1;
+	}
+	
+	long double Result = IntegerPart;
+	Cur = GetChar(InStream);
+	CountReaded++;
+
+	if(InfInd && (Cur == CHAR_TYPE(TypeChar, '#')))
+	{
+		Cur = GetChar(InStream);
+		CountReaded++;
+		if((Cur == CHAR_TYPE(TypeChar, 'I')) || (Cur == CHAR_TYPE(TypeChar, 'i')))
+		{
+			Cur = GetChar(InStream);
+			CountReaded++;
+			if((Cur == CHAR_TYPE(TypeChar, 'N')) || (Cur == CHAR_TYPE(TypeChar, 'n')))
+			{
+				Cur = GetChar(InStream);
+				CountReaded++;
+				switch(Cur)
+				{
+				case 'F':
+				case 'f':
+					Result = IntegerPart * Inf;
+					Cur = GetChar(InStream);
+					CountReaded++;
+					goto lblSingOut;
+				case 'D':
+				case 'd':
+					Result = IntegerPart * Ind;
+					Cur = GetChar(InStream);
+					CountReaded++;
+					goto lblSingOut;
+				}
+			}
+		}else if((Cur == CHAR_TYPE(TypeChar, 'Q')) || (Cur == CHAR_TYPE(TypeChar, 'q')))
+		{
+			Cur = GetChar(InStream);
+			CountReaded++;
+			if((Cur == CHAR_TYPE(TypeChar, 'N')) || (Cur == CHAR_TYPE(TypeChar, 'n')))
+			{
+				Cur = GetChar(InStream);
+				CountReaded++;
+				if((Cur == CHAR_TYPE(TypeChar, 'A')) || (Cur == CHAR_TYPE(TypeChar, 'a')))
+				{
+					Cur = GetChar(InStream);
+					CountReaded++;
+					if((Cur == CHAR_TYPE(TypeChar, 'N')) || (Cur == CHAR_TYPE(TypeChar, 'n')))
+					{
+						Result = IntegerPart * Qnan;
+						Cur = GetChar(InStream);
+						CountReaded++;
+						goto lblSingOut;
+					}
+				}
+			}
+		}
+		*Dest = Result;
+		return CountReaded;
+	}
+
+lblSingOut:
+
+	//Get fraction part
+	{
+		unsigned long long FractPart = 1;
+		unsigned CountNum = 0;
+		for(;;CountNum++, Cur = GetChar(InStream), CountReaded++)
+		{
+			unsigned char Digit = Cur - CHAR_TYPE(TypeChar, '0');
+			if(Digit > 9)
+			{
+				Digit = Cur - (CHAR_TYPE(TypeChar, 'a') - 10);
+				if(Digit >= Radix)
+					Digit = Cur- (CHAR_TYPE(TypeChar, 'A') - 10);
+				if(Digit >= Radix)
+					break;
+			}
+			FractPart = FractPart * Radix + Digit;
+		}
+		long double DoubleFract = 0.0;
+		for(;FractPart > 1; FractPart /= Radix)
+			DoubleFract = (DoubleFract + (long double)(FractPart % Radix)) * (long double)0.1;
+
+		if(Result < 0.0)
+			Result -= DoubleFract;
+		else
+			Result += DoubleFract;
+	}
+
+	if((Cur == CHAR_TYPE(TypeChar, 'e')) || (Cur == CHAR_TYPE(TypeChar, 'E')))
+	{
+		int Exp;
+		size_t CountReadedExp =  _i_StreamToNumber<int, TypeChar, StreamType, GetChar, UngetChar>(&Exp, InStream, Radix);
+		if(CountReadedExp > 0)
+		{
+			Result *= pow((long double)Radix, Exp);
+			CountReaded += CountReadedExp;
+		}
+	}else
+	{
+		UngetChar(InStream, Cur);
+		CountReaded--;
+	}
+	*Dest = Result;
+	return CountReaded;
+}
 
 template<typename InString, typename OutString>
 void CodeUrl(const InString & InStr, OutString & OutStr, unsigned InCodePage = CP_UTF8)
