@@ -785,7 +785,7 @@ size_t StreamToNumber(TypeNumber * Dest, std::basic_istream<TypeChar> & Stream, 
 
 
 template<typename TypeNumber>
-size_t StreamToNumber(TypeNumber * Dest, FILE * Stream, unsigned char Radix = 10)
+size_t StreamToNumber(TypeNumber * Dest, FILE * Stream = stdin, unsigned char Radix = 10)
 {
 
 	struct ld
@@ -804,6 +804,7 @@ size_t StreamToNumber(TypeNumber * Dest, FILE * Stream, unsigned char Radix = 10
 	else
 		return _i_StreamToNumber<TypeNumber, wchar_t, FILE *, ld::GetChar, ld::UnGetChar>(Dest, Stream, Radix);
 }
+
 
 template<typename TypeNumber, typename TypeChar, typename StreamType,  TypeChar (*GetChar)(StreamType), void (*UngetChar)(StreamType, TypeChar)>
 size_t _i_StreamToNumber(TypeNumber * Dest, StreamType InStream, unsigned char Radix = 10)
@@ -968,6 +969,46 @@ lblSingOut:
 	*Dest = Result;
 	return CountReaded;
 }
+
+
+template<typename TypeNumber, typename TypeChar>
+size_t NumberToStream(TypeNumber Number, std::basic_ostream<TypeChar> & Stream, unsigned char Radix = 10)
+{
+	TypeChar Buf[70];
+	size_t Res = NumberToString(Number, Buf, 70, Radix);
+	Stream << Buf;
+	return Res;
+}
+
+
+template<typename TypeNumber>
+size_t NumberToStream(TypeNumber Number, FILE * Stream = stdout, unsigned char Radix = 10)
+{
+	wchar_t Buf[70];
+	size_t Res = NumberToString(Number, Buf, 70, Radix);
+	fwprintf(Stream, L"%s", Buf);
+	return Res;
+}
+
+template<typename TypeNumber, typename TypeChar>
+size_t NumberToStream(TypeNumber Number, std::basic_ostream<TypeChar> & Stream, unsigned char Radix, long double Eps)
+{
+	TypeChar Buf[70];
+	size_t Res = NumberToString((long double)Number, Buf, 70, Radix, Eps);
+	Stream << Buf;
+	return Res;
+}
+
+
+template<typename TypeNumber>
+size_t NumberToStream(TypeNumber Number, FILE * Stream, unsigned char Radix, long double Eps)
+{
+	wchar_t Buf[70];
+	size_t Res = NumberToString((long double)Number, Buf, 70, Radix, Eps);
+	fwprintf(Stream, L"%s", Buf);
+	return Res;
+}
+
 
 template<typename InString, typename OutString>
 void CodeUrl(const InString & InStr, OutString & OutStr, unsigned InCodePage = CP_UTF8)
