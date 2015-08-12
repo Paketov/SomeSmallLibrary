@@ -598,7 +598,7 @@ inline size_t StringToNumber(TypeNumber * Number, const TypeChar * Str, size_t L
    if(std::is_floating_point<TypeNumber>::value)
 	   return _d_StringToNumber<true>(Number, Str, Len, Radix) - Str;
    else
-	   return _i_StringToNumber(Number, Str, Len, Radix) - Str;
+	   return _i_StringToNumber<true>(Number, Str, Len, Radix) - Str;
 }
 
 
@@ -608,7 +608,7 @@ inline size_t StringToNumber(TypeNumber * Number, const TypeChar (&Buf)[BufSize]
    if(std::is_floating_point<TypeNumber>::value)
 	   return _d_StringToNumber<true>(Number, Buf, BufSize, 10) - Buf;
    else
-	   return _i_StringToNumber(Number, Buf, BufSize, 10) - Buf;
+	   return _i_StringToNumber<true>(Number, Buf, BufSize, 10) - Buf;
 }
 
 template<typename TypeChar, typename TypeNumber>
@@ -619,11 +619,13 @@ inline size_t StringToNumber(TypeNumber * Number, const std::basic_string<TypeCh
 
 //From string to number
 
-template<typename TypeChar, typename TypeNumber>
+template<bool IsSkipSpace, typename TypeChar, typename TypeNumber>
 const TypeChar * _i_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {		
 	char Negative = 1;
 	const TypeChar * pCur = Str, *MaxChar = Str + Len;
+	if(IsSkipSpace)
+		pCur += SkipSpace(Str, Len);
 	if(std::is_signed<TypeNumber>::value && (Len != 0))
 		switch(*pCur)
 		{
@@ -654,7 +656,7 @@ const TypeChar * _i_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size
 }
 
 
-template<bool InfInd, typename TypeNumber, typename TypeChar>
+template<bool IsSkipSpace, bool InfInd, typename TypeNumber, typename TypeChar>
 const TypeChar * _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	const TypeChar * pCur = Str, *MaxIndex = Str + Len;
@@ -663,7 +665,7 @@ const TypeChar * _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size
 	static const long double Ind = Inf * 0;
 	static const long double Qnan = -Ind;
 
-	pCur = _i_StringToNumber(&IntegerPart, pCur, MaxIndex - pCur, Radix);
+	pCur = _i_StringToNumber<IsSkipSpace>(&IntegerPart, pCur, MaxIndex - pCur, Radix);
 
 	if(*pCur != CHAR_TYPE(TypeChar, '.'))
 	{
@@ -747,7 +749,7 @@ lblSingOut:
 	if((*pCur == CHAR_TYPE(TypeChar, 'e')) || (*pCur == CHAR_TYPE(TypeChar, 'E')))
 	{
 	   int Exp;
-	   const TypeChar * pCur_ = _i_StringToNumber(&Exp, pCur + 1, MaxIndex - (pCur + 1), Radix);
+	   const TypeChar * pCur_ = _i_StringToNumber<false>(&Exp, pCur + 1, MaxIndex - (pCur + 1), Radix);
 	   if(pCur_ != (pCur + 1))
 	   {
 		   Result *= pow((long double)Radix, Exp);
@@ -778,16 +780,15 @@ size_t StreamToNumber(TypeNumber * Dest, std::basic_istream<TypeChar> & Stream, 
 		}
 	};
 	if(std::is_floating_point<TypeNumber>::value)
-		return _d_StreamToNumber<true, TypeNumber, TypeChar, std::basic_istream<TypeChar> &, ld::GetChar, ld::UnGetChar>(Dest, Stream, Radix);
+		return _d_StreamToNumber<true, true, TypeNumber, TypeChar, std::basic_istream<TypeChar> &, ld::GetChar, ld::UnGetChar>(Dest, Stream, Radix);
 	else
-		return _i_StreamToNumber<TypeNumber, TypeChar, std::basic_istream<TypeChar> &, ld::GetChar, ld::UnGetChar>(Dest, Stream, Radix);
+		return _i_StreamToNumber<true, TypeNumber, TypeChar, std::basic_istream<TypeChar> &, ld::GetChar, ld::UnGetChar>(Dest, Stream, Radix);
 }
 
 
 template<typename TypeNumber>
 size_t StreamToNumber(TypeNumber * Dest, FILE * Stream = stdin, unsigned char Radix = 10)
 {
-
 	struct ld
 	{
 		static inline wchar_t GetChar(FILE * s)
@@ -799,29 +800,33 @@ size_t StreamToNumber(TypeNumber * Dest, FILE * Stream = stdin, unsigned char Ra
 			ungetwc(v, s);
 		}
 	};
+
 	if(std::is_floating_point<TypeNumber>::value)
-		return _d_StreamToNumber<true, TypeNumber, wchar_t, FILE *, ld::GetChar, ld::UnGetChar>(Dest, Stream, Radix);
+		return _d_StreamToNumber<true, true, TypeNumber, wchar_t, FILE *, ld::GetChar, ld::UnGetChar>(Dest, Stream, Radix);
 	else
-		return _i_StreamToNumber<TypeNumber, wchar_t, FILE *, ld::GetChar, ld::UnGetChar>(Dest, Stream, Radix);
+		return _i_StreamToNumber<true, TypeNumber, wchar_t, FILE *, ld::GetChar, ld::UnGetChar>(Dest, Stream, Radix);
 }
 
 
-template<typename TypeNumber, typename TypeChar, typename StreamType,  TypeChar (*GetChar)(StreamType), void (*UngetChar)(StreamType, TypeChar)>
+template<bool IsSkipSpace, typename TypeNumber, typename TypeChar, typename StreamType,  TypeChar (*GetChar)(StreamType), void (*UngetChar)(StreamType, TypeChar)>
 size_t _i_StreamToNumber(TypeNumber * Dest, StreamType InStream, unsigned char Radix = 10)
 {		
 	char Negative = 1;
 	size_t CountReaded = 0;
+
+	if(IsSkipSpace)
+		CountReaded += _SkipSpace<TypeChar, StreamType, GetChar, UngetChar>(InStream);
 	TypeChar Cur = GetChar(InStream);
 	CountReaded++;
 	if(std::is_signed<TypeNumber>::value)
 		switch(Cur)
-	{
-		case CHAR_TYPE(TypeChar, '-'):
-			Negative = -1;
-		case CHAR_TYPE(TypeChar, '+'):
-			Cur = GetChar(InStream);
-			CountReaded++;
-	}
+		{
+			case CHAR_TYPE(TypeChar, '-'):
+				Negative = -1;
+			case CHAR_TYPE(TypeChar, '+'):
+				Cur = GetChar(InStream);
+				CountReaded++;
+		}
 	TypeNumber Ret = (TypeNumber)0;
 
 	for(;;Cur = GetChar(InStream), CountReaded++)
@@ -844,7 +849,7 @@ size_t _i_StreamToNumber(TypeNumber * Dest, StreamType InStream, unsigned char R
 }
 
 
-template<bool InfInd, typename TypeNumber, typename TypeChar, typename StreamType, TypeChar (*GetChar)(StreamType), void (*UngetChar)(StreamType, TypeChar)>
+template<bool IsSkipSpace, bool InfInd, typename TypeNumber, typename TypeChar, typename StreamType, TypeChar (*GetChar)(StreamType), void (*UngetChar)(StreamType, TypeChar)>
 size_t _d_StreamToNumber(TypeNumber * Dest, StreamType InStream, unsigned char Radix = 10)
 {
 	long long IntegerPart = 0;
@@ -853,7 +858,8 @@ size_t _d_StreamToNumber(TypeNumber * Dest, StreamType InStream, unsigned char R
 	static const long double Ind = Inf * 0;
 	static const long double Qnan = -Ind;
 
-	CountReaded = _i_StreamToNumber<long long, TypeChar, StreamType, GetChar, UngetChar>(&IntegerPart, InStream, Radix);
+
+	CountReaded = _i_StreamToNumber<IsSkipSpace, long long, TypeChar, StreamType, GetChar, UngetChar>(&IntegerPart, InStream, Radix);
 
 
 	TypeChar Cur = GetChar(InStream);
@@ -955,7 +961,7 @@ lblSingOut:
 	if((Cur == CHAR_TYPE(TypeChar, 'e')) || (Cur == CHAR_TYPE(TypeChar, 'E')))
 	{
 		int Exp;
-		size_t CountReadedExp =  _i_StreamToNumber<int, TypeChar, StreamType, GetChar, UngetChar>(&Exp, InStream, Radix);
+		size_t CountReadedExp =  _i_StreamToNumber<false, int, TypeChar, StreamType, GetChar, UngetChar>(&Exp, InStream, Radix);
 		if(CountReadedExp > 0)
 		{
 			Result *= pow((long double)Radix, Exp);
@@ -984,9 +990,9 @@ size_t NumberToStream(TypeNumber Number, std::basic_ostream<TypeChar> & Stream, 
 template<typename TypeNumber>
 size_t NumberToStream(TypeNumber Number, FILE * Stream = stdout, unsigned char Radix = 10)
 {
-	wchar_t Buf[70];
+	char Buf[70];
 	size_t Res = NumberToString(Number, Buf, 70, Radix);
-	fwprintf(Stream, L"%s", Buf);
+	fputs(Buf, Stream);
 	return Res;
 }
 
@@ -1003,23 +1009,101 @@ size_t NumberToStream(TypeNumber Number, std::basic_ostream<TypeChar> & Stream, 
 template<typename TypeNumber>
 size_t NumberToStream(TypeNumber Number, FILE * Stream, unsigned char Radix, long double Eps)
 {
-	wchar_t Buf[70];
+	char Buf[70];
 	size_t Res = NumberToString((long double)Number, Buf, 70, Radix, Eps);
-	fwprintf(Stream, L"%s", Buf);
+	fputs(Buf, Stream);
 	return Res;
 }
 
 
-size_t StringLength(const char * Str)
+inline size_t StringLength(const char * Str)
 {
   return strlen(Str);
 }
 
-size_t StringLength(const wchar_t * Str)
+inline size_t StringLength(const wchar_t * Str)
 {
   return wcslen(Str);
 }
 
+template<typename TypeChar, typename StreamType, TypeChar (*GetChar)(StreamType), void (*UngetChar)(StreamType, TypeChar)>
+inline size_t _SkipSpace(StreamType Stream)
+{
+	size_t CountSkiped = 0;
+	TypeChar c;
+	while(true)
+	{
+		c = GetChar(Stream);
+		if(c != CHAR_TYPE(TypeChar, ' '))
+			break;
+		CountSkiped++;
+	}
+	UngetChar(Stream, c);
+	return CountSkiped;
+}
+
+template<typename TypeChar>
+inline size_t SkipSpace(std::basic_istream<TypeChar> & Stream)
+{
+	struct ld
+	{
+		static inline TypeChar GetChar(std::basic_istream<TypeChar> & s)
+		{
+			TypeChar c;
+			s.get(c);
+			return c;
+		}
+		static inline void UnGetChar(std::basic_istream<TypeChar> & s, TypeChar v)
+		{
+			s.unget();
+		}
+	};
+	return _SkipSpace<TypeChar, std::basic_istream<TypeChar> &, ld::GetChar, ld::UnGetChar>(Stream);
+}
+
+inline size_t SkipSpace(FILE * Stream)
+{
+	struct ld
+	{
+		static inline wchar_t GetChar(FILE * s)
+		{
+			return getwc(s);
+		}
+		static inline void UnGetChar(FILE * s, wchar_t v)
+		{
+			ungetwc(v, s);
+		}
+	};
+	return _SkipSpace<wchar_t, FILE *, ld::GetChar, ld::UnGetChar>(Stream);
+}
+
+template<typename TypeChar>
+inline size_t SkipSpace(const TypeChar * String, size_t Len)
+{
+	size_t CountSkiped = 0;
+	for(size_t i = 0;i < Len; i++)
+	{
+	    if(String[i] != CHAR_TYPE(TypeChar, ' '))
+			return CountSkiped;
+		CountSkiped++;
+	}
+	return 0;
+}
+
+template<typename TypeChar>
+inline bool IsDigit(TypeChar c)
+{
+	return (CHAR_TYPE(TypeChar, '0') <= c) && (CHAR_TYPE(TypeChar, '9') >= c);
+}
+
+template<typename TypeChar>
+inline bool IsLatter(wchar_t c)
+{
+	if(std::is_equal<TypeChar, wchar_t>::value)
+		return iswalpha(c);
+	else
+		return isalpha(c);
+}
 
 template<typename InString, typename OutString>
 void CodeUrl(const InString & InStr, OutString & OutStr, unsigned InCodePage = CP_UTF8)
