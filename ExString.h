@@ -1010,6 +1010,17 @@ size_t NumberToStream(TypeNumber Number, FILE * Stream, unsigned char Radix, lon
 }
 
 
+size_t StringLength(const char * Str)
+{
+  return strlen(Str);
+}
+
+size_t StringLength(const wchar_t * Str)
+{
+  return wcslen(Str);
+}
+
+
 template<typename InString, typename OutString>
 void CodeUrl(const InString & InStr, OutString & OutStr, unsigned InCodePage = CP_UTF8)
 {
