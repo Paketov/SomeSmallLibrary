@@ -681,11 +681,12 @@ RET_STAT _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, 
 	if(!_i_StringToNumber<IsSkipSpace>(&IntegerPart, Str, Len, Radix)(CountReaded))
 		return CountReaded;
 
-	if((CountReaded >= Len) || (Str[CountReaded++] != CHAR_TYPE(TypeChar, '.')))
+	if(((CountReaded + 1) >= Len) || (Str[CountReaded + 1] != CHAR_TYPE(TypeChar, '.')))
 	{
 		*Dest = TypeNumber(IntegerPart);
 		return RET_STAT(CountReaded, true);
 	}
+	CountReaded++;
 	long double Result = IntegerPart;
 
 	if(InfInd && ((CountReaded + 4) <  Len) && (Str[CountReaded] == CHAR_TYPE(TypeChar, '#')))
