@@ -403,7 +403,7 @@ inline RET_STAT NumberToString(float Val, TypeChar * Str, size_t LenBuf, unsigne
 template<typename TypeChar>
 inline RET_STAT NumberToString(float Val, TypeChar * Str, size_t LenBuf, unsigned char RadX = 10)
 {
-	return _d_NumberToString((long double)Val, Str, LenBuf, RadX, 0.000000001);
+	return _d_NumberToString<true>((long double)Val, Str, LenBuf, RadX, 0.000000001);
 }
 
 template<typename TypeChar>
@@ -678,7 +678,7 @@ RET_STAT _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, 
 	static const long double Qnan = -Ind;
 	size_t CountReaded;
 	long long IntegerPart = 0;
-	if(!_i_StringToNumber<IsSkipSpace>(&IntegerPart, pCur, MaxIndex - pCur, Radix)(CountReaded))
+	if(!_i_StringToNumber<IsSkipSpace>(&IntegerPart, Str, Len, Radix)(CountReaded))
 		return CountReaded;
 
 	if((CountReaded >= Len) || (Str[CountReaded++] != CHAR_TYPE(TypeChar, '.')))
@@ -696,7 +696,7 @@ RET_STAT _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, 
 			CMP_I(Str[CountReaded + 2], 'n')
 		)
 		{
-			switch(pCur[3])
+			switch(Str[CountReaded + 3])
 			{
 			case 'F':
 			case 'f':
