@@ -26,8 +26,8 @@
 #endif
 
 
-#define STR_TYPE(c,Str)			((std::is_equal<c, wchar_t>::value)?(c*)(L ## Str):(c*)(Str))
-#define CHAR_TYPE(c, Char)		((std::is_equal<c, char>::value)?(Char):(L ## Char))
+#define STR_TYPE(_Type,_Str)		((std::is_equal<_Type, wchar_t>::value)?(_Type*)(L ## _Str):(_Type*)(_Str))
+#define CHAR_TYPE(_Type, _Char)		((_Type)((std::is_equal<_Type, char>::value)?(_Char):(L ## _Char)))
 #define NOT_LESS_Z(Num)			max(0, std::make_signed<decltype(Num)>::type(Num))
 #define DIGIT_TO_ALPHA(TypeChar, Dig) ((Dig > 9)? (Dig + (CHAR_TYPE(TypeChar,'a') - 10)): (Dig + CHAR_TYPE(TypeChar,'0')))
 #define CMP_I(Val, c)			(((Val) == CHAR_TYPE(decltype(Val), c)) || ((Val) == (CHAR_TYPE(decltype(Val), 'A') + (CHAR_TYPE(decltype(Val), c) - CHAR_TYPE(decltype(Val), 'a')))))
@@ -64,6 +64,12 @@ struct RET_STAT
 	{
 		Count = this->Count;
 		return Res;
+	}
+
+	inline size_t operator ()(bool & Res) const
+	{
+		Res = this->Res;
+		return this->Count;
 	}
 };
 
@@ -262,28 +268,9 @@ public:
 
 	int ToInt(unsigned char Radix = 10)
 	{
-		char Negative = 1;
-		_Elem * pCur = (_Elem *)c_str();
-		switch(*pCur)
-		{
-		case CHAR_TYPE(_Elem, '-'):
-			Negative = -1;
-		case CHAR_TYPE(_Elem, '+'):
-			pCur++;
-		}
-		int Ret = 0;
-		for(;;pCur++)
-		{
-			unsigned char Digit = *pCur - CHAR_TYPE(_Elem, '0');
-			if(Digit > 9)
-			{
-				Digit = *pCur - (CHAR_TYPE(_Elem, 'a') - 10);
-				if(Digit >= Radix)
-					break;
-			}
-			Ret = Ret * Radix + Digit;
-		}
-		return Ret * Negative;
+		int Result = 0;
+		StringToNumber(&Result, *this, Radix);
+		return Result;
 	}
 
 	template<class T>
@@ -337,6 +324,22 @@ struct __stream_io
 	{
 		ungetc(v, s);
 	}
+
+	static inline bool PutChar(FILE * s, char v)
+	{
+	  return fputc(v, s);
+	}
+
+	static inline bool PutChar(FILE * s, wchar_t v)
+	{
+	  return fputwc(v, s);
+	}
+
+	template<typename TypeChar>
+	static inline bool PutChar(std::basic_ostream<TypeChar> & s, TypeChar c)
+	{
+		return !s.put(c).fail();
+	}	
 
 	static inline bool Write(FILE * s,  char * Str, size_t Len)
 	{
@@ -484,7 +487,6 @@ RET_STAT _i_NumberToString(TypeNumber Number, TypeChar * Str, size_t Len, unsign
 	return RET_STAT(CountWrited, true);
 }
 
-
 template<bool IsScaleEps, typename TypeChar>
 RET_STAT _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsigned char Radix, long double Eps1)
 {
@@ -607,7 +609,6 @@ RET_STAT _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsig
 	return RET_STAT(CountWrited, true);
 }
 
-
 template<typename TypeChar, typename TypeNumber>
 inline RET_STAT StringToNumber(TypeNumber * Number, const TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
@@ -681,7 +682,7 @@ RET_STAT _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, 
 	if(!_i_StringToNumber<IsSkipSpace>(&IntegerPart, Str, Len, Radix)(CountReaded))
 		return CountReaded;
 
-	if(((CountReaded + 1) >= Len) || (Str[CountReaded + 1] != CHAR_TYPE(TypeChar, '.')))
+	if((CountReaded >= Len) || (Str[CountReaded] != CHAR_TYPE(TypeChar, '.')))
 	{
 		*Dest = TypeNumber(IntegerPart);
 		return RET_STAT(CountReaded, true);
@@ -700,12 +701,12 @@ RET_STAT _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, 
 			switch(Str[CountReaded + 3])
 			{
 			case 'F':
-			case 'f':
+			case 'f'://#INF
 				Result *= Inf;
 				CountReaded += 4;
 				goto lblSingOut;
 			case 'D':
-			case 'd':
+			case 'd'://#IND
 				Result *= Ind;
 				CountReaded += 4;
 				goto lblSingOut;
@@ -718,7 +719,7 @@ RET_STAT _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, 
 			CMP_I(Str[CountReaded + 3], 'a') && 
 			CMP_I(Str[CountReaded + 4], 'n')
 		)
-		{
+		{//#QNAN
 			Result *= Qnan;
 			CountReaded += 5;
 			goto lblSingOut;
