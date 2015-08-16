@@ -19,6 +19,7 @@
 #define matrix_check_index(Check, Message)  
 #endif
 
+
 //Retrive, row as multi reference
 
 template<class T, unsigned cj = 0>
@@ -77,42 +78,6 @@ public:
 				return _Fields._Count;
 			}
 		} Count;
-
-		class
-		{
-			__ROW_FIELDS;
-		public:
-			template<class CharType>
-			operator std::basic_string<CharType>() const
-			{
-				std::basic_string<CharType> OutStr;
-				for(unsigned i = 0;i < _Fields._Count;i++)
-				{
-					OutStr += ((i == 0)?STR_TYPE(CharType, ""):STR_TYPE(CharType, " "));
-					NumberToString(_Fields.v[i], OutStr);
-				}
-				return OutStr;
-			}
-
-			template<class TypeChar>
-			TypeChar * operator()(TypeChar * Buf, size_t BufSize) const
-			{
-				TypeChar * Maxindex = Buf + BufSize, *Cur = Buf;
-				for(unsigned i = 0;i < _Fields._Count;i++)
-				{						
-					if(i != 0 && (Cur < Maxindex))
-						*(Cur++) = CHAR_TYPE(TypeChar, ' ');
-					Cur += NumberToString(_Fields.v[i], Cur, Maxindex - Cur);
-				}
-				return Cur;
-			}
-
-			template <class TypeChar, unsigned BufSize> 
-			inline TypeChar * operator()(TypeChar (&Buf)[BufSize]) 
-			{
-				return operator()(Buf, BufSize);
-			}
-		} Text;
 	};
 private:
 	ROW(T * Column, unsigned Count)
@@ -141,6 +106,107 @@ private:
 	};
 
 public: 
+
+	//////
+	template<class TypeChar>
+	RET_STAT FromText(const TypeChar * Str, size_t Len = 0xfffff)
+	{
+		size_t CountReaded = 0;
+		for(unsigned i = 0;i <  _Fields._Count;i++)
+		{		
+			bool r;
+			CountReaded += StringDoubleToNumber(_Fields.v + i, Str + CountReaded, NOT_LESS_Z(Len - CountReaded))(r);
+			if(!r)
+				return CountReaded;
+		}
+		return RET_STAT(CountReaded, true);
+	}
+
+	template<class TypeChar>
+	RET_STAT FromText(std::basic_istream<TypeChar> & Stream)
+	{
+		size_t CountReaded = 0;
+		for(unsigned i = 0;i <  _Fields._Count;i++)
+		{
+			bool r;
+			CountReaded += StreamDoubleToNumber(_Fields.v + i, Stream)(r);
+			if(!r)
+				return CountReaded;
+		}
+		return RET_STAT(CountReaded, true);
+	}
+
+	RET_STAT FromText(FILE * Stream = stdin)
+	{
+		size_t CountReaded = 0;
+		for(unsigned i = 0;i <  _Fields._Count;i++)
+		{
+			bool r;
+			CountReaded += StreamDoubleToNumber(_Fields.v + i, Stream)(r);
+			if(!r)
+				return CountReaded;
+		}
+		return RET_STAT(CountReaded, true);
+	}
+
+	/////////////
+
+	template<class TypeChar>
+	RET_STAT ToText(TypeChar * Str, size_t Len = 0xfffff)
+	{
+		size_t CountWrited = 0;
+		for(unsigned i = 0;i <  _Fields._Count;i++)
+		{
+			if((i > 0) && (CountWrited < Len))
+				Str[CountWrited++] = CHAR_TYPE(TypeChar, ' ');
+			bool r;
+			CountWrited += NumberToString(_Fields.v[i], Str + CountWrited, NOT_LESS_Z(Len - CountWrited))(r);
+			if(!r)
+				return CountWrited;
+		}
+		return RET_STAT(CountWrited, true);
+	}
+
+	template<class TypeChar>
+	RET_STAT ToText(std::basic_ostream<TypeChar> & Stream)
+	{
+		size_t CountWrited = 0;
+		for(unsigned i = 0;i <  _Fields._Count;i++)
+		{
+			if(i > 0)
+			{
+				if(!__stream_io::PutChar(Stream, CHAR_TYPE(TypeChar, ' ')))
+					return CountWrited;
+				CountWrited++;
+			}
+			bool r;
+			CountWrited += NumberToStream(_Fields.v[i], Stream)(r);
+			if(!r)
+				return CountWrited;
+		}
+		return RET_STAT(CountWrited, true);
+	}
+
+	RET_STAT ToText(FILE * Stream = stdout)
+	{
+		size_t CountWrited = 0;
+		for(unsigned i = 0;i <  _Fields._Count;i++)
+		{
+			if(i > 0)
+			{
+				if(!__stream_io::PutChar(Stream, ' '))
+					return CountWrited;
+				CountWrited++;
+			}
+			bool r;
+			CountWrited += NumberToStream(_Fields.v[i], Stream)(r);
+			if(!r)
+				return CountWrited;
+		}
+		return RET_STAT(CountWrited, true);
+	}
+
+	///////////
 
 	ROW & operator =(ROW & Val)
 	{
@@ -372,6 +438,8 @@ private:
 		inline void Deinit() const{}
 	};
 
+
+
 public:
 
 	typedef T TELEMENT;
@@ -477,47 +545,184 @@ public:
 			}
 
 		} Determinant;
-
-		class
-		{
-			__MATRIX_FIELDS_DEF;
-		public:
-
-			template<class TypeChar>
-			operator std::basic_string<TypeChar>() const
-			{
-				MATRIX & This = *(MATRIX*)this;
-				std::basic_string<TypeChar> OutStr;
-				for(unsigned i = 0;i < This.CountRows;i++)
-					OutStr += (std::basic_string<TypeChar>)This[i].Text + STR_TYPE(TypeChar, "\n");
-				return OutStr;
-			}
-
-			template<class TypeChar>
-			TypeChar * operator()(TypeChar * Buf, size_t BufSize) const
-			{
-				MATRIX & This = *(MATRIX*)this;
-				TypeChar * Maxindex = Buf + BufSize, *Cur = Buf;
-				for(unsigned i = 0; i < This.CountColumns; i++)
-				{			
-					Cur = (*(MATRIX*)this)[i].Text(Cur, Maxindex - Cur);
-					if((Cur < Maxindex))
-						*(Cur++) = CHAR_TYPE(TypeChar, '\n');
-				}
-				*Cur = CHAR_TYPE(TypeChar, '\0');
-				return Cur;
-			}
-
-			template <class TypeChar, unsigned BufSize> 
-			inline TypeChar * operator()(TypeChar (&Buf)[BufSize]) 
-			{
-				return operator()(Buf, BufSize);
-			}
-
-		} Text;
 	};
 
 public:
+
+
+	bool Resize(unsigned i, unsigned j)
+	{
+		if(IsStaticArr)
+			return (ci == i) && (cj == j);
+		CountRows = i;
+		CountColumns = j;
+		return _Fields.Allocate(j, i);
+	}
+
+	template<class TypeChar>
+	RET_STAT ReadSize(const TypeChar * Str, size_t Len = 0xfffff)
+	{
+
+		size_t CountReaded = 0;
+		MATRIX & This = *this;
+		unsigned i, j;
+		if(!StringToNumber(&i, Str, Len)(CountReaded))
+			return CountReaded;
+		bool r;
+		CountReaded += StringToNumber(&j, Str + CountReaded, NOT_LESS_Z(Len - CountReaded))(r);
+		if(!r)
+			return CountReaded;
+		return RET_STAT(CountReaded, Resize(i, j));
+	}
+
+	template<class TypeChar>
+	RET_STAT ReadSize(std::basic_istream<TypeChar> & Stream)
+	{
+		size_t CountReaded = 0;
+		MATRIX & This = *this;
+		unsigned i, j;
+		if(!StreamToNumber(&i, Stream)(CountReaded))
+			return CountReaded;
+		bool r;
+		CountReaded += StreamToNumber(&j, Stream)(r);
+		if(!r)
+			return CountReaded;
+		return RET_STAT(CountReaded, Resize(i, j));
+	}
+	
+	template<class TypeChar>
+	RET_STAT ReadSize(FILE * Stream = stdin)
+	{
+		size_t CountReaded = 0;
+		MATRIX & This = *this;
+		unsigned i, j;
+		if(!StreamToNumber(&i, Stream)(CountReaded))
+			return CountReaded;
+		bool r;
+		CountReaded += StreamToNumber(&j, Stream)(r);
+		if(!r)
+			return CountReaded;
+		return RET_STAT(CountReaded, Resize(i, j));
+	}
+
+	template<class TypeChar>
+	RET_STAT FromText(const TypeChar * Str, size_t Len = 0xfffff, bool IsReadSize = false)
+	{
+		size_t CountReaded = 0;
+		MATRIX & This = *this;
+		if(IsReadSize)
+		{
+			if(!ReadSize(Str, Len)(CountReaded))
+				return CountReaded;
+		}
+		for(unsigned i = 0;i <  _Fields._CRows;i++)
+		{
+			bool r;
+			CountReaded += This[i].FromText(Str + CountReaded, NOT_LESS_Z(Len -  CountReaded))(r);
+			if(!r)
+				return RET_STAT(CountReaded, false);
+		}
+		return RET_STAT(CountReaded, true);
+	}
+
+	template<class TypeChar>
+	RET_STAT FromText(std::basic_istream<TypeChar> & Stream, bool IsReadSize = false)
+	{
+		size_t CountReaded = 0;
+		MATRIX & This = *this;
+		if(IsReadSize)
+		{
+			if(!ReadSize(Stream)(CountReaded))
+				return CountReaded;
+		}
+	    for(unsigned i = 0; i <  _Fields._CRows; i++)
+		{
+			bool r;
+			CountReaded += This[i].FromText(Stream)(r);
+			if(!r)
+				return RET_STAT(CountReaded, false);
+		}
+		return RET_STAT(CountReaded, true);
+	}
+
+	RET_STAT FromText(FILE * Stream = stdin, bool IsReadSize = false)
+	{
+		size_t CountReaded = 0;
+		MATRIX & This = *this;
+		if(IsReadSize)
+		{
+			if(!ReadSize(Stream, Len)(CountReaded))
+				return CountReaded;
+		}
+	    for(unsigned i = 0; i <  _Fields._CRows; i++)
+		{
+			bool r;
+			CountReaded += This[i].FromText(Stream)(r);
+			if(!r)
+				return RET_STAT(CountReaded, false);
+		}
+		return RET_STAT(CountReaded, true);
+	}
+
+	/////////////
+
+	template<class TypeChar>
+	RET_STAT ToText(TypeChar * Str, size_t Len = 0xfffff, bool IsWriteSize = false)
+	{
+		size_t CountWrited = 0;
+		MATRIX & This = *this;
+		for(unsigned i = 0;i <  _Fields._CRows;i++)
+		{			
+			if((i > 0) && (CountWrited < Len))
+				Str[CountWrited++] = CHAR_TYPE(TypeChar, '\n');
+			bool r;
+			CountWrited += This[i].ToText(Str + CountWrited, NOT_LESS_Z(Len - CountWrited))(r);
+			if(!r)
+				return CountWrited;
+		}
+		return RET_STAT(CountWrited, true);
+	}
+
+	template<class TypeChar>
+	RET_STAT ToText(std::basic_ostream<TypeChar> & Stream)
+	{
+		size_t CountWrited = 0;
+		MATRIX & This = *this;
+		for(unsigned i = 0;i <  _Fields._CRows;i++)
+		{
+			if(i > 0)
+			{
+				if(!__stream_io::PutChar(Stream, CHAR_TYPE(TypeChar, '\n')))
+					return CountWrited;
+				CountWrited++;
+			}
+			bool r;
+			CountWrited += This[i].ToText(Stream)(r);
+			if(!r)
+				return CountWrited;
+		}
+		return RET_STAT(CountWrited, true);
+	}
+
+	RET_STAT ToText(FILE * Stream = stdout)
+	{
+		size_t CountWrited = 0;
+		MATRIX & This = *this;
+		for(unsigned i = 0;i <  _Fields._CRows;i++)
+		{
+			if(i > 0)
+			{
+				if(!__stream_io::PutChar(Stream, '\n'))
+					return CountWrited;
+				CountWrited++;
+			}
+			bool r;
+			CountWrited += This[i].ToText(Stream)(r);
+			if(!r)
+				return CountWrited;
+		}
+		return RET_STAT(CountWrited, true);
+	}
 
 	typename std::conditional<IsStaticArr,ROW<T, cj> &, ROW<T, cj>>::type operator[](const unsigned Index)
 	{
@@ -572,7 +777,7 @@ public:
 	}
 
 	template<class _T, unsigned _i, unsigned _j>
-	 MATRIX(const MATRIX<_T, _i, _j> & New)
+	MATRIX(const MATRIX<_T, _i, _j> & New)
 	{ 
 	    //Is types not convertible, have compile error
 		typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
@@ -584,7 +789,7 @@ public:
 
 	 
 	template <unsigned _i, unsigned _j> 
-	 MATRIX(const T (&New)[_i][_j]) 
+	MATRIX(const T (&New)[_i][_j]) 
 	{ 
 		//Is matrix static, and count row or column not equal
 		typedef typename std::enable_if<!IsStaticArr || ((ci == _i) && (cj == _j))>::type;
@@ -593,7 +798,7 @@ public:
 	}
 
 	template <class _T, unsigned _i, unsigned _j> 
-	 MATRIX(const _T (&New)[_i][_j]) 
+	MATRIX(const _T (&New)[_i][_j]) 
 	{ 
 		//Is types not convertible, have compile error
 		typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
@@ -603,13 +808,13 @@ public:
 		matrix_check(_Fields.Copy(New),  "Matrix not copied");
 	}
 
-	 MATRIX & operator =(const MATRIX & New)
+	MATRIX & operator =(const MATRIX & New)
 	{
 		matrix_check(_Fields.Copy(New),  "Matrix not copied");
 	}
 
 	template<class _T, unsigned _i, unsigned _j>
-	 MATRIX & operator =(const MATRIX<_T, _i, _j> & New)
+	MATRIX & operator =(const MATRIX<_T, _i, _j> & New)
 	{
 	    //Is types not convertible, have compile error
 		typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
@@ -619,7 +824,7 @@ public:
 	}
 
 	template <class _T, unsigned _i, unsigned _j> 
-	 MATRIX & operator =(const _T (&New)[_i][_j]) 
+	MATRIX & operator =(const _T (&New)[_i][_j]) 
 	{ 
 		//Is types not convertible, have compile error
 		typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
