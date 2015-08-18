@@ -32,46 +32,50 @@
 #define DIGIT_TO_ALPHA(TypeChar, Dig) ((Dig > 9)? (Dig + (CHAR_TYPE(TypeChar,'a') - 10)): (Dig + CHAR_TYPE(TypeChar,'0')))
 #define CMP_I(Val, c)			(((Val) == CHAR_TYPE(decltype(Val), c)) || ((Val) == (CHAR_TYPE(decltype(Val), 'A') + (CHAR_TYPE(decltype(Val), c) - CHAR_TYPE(decltype(Val), 'a')))))
 
+
+template <typename ResultType>
 struct RET_STAT
 {
-	bool	Res;
-	size_t	Count;
+	bool		Success;
+	ResultType	Result;
 
 	inline operator bool() const
 	{
-		return Res;
+		return Success;
 	}
 
 	inline RET_STAT()
 	{
-		this->Res = false;
-		this->Count = 0;
+		this->Success = false;
+		this->Result = 0;
 	}
 
-	inline RET_STAT(size_t Count)
+	inline RET_STAT(ResultType Result)
 	{
-		this->Res = false;
-		this->Count = Count;
+		this->Success = false;
+		this->Result = Result;
 	}
 
-	inline RET_STAT(size_t Count, bool Res)
+	inline RET_STAT(ResultType Result, bool Success)
 	{
-		this->Res = Res;
-		this->Count = Count;
+		this->Success = Success;
+		this->Result = Result;
 	}
 
-	inline bool operator ()(size_t & Count) const
+	inline bool operator ()(ResultType & Result) const
 	{
-		Count = this->Count;
-		return Res;
+		Result = this->Result;
+		return Success;
 	}
 
-	inline size_t operator ()(bool & Res) const
+	inline ResultType operator ()(bool & Success) const
 	{
-		Res = this->Res;
-		return this->Count;
+		Success = this->Success;
+		return this->Result;
 	}
 };
+
+typedef RET_STAT<size_t> STR_STAT;
 
 
 template<typename OutString>
@@ -360,105 +364,105 @@ struct __stream_io
 
 
 template<typename TypeChar>
-inline RET_STAT NumberToString(int Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
+inline STR_STAT NumberToString(int Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	return _i_NumberToString(Number, Str, Len, Radix);
 }
 
 template<typename TypeChar>
-inline RET_STAT NumberToString(unsigned Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
+inline STR_STAT NumberToString(unsigned Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	return _i_NumberToString(Number, Str, Len, Radix);
 }
 
 template<typename TypeChar>
-inline RET_STAT NumberToString(long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
+inline STR_STAT NumberToString(long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	return _i_NumberToString(Number, Str, Len, Radix);
 }
 
 template<typename TypeChar>
-inline RET_STAT NumberToString(unsigned long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
+inline STR_STAT NumberToString(unsigned long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	return _i_NumberToString(Number, Str, Len, Radix);
 }
 
 
 template<typename TypeChar>
-inline RET_STAT NumberToString(long long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
+inline STR_STAT NumberToString(long long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	return _i_NumberToString(Number, Str, Len, Radix);
 }
 
 template<typename TypeChar>
-inline RET_STAT NumberToString(unsigned long long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
+inline STR_STAT NumberToString(unsigned long long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	return _i_NumberToString(Number, Str, Len, Radix);
 }
 
 ///Float point
 template<typename TypeChar>
-inline RET_STAT NumberToString(float Val, TypeChar * Str, size_t LenBuf, unsigned char RadX, long double Eps)
+inline STR_STAT NumberToString(float Val, TypeChar * Str, size_t LenBuf, unsigned char RadX, long double Eps)
 {
 	return _d_NumberToString<false>((long double)Val, Str, LenBuf, RadX, Eps);
 }
 
 template<typename TypeChar>
-inline RET_STAT NumberToString(float Val, TypeChar * Str, size_t LenBuf, unsigned char RadX = 10)
+inline STR_STAT NumberToString(float Val, TypeChar * Str, size_t LenBuf, unsigned char RadX = 10)
 {
 	return _d_NumberToString<true>((long double)Val, Str, LenBuf, RadX, 0.000000001);
 }
 
 template<typename TypeChar>
-inline RET_STAT NumberToString(double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX, long double Eps)
+inline STR_STAT NumberToString(double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX, long double Eps)
 {
 	return _d_NumberToString<false>((long double)Val, Str, LenBuf, RadX, Eps);
 }
 
 template<typename TypeChar>
-inline RET_STAT NumberToString(double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX = 10)
+inline STR_STAT NumberToString(double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX = 10)
 {
 	return _d_NumberToString<true>((long double)Val, Str, LenBuf, RadX, 0.00000000000000001);
 }
 
 template<typename TypeChar>
-inline RET_STAT NumberToString(long double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX, long double Eps)
+inline STR_STAT NumberToString(long double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX, long double Eps)
 {
 	return _d_NumberToString<false>(Val, Str, LenBuf, RadX, Eps);
 }
 
 template<typename TypeChar>
-inline RET_STAT NumberToString(long double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX = 10)
+inline STR_STAT NumberToString(long double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX = 10)
 {
 	return _d_NumberToString<true>(Val, Str, LenBuf, RadX, 0.00000000000000001);
 }
 
 template<typename TypeChar, typename TypeNumber>
-inline RET_STAT NumberToString(TypeNumber Val, std::basic_string<TypeChar> & Str, size_t LenBuf = 0,unsigned char RadX = 10)
+inline STR_STAT NumberToString(TypeNumber Val, std::basic_string<TypeChar> & Str, size_t LenBuf = 0,unsigned char RadX = 10)
 {
    TypeChar Buf[70];
-   RET_STAT Ret = NumberToString(Val, Buf, 70, RadX);
+   STR_STAT Ret = NumberToString(Val, Buf, 70, RadX);
    Str += Buf;
    return Ret;
 }
 
 template<typename TypeChar, typename TypeNumber>
-inline RET_STAT NumberToString(TypeNumber Val, std::basic_string<TypeChar> & Str, size_t LenBuf, unsigned char RadX, long double Eps)
+inline STR_STAT NumberToString(TypeNumber Val, std::basic_string<TypeChar> & Str, size_t LenBuf, unsigned char RadX, long double Eps)
 {
    TypeChar Buf[70];
-   RET_STAT Ret = NumberToString(Val, Buf, 70, RadX, Eps);
+   STR_STAT Ret = NumberToString(Val, Buf, 70, RadX, Eps);
    Str += Buf;
    return Ret;
 }
 
 template<typename TypeChar, typename TypeNumber, size_t BufSize>
-inline RET_STAT NumberToString(TypeNumber Val, TypeChar (&Buf)[BufSize])
+inline STR_STAT NumberToString(TypeNumber Val, TypeChar (&Buf)[BufSize])
 {
    return NumberToString(Val, (TypeChar*)Buf, BufSize, 10);
 }
 
 template<typename TypeNumber, typename TypeChar>
-RET_STAT _i_NumberToString(TypeNumber Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
+STR_STAT _i_NumberToString(TypeNumber Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	size_t CountWrited = 0;
 	if(std::is_signed<TypeNumber>::value && (Number < 0) && (Len > 0))
@@ -484,11 +488,11 @@ RET_STAT _i_NumberToString(TypeNumber Number, TypeChar * Str, size_t Len, unsign
 	}while(((t /= Radix) > 0) || (CountDigit > 0));
 	if(CountWrited < Len)
 		Str[CountWrited] = CHAR_TYPE(TypeChar,'\0');
-	return RET_STAT(CountWrited, true);
+	return STR_STAT(CountWrited, true);
 }
 
 template<bool IsScaleEps, typename TypeChar>
-RET_STAT _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsigned char Radix, long double Eps1)
+STR_STAT _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsigned char Radix, long double Eps1)
 {
 	static const long double MinExp = 1.0e-5;
 	static const long double MaxExp = 1.0e+15;
@@ -516,19 +520,19 @@ RET_STAT _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsig
 		const TypeChar * IndVal = STR_TYPE(TypeChar, "1.#IND00");
 		for(unsigned char i = 0;(CountWrited < Len) && (i < sizeof("1.#IND00"));CountWrited++, i++)
 			Str[CountWrited] = IndVal[i];
-		return RET_STAT(CountWrited, true);
+		return STR_STAT(CountWrited, true);
 	}else if(uNumber == Inf) //Is infinity
 	{
 		const TypeChar * IndVal = STR_TYPE(TypeChar, "1.#INF00");
 		for(unsigned char i = 0;(CountWrited < Len) && (i < sizeof("1.#INF00"));CountWrited++, i++)
 			Str[CountWrited] = IndVal[i];
-		return RET_STAT(CountWrited, true);
+		return STR_STAT(CountWrited, true);
 	}else if(uNumber == Qnan) //Is qnan
 	{
 		const TypeChar * IndVal = STR_TYPE(TypeChar, "1.#QNAN00");
 		for(unsigned char i = 0;(CountWrited < Len) && (i < sizeof("1.#QNAN00"));CountWrited++, i++)
 			Str[CountWrited] = IndVal[i];
-		return RET_STAT(CountWrited, true);
+		return STR_STAT(CountWrited, true);
 	}else if((uNumber != 0.0) && ((uNumber < MinExp) || (uNumber > MaxExp)))//Is have expanent
 	{
 		Exp = ((*(short*)((char*)&uNumber + (sizeof(uNumber) - sizeof(Exp))) & 0x7ff0) >> 4) - 1023;
@@ -606,11 +610,11 @@ RET_STAT _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsig
 	}
 	if(CountWrited < Len)
 		Str[CountWrited] = CHAR_TYPE(TypeChar, '\0');
-	return RET_STAT(CountWrited, true);
+	return STR_STAT(CountWrited, true);
 }
 
 template<typename TypeChar, typename TypeNumber>
-inline RET_STAT StringToNumber(TypeNumber * Number, const TypeChar * Str, size_t Len, unsigned char Radix = 10)
+inline STR_STAT StringToNumber(TypeNumber * Number, const TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
    if(std::is_floating_point<TypeNumber>::value)
 	   return _d_StringToNumber<true, true>(Number, Str, Len, Radix);
@@ -619,7 +623,7 @@ inline RET_STAT StringToNumber(TypeNumber * Number, const TypeChar * Str, size_t
 }
 
 template<typename TypeChar, typename TypeNumber, size_t BufSize>
-inline RET_STAT StringToNumber(TypeNumber * Number, const TypeChar (&Buf)[BufSize])
+inline STR_STAT StringToNumber(TypeNumber * Number, const TypeChar (&Buf)[BufSize])
 {
    if(std::is_floating_point<TypeNumber>::value)
 	   return _d_StringToNumber<true, true>(Number, Buf, BufSize, 10);
@@ -628,7 +632,7 @@ inline RET_STAT StringToNumber(TypeNumber * Number, const TypeChar (&Buf)[BufSiz
 }
 
 template<typename TypeChar, typename TypeNumber>
-inline RET_STAT StringToNumber(TypeNumber * Number, const std::basic_string<TypeChar> & Str, size_t Len = 0, unsigned char Radix = 10)
+inline STR_STAT StringToNumber(TypeNumber * Number, const std::basic_string<TypeChar> & Str, size_t Len = 0, unsigned char Radix = 10)
 {
      return StringToNumber(Number, Str.c_str(), Str.length(), Radix);
 }
@@ -636,8 +640,8 @@ inline RET_STAT StringToNumber(TypeNumber * Number, const std::basic_string<Type
 //From string to number
 
 template<bool IsSkipSpace, typename TypeChar, typename TypeNumber>
-RET_STAT _i_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsigned char Radix = 10)
-{		
+STR_STAT _i_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsigned char Radix = 10)
+{
 	char Negative = 1;
 	size_t CountReaded = 0;
 	if(IsSkipSpace)
@@ -668,11 +672,11 @@ RET_STAT _i_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, 
 	if(t == CountReaded)
 		return CountReaded;
 	*Dest =  Ret * Negative;
-	return RET_STAT(CountReaded, true);
+	return STR_STAT(CountReaded, true);
 }
 
 template<bool IsSkipSpace, bool InfInd, typename TypeNumber, typename TypeChar>
-RET_STAT _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsigned char Radix = 10)
+STR_STAT _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	static const long double Inf = 9999e+200 * 9999e+200 * 9999e+200;
 	static const long double Ind = Inf * 0;
@@ -685,7 +689,7 @@ RET_STAT _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, 
 	if((CountReaded >= Len) || (Str[CountReaded] != CHAR_TYPE(TypeChar, '.')))
 	{
 		*Dest = TypeNumber(IntegerPart);
-		return RET_STAT(CountReaded, true);
+		return STR_STAT(CountReaded, true);
 	}
 	CountReaded++;
 	long double Result = IntegerPart;
@@ -769,11 +773,11 @@ lblSingOut:
 	}
 lblTrueOut:
 	*Dest =  TypeNumber(Result);
-	return RET_STAT(CountReaded, true);
+	return STR_STAT(CountReaded, true);
 }
 
 template<typename TypeNumber, typename TypeChar>
-inline RET_STAT StreamToNumber(TypeNumber * Dest, std::basic_istream<TypeChar> & Stream, unsigned char Radix = 10)
+inline STR_STAT StreamToNumber(TypeNumber * Dest, std::basic_istream<TypeChar> & Stream, unsigned char Radix = 10)
 {
 	if(std::is_floating_point<TypeNumber>::value)
 		return _d_StreamToNumber
@@ -801,7 +805,7 @@ inline RET_STAT StreamToNumber(TypeNumber * Dest, std::basic_istream<TypeChar> &
 }
 
 template<typename TypeNumber>
-inline RET_STAT StreamToNumber(TypeNumber * Dest, FILE * Stream = stdin, unsigned char Radix = 10)
+inline STR_STAT StreamToNumber(TypeNumber * Dest, FILE * Stream = stdin, unsigned char Radix = 10)
 {
 
 	if(std::is_floating_point<TypeNumber>::value)
@@ -830,7 +834,7 @@ inline RET_STAT StreamToNumber(TypeNumber * Dest, FILE * Stream = stdin, unsigne
 }
 
 template<typename TypeNumber>
-inline RET_STAT StreamDoubleToNumber(TypeNumber * Dest, FILE * Stream = stdin, unsigned char Radix = 10)
+inline STR_STAT StreamDoubleToNumber(TypeNumber * Dest, FILE * Stream = stdin, unsigned char Radix = 10)
 {
 	return _d_StreamToNumber
 			<
@@ -846,7 +850,7 @@ inline RET_STAT StreamDoubleToNumber(TypeNumber * Dest, FILE * Stream = stdin, u
 }
 
 template<typename TypeNumber, typename TypeChar>
-inline RET_STAT StreamDoubleToNumber(TypeNumber * Dest, std::basic_istream<TypeChar> & Stream, unsigned char Radix = 10)
+inline STR_STAT StreamDoubleToNumber(TypeNumber * Dest, std::basic_istream<TypeChar> & Stream, unsigned char Radix = 10)
 {
 	return _d_StreamToNumber
 			<
@@ -862,19 +866,19 @@ inline RET_STAT StreamDoubleToNumber(TypeNumber * Dest, std::basic_istream<TypeC
 }
 
 template<typename TypeChar, typename TypeNumber>
-inline RET_STAT StringDoubleToNumber(TypeNumber * Number, const TypeChar * Str, size_t Len, unsigned char Radix = 10)
+inline STR_STAT StringDoubleToNumber(TypeNumber * Number, const TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
 	   return _d_StringToNumber<true, true>(Number, Str, Len, Radix);
 }
 
 template<typename TypeChar, typename TypeNumber, size_t BufSize>
-inline RET_STAT StringDoubleToNumber(TypeNumber * Number, const TypeChar (&Buf)[BufSize])
+inline STR_STAT StringDoubleToNumber(TypeNumber * Number, const TypeChar (&Buf)[BufSize])
 {
 	return StringDoubleToNumber(Number, Buf, BufSize, 10);
 }
 
 template<typename TypeChar, typename TypeNumber>
-inline RET_STAT StringDoubleToNumber(TypeNumber * Number, const std::basic_string<TypeChar> & Str, size_t Len = 0, unsigned char Radix = 10)
+inline STR_STAT StringDoubleToNumber(TypeNumber * Number, const std::basic_string<TypeChar> & Str, size_t Len = 0, unsigned char Radix = 10)
 {
      return StringDoubleToNumber(Number, Str.c_str(), Str.length(), Radix);
 }
@@ -888,7 +892,7 @@ template
 	TypeChar	(*GetChar)(StreamType), 
 	void		(*UngetChar)(StreamType, TypeChar)
 >
-RET_STAT _i_StreamToNumber(TypeNumber * Dest, StreamType InStream, unsigned char Radix = 10)
+STR_STAT _i_StreamToNumber(TypeNumber * Dest, StreamType InStream, unsigned char Radix = 10)
 {		
 	char Negative = 1;
 	size_t CountReaded = 0;
@@ -922,9 +926,9 @@ RET_STAT _i_StreamToNumber(TypeNumber * Dest, StreamType InStream, unsigned char
 	}
 	UngetChar(InStream, Cur);
 	if(t == CountReaded--)
-		return RET_STAT(CountReaded);
+		return STR_STAT(CountReaded);
 	*Dest = Ret * Negative;
-	return RET_STAT(CountReaded, true);
+	return STR_STAT(CountReaded, true);
 }
 
 template
@@ -937,7 +941,7 @@ template
 	TypeChar	(*GetChar)(StreamType), 
 	void		(*UngetChar)(StreamType, TypeChar)
 >
-RET_STAT _d_StreamToNumber(TypeNumber * Dest, StreamType InStream, unsigned char Radix = 10)
+STR_STAT _d_StreamToNumber(TypeNumber * Dest, StreamType InStream, unsigned char Radix = 10)
 {
 	static const long double Inf = 9999e+200 * 9999e+200 * 9999e+200;
 	static const long double Ind = Inf * 0;
@@ -953,7 +957,7 @@ RET_STAT _d_StreamToNumber(TypeNumber * Dest, StreamType InStream, unsigned char
 	{		
 		*Dest = TypeNumber(IntegerPart);
 		UngetChar(InStream, Cur);
-		return RET_STAT(CountReaded, true);
+		return STR_STAT(CountReaded, true);
 	}
 	CountReaded++;
 	long double Result = IntegerPart;
@@ -1056,40 +1060,40 @@ lblSingOut:
 	}
 lblTrueOut:
 	*Dest = TypeNumber(Result);
-	return RET_STAT(CountReaded, true);
+	return STR_STAT(CountReaded, true);
 }
 
 template<typename TypeNumber, typename TypeChar>
-inline RET_STAT NumberToStream(TypeNumber Number, std::basic_ostream<TypeChar> & Stream, unsigned char Radix = 10)
+inline STR_STAT NumberToStream(TypeNumber Number, std::basic_ostream<TypeChar> & Stream, unsigned char Radix = 10)
 {
 	TypeChar Buf[70];
-	size_t CountWrited = NumberToString(Number, Buf, 70, Radix).Count;
-	return RET_STAT(CountWrited, __stream_io::Write(Stream, Buf, CountWrited));
+	size_t CountWrited = NumberToString(Number, Buf, 70, Radix).Result;
+	return STR_STAT(CountWrited, __stream_io::Write(Stream, Buf, CountWrited));
 }
 
 template<typename TypeNumber>
-inline RET_STAT NumberToStream(TypeNumber Number, FILE * Stream = stdout, unsigned char Radix = 10)
+inline STR_STAT NumberToStream(TypeNumber Number, FILE * Stream = stdout, unsigned char Radix = 10)
 {
 	char Buf[70];
-	size_t CountWrited = NumberToString(Number, Buf, 70, Radix).Count;
-	return RET_STAT(CountWrited, __stream_io::Write(Stream, Buf, CountWrited));
+	size_t CountWrited = NumberToString(Number, Buf, 70, Radix).Result;
+	return STR_STAT(CountWrited, __stream_io::Write(Stream, Buf, CountWrited));
 }
 
 template<typename TypeNumber, typename TypeChar>
-inline RET_STAT NumberToStream(TypeNumber Number, std::basic_ostream<TypeChar> & Stream, unsigned char Radix, long double Eps)
+inline STR_STAT NumberToStream(TypeNumber Number, std::basic_ostream<TypeChar> & Stream, unsigned char Radix, long double Eps)
 {
 	TypeChar Buf[70]
-	size_t CountWrited = NumberToString((long double)Number, Buf, 70, Radix, Eps).Count;
-	return RET_STAT(CountWrited, __stream_io::Write(Stream, Buf, CountWrited));
+	size_t CountWrited = NumberToString((long double)Number, Buf, 70, Radix, Eps).Result;
+	return STR_STAT(CountWrited, __stream_io::Write(Stream, Buf, CountWrited));
 }
 
 
 template<typename TypeNumber>
-inline RET_STAT NumberToStream(TypeNumber Number, FILE * Stream, unsigned char Radix, long double Eps)
+inline STR_STAT NumberToStream(TypeNumber Number, FILE * Stream, unsigned char Radix, long double Eps)
 {
 	char Buf[70];
-	size_t CountWrited = NumberToString((long double)Number, Buf, 70, Radix, Eps).Count;
-	return RET_STAT(CountWrited, __stream_io::Write(Stream, Buf, CountWrited));
+	size_t CountWrited = NumberToString((long double)Number, Buf, 70, Radix, Eps).Result;
+	return STR_STAT(CountWrited, __stream_io::Write(Stream, Buf, CountWrited));
 }
 
 
