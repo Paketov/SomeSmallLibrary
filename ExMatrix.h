@@ -19,6 +19,25 @@
 #define matrix_check_index(Check, Message)  
 #endif
 
+inline long long gcd(long long a, long long b)
+{
+	a = llabs(a);
+	b = llabs(b);
+	if (a*b == 0)   
+		return a + b;
+	if (a == b) 
+		return a;
+	return ((a > b)? gcd(a % b, b): gcd(a, b % a));
+}
+
+inline long long lcm(long long a, long long b)
+{
+	if (a*b == 0) 
+		return 0;
+	return (a*b) / gcd(a,b);
+}
+
+
 
 //Retrive, row as multi reference
 
@@ -96,10 +115,13 @@ private:
 			this->r = r;
 		}
 
-		inline __SETTER<Index + 1> operator <<(T Val)
+		inline typename std::enable_if
+		<
+			!IsStaticArr || (Index < cj), 
+			__SETTER<Index + 1> 
+		>::type 
+		operator <<(T Val)
 		{
-			//Error: out of static limit
-			typedef std::enable_if<!IsStaticArr || (Index < cj)>::type;
 			(*r)[Index] = Val;
 			return __SETTER<Index + 1>(r);
 		}
@@ -109,7 +131,7 @@ public:
 
 	//////
 	template<class TypeChar>
-	RET_STAT FromText(const TypeChar * Str, size_t Len = 0xfffff)
+	STR_STAT FromText(const TypeChar * Str, size_t Len = 0xfffff)
 	{
 		size_t CountReaded = 0;
 		for(unsigned i = 0;i <  _Fields._Count;i++)
@@ -119,11 +141,11 @@ public:
 			if(!r)
 				return CountReaded;
 		}
-		return RET_STAT(CountReaded, true);
+		return STR_STAT(CountReaded, true);
 	}
 
 	template<class TypeChar>
-	RET_STAT FromText(std::basic_istream<TypeChar> & Stream)
+	STR_STAT FromText(std::basic_istream<TypeChar> & Stream)
 	{
 		size_t CountReaded = 0;
 		for(unsigned i = 0;i <  _Fields._Count;i++)
@@ -133,10 +155,10 @@ public:
 			if(!r)
 				return CountReaded;
 		}
-		return RET_STAT(CountReaded, true);
+		return STR_STAT(CountReaded, true);
 	}
 
-	RET_STAT FromText(FILE * Stream = stdin)
+	STR_STAT FromText(FILE * Stream = stdin)
 	{
 		size_t CountReaded = 0;
 		for(unsigned i = 0;i <  _Fields._Count;i++)
@@ -146,13 +168,13 @@ public:
 			if(!r)
 				return CountReaded;
 		}
-		return RET_STAT(CountReaded, true);
+		return STR_STAT(CountReaded, true);
 	}
 
 	/////////////
 
 	template<class TypeChar>
-	RET_STAT ToText(TypeChar * Str, size_t Len = 0xfffff)
+	STR_STAT ToText(TypeChar * Str, size_t Len = 0xfffff)
 	{
 		size_t CountWrited = 0;
 		for(unsigned i = 0;i <  _Fields._Count;i++)
@@ -164,11 +186,11 @@ public:
 			if(!r)
 				return CountWrited;
 		}
-		return RET_STAT(CountWrited, true);
+		return STR_STAT(CountWrited, true);
 	}
 
 	template<class TypeChar>
-	RET_STAT ToText(std::basic_ostream<TypeChar> & Stream)
+	STR_STAT ToText(std::basic_ostream<TypeChar> & Stream)
 	{
 		size_t CountWrited = 0;
 		for(unsigned i = 0;i <  _Fields._Count;i++)
@@ -184,10 +206,10 @@ public:
 			if(!r)
 				return CountWrited;
 		}
-		return RET_STAT(CountWrited, true);
+		return STR_STAT(CountWrited, true);
 	}
 
-	RET_STAT ToText(FILE * Stream = stdout)
+	STR_STAT ToText(FILE * Stream = stdout)
 	{
 		size_t CountWrited = 0;
 		for(unsigned i = 0;i <  _Fields._Count;i++)
@@ -203,7 +225,7 @@ public:
 			if(!r)
 				return CountWrited;
 		}
-		return RET_STAT(CountWrited, true);
+		return STR_STAT(CountWrited, true);
 	}
 
 	///////////
@@ -216,24 +238,27 @@ public:
 	}
 
 	template<unsigned _j>
-	ROW & operator =(ROW<T, _j>& Val)
+	typename std::enable_if
+	<
+		!IsStaticArr || !ROW<T, _j>::IsStaticArr || (cj == _j), 
+		ROW &
+	>::type 
+	operator =(ROW<T, _j>& Val)
 	{
-		//Error: out of static limit
-		typedef typename std::enable_if<!IsStaticArr || !Val.IsStaticArr || (cj == _j)>::type;
 		matrix_check(Val.Count == _Fields._Count, "Column count not equal");
 		memcpy(_Fields.v, Val._Fields.v, sizeof(T) * _Fields._Count);
 		return *this;
 	}
 
 	template<class _T,unsigned _j>
-	ROW & operator =(ROW<_T, _j> & Val)
+	typename std::enable_if
+	<
+		std::is_convertible<_T, T>::value &&
+		(!IsStaticArr || !ROW<_T, _j>::IsStaticArr || (cj == _j)),
+		ROW &
+	>::type 
+	operator =(ROW<_T, _j> & Val)
 	{
-		//Error: out of static limit
-		typedef typename std::enable_if<!IsStaticArr || !Val.IsStaticArr || (cj == _j)>::type;
-
-		//Error: type not convertible
-		typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
-
 		matrix_check(Val.Count == _Fields._Count, "Column count not equal");
 		for(unsigned i = 0;i < _Fields._Count; i++)
 			_Fields.v[i] = (T)Val._Fields.v[i];
@@ -279,8 +304,7 @@ private:
 			return true;
 		}
 
-		template<unsigned _i, unsigned _j>
-		inline bool Copy(const MATRIX<T, _i, _j> & Enother)
+		inline bool Copy(const MATRIX<T, 0, 0> & Enother)
 		{
 			T * NewVal = (T*)realloc(v, sizeof(T) * Enother.CountColumns * Enother.CountRows);
 			if(NewVal == NULL)
@@ -292,10 +316,26 @@ private:
 			return true;
 		}
 
-		template<class _T, unsigned _i, unsigned _j>
-		inline bool Copy(const MATRIX<_T, _i, _j> & Enother)
+		template<unsigned _i, unsigned _j>
+		inline bool Copy(const MATRIX<T, _i, _j> & Enother)
 		{
-			typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
+			T * NewVal = (T*)realloc(v, sizeof(T) * Enother.CountColumns * Enother.CountRows);
+			if(NewVal == NULL)
+				return false;
+			_CColumns = Enother.CountColumns;
+			_CRows = Enother.CountRows;
+			v = NewVal;
+			std::ValCopy(*v, Enother._Fields.v);
+			return true;
+		}
+
+		template<class _T, unsigned _i, unsigned _j>
+		inline typename std::enable_if
+		<
+			std::is_convertible<_T, T>::value, 
+			bool
+		>::type Copy(const MATRIX<_T, _i, _j> & Enother)
+		{
 			unsigned  m = Enother.CountColumns * Enother.CountRows;
 			T * NewVal = (T*)realloc(v, sizeof(T) * m);
 			if(NewVal == NULL)
@@ -317,15 +357,18 @@ private:
 			_CColumns = _i;
 			_CRows = _j;
 			v = NewVal;
-			memcpy(v, Enother, sizeof(T) * _i * _j);
+			std::ValCopy(*v, Enother);
 			return true;
 		}
 
 		template <class _T, unsigned _i, unsigned _j> 
-		inline bool Copy(const _T (&Enother)[_i][_j])
+		inline typename std::enable_if
+		<
+			std::is_convertible<_T, T>::value, 
+			bool
+		>::type 
+		Copy(const _T (&Enother)[_i][_j])
 		{
-			typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
-
 			T * NewVal = (T*)realloc(v, sizeof(T) * _i * _j);
 			if(NewVal == NULL)
 				return false;
@@ -365,7 +408,7 @@ private:
 	public:
 		static const unsigned _CColumns = ci;
 		static const unsigned _CRows = cj;
-		T v[ci][cj];
+		T					  v[ci][cj];
 
 		inline bool Allocate(const unsigned Col, const unsigned Row) const
 		{
@@ -374,7 +417,7 @@ private:
 
 		inline bool Copy(const MATRIX<T, ci, cj> & Enother)
 		{
-			memcpy(v, Enother._Fields.v, sizeof(v));
+			std::ValCopy(v, Enother._Fields.v);
 			return true;
 		}
 
@@ -389,15 +432,19 @@ private:
 		inline bool Copy(const MATRIX<T, 0, 0> & Enother)
 		{
 			matrix_check((_CColumns == Enother.CountColumns) && (_CRows == Enother.CountRows), "Count column and row not equal.");
-			memcpy(v, Enother._Fields.v, sizeof(v));
+			std::ValCopy(v, *Enother._Fields.v);
 			return true;
 		}
 
 		template<class _T, unsigned _i, unsigned _j>
-		inline bool Copy(const MATRIX<_T, _i, _j> & Enother)
+		inline typename std::enable_if
+		<
+			(ci == _i) && (cj == _j) && 
+			std::is_convertible<_T, T>::value,
+			bool
+		>::type 
+		Copy(const MATRIX<_T, _i, _j> & Enother)
 		{
-			typedef typename std::enable_if<(ci == _i) && (cj == _j)>::type;
-			typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
 			matrix_check((_CColumns == Enother.CountColumns) && (_CRows == Enother.CountRows), "Count column and row not equal.");
 			for(unsigned i = 0, m = _CColumns * _CRows;i < m;i++)
 				((T*)v)[i] = ((_T*)Enother._Fields.v)[i];
@@ -405,19 +452,25 @@ private:
 		}
 
 		template <unsigned _i, unsigned _j> 
-		inline bool Copy(const T (&Enother)[_i][_j])
+		inline typename std::enable_if
+		<
+			(ci == _i) && (cj == _j), 
+			bool
+		>::type 
+		Copy(const T (&Enother)[_i][_j])
 		{
-			typedef typename std::enable_if<(ci == _i) && (cj == _j)>::type;
-
-			memcpy(v, Enother, sizeof(T) * _i * _j);
+			std::ValCopy(v, Enother);
 			return true;
 		}
 
 		template <class _T, unsigned _i, unsigned _j> 
-		inline bool Copy(const _T (&Enother)[_i][_j])
+		inline typename std::enable_if
+		<
+			(ci == _i) && (cj == _j) && std::is_convertible<_T, T>::value, 
+			bool
+		>::type
+		Copy(const _T (&Enother)[_i][_j])
 		{
-			typedef typename std::enable_if<(ci == _i) && (cj == _j)>::type;
-			typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
 			for(unsigned i = 0;i < (_i * _j);i++)
 				((T*)v)[i] = ((const _T*)Enother)[i];
 			return true;
@@ -437,8 +490,6 @@ private:
 
 		inline void Deinit() const{}
 	};
-
-
 
 public:
 
@@ -489,17 +540,20 @@ public:
 		{
 			__MATRIX_FIELDS_DEF;
 		public:
-			operator T()
+			operator unsigned()
 			{
-				var R = 0, C;
-				A = Matrix.Triangle(A);
-				for (var i = 0; i < A.stroc; i++) 
+				MATRIX re = *(MATRIX*)this; 
+				re.ToRowEchelon();
+				unsigned null = 0;
+				for (unsigned i = 0; i < re.CountRows; i++) 
 				{
-					for (var C = 0; (C < A.stolb) && (A[i][C] == 0); C++);
-					if ((A.stolb - C) != 0) 
-						R++;
+					int sum = 0;
+					for (unsigned j = 0; j < re.CountColumns; j++)
+						sum += llabs(re[i][j]);
+					if (sum == 0) 
+						null++;
 				}
-				return R;
+				return re.CountRows - null;
 			}
 		} Rank;
 
@@ -513,7 +567,7 @@ public:
 				if (Val.CountColumns == 1)
 					return Val[0][0];
 
-				MATRIX<T, max(0, (int)_i - 1), max(0, (int)_i - 1)> add(Val.CountColumns - 1);
+				MATRIX<T, max(0, (int)_i - 1), max(0, (int)_i - 1)> add(Val.CountRows - 1, Val.CountColumns - 1);
 				T d = T(0);
 				for (unsigned i = 0; i < Val.CountColumns; ++i) 
 				{
@@ -535,10 +589,10 @@ public:
 			}
 
 		public:
-			operator T() const
+			operator typename std::gen_err_type<ci == cj, T>::type() const
 			{
 				//Error: if static count rows and columns not equal
-				typedef typename std::enable_if<ci == cj>::type;
+				//typedef typename std::enable_if<ci == cj>::type;
 				MATRIX This = *(MATRIX*)this;
 				matrix_check(This.CountRows == This.CountColumns, "Count column and row not equal.");
 				return Solution(This);
@@ -560,7 +614,7 @@ public:
 	}
 
 	template<class TypeChar>
-	RET_STAT ReadSize(const TypeChar * Str, size_t Len = 0xfffff)
+	STR_STAT ReadSize(const TypeChar * Str, size_t Len = 0xfffff)
 	{
 
 		size_t CountReaded = 0;
@@ -572,11 +626,11 @@ public:
 		CountReaded += StringToNumber(&j, Str + CountReaded, NOT_LESS_Z(Len - CountReaded))(r);
 		if(!r)
 			return CountReaded;
-		return RET_STAT(CountReaded, Resize(i, j));
+		return STR_STAT(CountReaded, Resize(i, j));
 	}
 
 	template<class TypeChar>
-	RET_STAT ReadSize(std::basic_istream<TypeChar> & Stream)
+	STR_STAT ReadSize(std::basic_istream<TypeChar> & Stream)
 	{
 		size_t CountReaded = 0;
 		MATRIX & This = *this;
@@ -587,11 +641,10 @@ public:
 		CountReaded += StreamToNumber(&j, Stream)(r);
 		if(!r)
 			return CountReaded;
-		return RET_STAT(CountReaded, Resize(i, j));
+		return STR_STAT(CountReaded, Resize(i, j));
 	}
 	
-	template<class TypeChar>
-	RET_STAT ReadSize(FILE * Stream = stdin)
+	STR_STAT ReadSize(FILE * Stream = stdin)
 	{
 		size_t CountReaded = 0;
 		MATRIX & This = *this;
@@ -602,11 +655,11 @@ public:
 		CountReaded += StreamToNumber(&j, Stream)(r);
 		if(!r)
 			return CountReaded;
-		return RET_STAT(CountReaded, Resize(i, j));
+		return STR_STAT(CountReaded, Resize(i, j));
 	}
 
 	template<class TypeChar>
-	RET_STAT FromText(const TypeChar * Str, size_t Len = 0xfffff, bool IsReadSize = false)
+	STR_STAT FromText(const TypeChar * Str, size_t Len = 0xfffff, bool IsReadSize = false)
 	{
 		size_t CountReaded = 0;
 		MATRIX & This = *this;
@@ -620,13 +673,13 @@ public:
 			bool r;
 			CountReaded += This[i].FromText(Str + CountReaded, NOT_LESS_Z(Len -  CountReaded))(r);
 			if(!r)
-				return RET_STAT(CountReaded, false);
+				return STR_STAT(CountReaded, false);
 		}
-		return RET_STAT(CountReaded, true);
+		return STR_STAT(CountReaded, true);
 	}
 
 	template<class TypeChar>
-	RET_STAT FromText(std::basic_istream<TypeChar> & Stream, bool IsReadSize = false)
+	STR_STAT FromText(std::basic_istream<TypeChar> & Stream, bool IsReadSize = false)
 	{
 		size_t CountReaded = 0;
 		MATRIX & This = *this;
@@ -640,18 +693,18 @@ public:
 			bool r;
 			CountReaded += This[i].FromText(Stream)(r);
 			if(!r)
-				return RET_STAT(CountReaded, false);
+				return STR_STAT(CountReaded, false);
 		}
-		return RET_STAT(CountReaded, true);
+		return STR_STAT(CountReaded, true);
 	}
 
-	RET_STAT FromText(FILE * Stream = stdin, bool IsReadSize = false)
+	STR_STAT FromText(FILE * Stream = stdin, bool IsReadSize = false)
 	{
 		size_t CountReaded = 0;
 		MATRIX & This = *this;
 		if(IsReadSize)
 		{
-			if(!ReadSize(Stream, Len)(CountReaded))
+			if(!ReadSize(Stream)(CountReaded))
 				return CountReaded;
 		}
 	    for(unsigned i = 0; i <  _Fields._CRows; i++)
@@ -659,15 +712,15 @@ public:
 			bool r;
 			CountReaded += This[i].FromText(Stream)(r);
 			if(!r)
-				return RET_STAT(CountReaded, false);
+				return STR_STAT(CountReaded, false);
 		}
-		return RET_STAT(CountReaded, true);
+		return STR_STAT(CountReaded, true);
 	}
 
 	/////////////
 
 	template<class TypeChar>
-	RET_STAT ToText(TypeChar * Str, size_t Len = 0xfffff, bool IsWriteSize = false)
+	STR_STAT ToText(TypeChar * Str, size_t Len = 0xfffff, bool IsWriteSize = false)
 	{
 		size_t CountWrited = 0;
 		MATRIX & This = *this;
@@ -680,11 +733,11 @@ public:
 			if(!r)
 				return CountWrited;
 		}
-		return RET_STAT(CountWrited, true);
+		return STR_STAT(CountWrited, true);
 	}
 
 	template<class TypeChar>
-	RET_STAT ToText(std::basic_ostream<TypeChar> & Stream)
+	STR_STAT ToText(std::basic_ostream<TypeChar> & Stream)
 	{
 		size_t CountWrited = 0;
 		MATRIX & This = *this;
@@ -701,10 +754,10 @@ public:
 			if(!r)
 				return CountWrited;
 		}
-		return RET_STAT(CountWrited, true);
+		return STR_STAT(CountWrited, true);
 	}
 
-	RET_STAT ToText(FILE * Stream = stdout)
+	STR_STAT ToText(FILE * Stream = stdout)
 	{
 		size_t CountWrited = 0;
 		MATRIX & This = *this;
@@ -721,16 +774,22 @@ public:
 			if(!r)
 				return CountWrited;
 		}
-		return RET_STAT(CountWrited, true);
+		return STR_STAT(CountWrited, true);
 	}
 
-	typename std::conditional<IsStaticArr,ROW<T, cj> &, ROW<T, cj>>::type operator[](const unsigned Index)
+	inline typename std::conditional
+	<
+		IsStaticArr,
+		ROW<T, cj> &, 
+		ROW<T, cj>
+	>::type 
+	operator[](const unsigned Index)
 	{
 		matrix_check_index(Index < _Fields._CRows, "Row out of bound");
 		if(IsStaticArr)
-			return *(ROW<T, cj>*)((T*)_Fields.v + CountColumns * Index);
+			return *(ROW<T, cj>*)((T*)_Fields.v + _Fields._CColumns * Index);
 		else
-			return ROW<T, cj>((T*)_Fields.v + CountColumns * Index, CountColumns); 
+			return ROW<T, cj>((T*)_Fields.v + _Fields._CColumns * Index, _Fields._CColumns); 
 	}
 
 	void SetAllVal(T NewVal)
@@ -776,7 +835,7 @@ public:
 		matrix_check(_Fields.Copy(New),  "Matrix not copied");
 	}
 
-	template<class _T, unsigned _i, unsigned _j>
+	template<typename _T, unsigned _i, unsigned _j>
 	MATRIX(const MATRIX<_T, _i, _j> & New)
 	{ 
 	    //Is types not convertible, have compile error
@@ -789,7 +848,7 @@ public:
 
 	 
 	template <unsigned _i, unsigned _j> 
-	MATRIX(const T (&New)[_i][_j]) 
+	MATRIX(T (&New)[_i][_j]) 
 	{ 
 		//Is matrix static, and count row or column not equal
 		typedef typename std::enable_if<!IsStaticArr || ((ci == _i) && (cj == _j))>::type;
@@ -797,8 +856,8 @@ public:
 		matrix_check(_Fields.Copy(New),  "Matrix not copied");
 	}
 
-	template <class _T, unsigned _i, unsigned _j> 
-	MATRIX(const _T (&New)[_i][_j]) 
+	template <typename _T, unsigned _i, unsigned _j> 
+	MATRIX(_T (&New)[_i][_j]) 
 	{ 
 		//Is types not convertible, have compile error
 		typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
@@ -814,22 +873,26 @@ public:
 	}
 
 	template<class _T, unsigned _i, unsigned _j>
-	MATRIX & operator =(const MATRIX<_T, _i, _j> & New)
+	typename std::enable_if
+	<
+		std::is_convertible<_T, T>::value &&
+		(!IsStaticArr || !MATRIX<_T, _i, _j>::IsStaticArr || ((ci == _i) && (cj == _j))), 
+		MATRIX &
+	>::type
+	operator =(const MATRIX<_T, _i, _j> & New)
 	{
-	    //Is types not convertible, have compile error
-		typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
-		//Is matrix static, and count row or column not equal
-		typedef typename std::enable_if<!IsStaticArr || !New.IsStaticArr || ((ci == _i) && (cj == _j))>::type;
 		matrix_check(_Fields.Copy(New),  "Matrix not copied");
 	}
 
 	template <class _T, unsigned _i, unsigned _j> 
-	MATRIX & operator =(const _T (&New)[_i][_j]) 
+	typename std::enable_if
+	<
+		std::is_convertible<_T, T>::value &&
+		(!IsStaticArr || ((ci == _i) && (cj == _j))), 
+		MATRIX &
+	>::type
+	operator =(const _T (&New)[_i][_j]) 
 	{ 
-		//Is types not convertible, have compile error
-		typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
-		//Is matrix static, and count row or column not equal
-		typedef typename std::enable_if<!IsStaticArr || ((ci == _i) && (cj == _j))>::type;
 		matrix_check(_Fields.Copy(New),  "Matrix not copied");
 	}
 
@@ -848,9 +911,9 @@ public:
 		}
 	}
 
+	//typename std::enable_if<((ci * cj) == 0)>::type 
 	void RemoveRow(unsigned Pos)
 	{
-		typedef typename std::enable_if<(ci * cj) == 0>::type;
 		CountRows--;
 		for (int i = Pos; i < CountRows; i++) 
 		{
@@ -861,9 +924,9 @@ public:
 
 	//Mul on scalar
 	template<class _T>
-	MATRIX & operator *=(_T Val)
+	typename std::enable_if<std::is_convertible<_T, T>::value, MATRIX&>::type 
+	operator *=(_T Val)
 	{
-		typedef typename std::enable_if< std::is_convertible<_T, T>::value>::type;
 		for(unsigned i = 0;i < CountRows;i++)
 			for(unsigned j = 0;j < CountColumns;j++)
 				(*this)[i][j] *= Val;
@@ -871,9 +934,9 @@ public:
 	}
 
 	template<class _T>
-	MATRIX operator *(_T Val)
+	typename std::enable_if< std::is_convertible<_T, T>::value, MATRIX>::type 
+	operator *(_T Val)
 	{
-		typedef typename std::enable_if< std::is_convertible<_T, T>::value>::type;
 		MATRIX Ret = *this;
 		for(unsigned i = 0;i < CountRows;i++)
 			for(unsigned j = 0;j < CountColumns;j++)
@@ -885,24 +948,26 @@ public:
 
 	//Mul on enother matrix
 	template<class _T, unsigned _i, unsigned _j>
-	MATRIX<
-				T, 
-				((!IsStaticArr || !MATRIX<_T, _i, _j>::IsStaticArr)?0:ci), 
-				((!IsStaticArr || !MATRIX<_T, _i, _j>::IsStaticArr)?0:_j)
-	      >  operator *(const MATRIX<_T, _i, _j> & Val)
+	typename std::enable_if
+	<
+		std::is_convertible<_T, T>::value && 
+		(!IsStaticArr || !MATRIX<_T, _i, _j>::IsStaticArr || (ci == _j) && (cj == _i)),
+		MATRIX
+		<
+			T, 
+			((!IsStaticArr || !MATRIX<_T, _i, _j>::IsStaticArr)?0:ci), 
+			((!IsStaticArr || !MATRIX<_T, _i, _j>::IsStaticArr)?0:_j)
+		>
+	>::type
+	operator *(const MATRIX<_T, _i, _j> & Val)
 	{
-		typedef typename std::enable_if<std::is_convertible<_T, T>::value>::type;
-		typedef typename std::enable_if<!IsStaticArr || !Val.IsStaticArr || (ci == _j) && (cj == _i)>::type;
-		
-
 		matrix_check(CountRows == Val.CountColumns, "Count column and row not equal.");
-
-
 		MATRIX & This = *this;
-		MATRIX<
-				T, 
-				((!IsStaticArr || !MATRIX<_T, _i, _j>::IsStaticArr)?0:ci), 
-				((!IsStaticArr || !MATRIX<_T, _i, _j>::IsStaticArr)?0:_j)
+		MATRIX
+		<
+			T, 
+			((!IsStaticArr || !MATRIX<_T, _i, _j>::IsStaticArr)?0:ci), 
+			((!IsStaticArr || !MATRIX<_T, _i, _j>::IsStaticArr)?0:_j)
 	    > Ret(CountColumns, Val.CountRows);
 		for(unsigned i = 0;i < CountRows;i++)
 			for(unsigned j = 0;j < CountColumns;j++)
@@ -915,13 +980,48 @@ public:
 		return Ret;
 	}
 
-
 	MATRIX & operator *=(const MATRIX & Val)
 	{
 		*this = operator *(Val);
 		return *this;
 	}
 
+	template<typename DegreeType>
+	inline MATRIX Pow(DegreeType n)
+	{
+		bool r;
+		return Pow(n, r);
+	}
+
+	template<typename DegreeType>
+	inline MATRIX Pow(DegreeType n, bool & IsCorrect)
+	{
+		MATRIX B, A = *this;
+		IsCorrect = true;
+		if(n < 0)
+		{
+			A.ToInverse();
+			B = A;
+		}else if(n == 0)
+		{
+			A.SetOnMainDiagon(1);
+			return A;
+		}else if(std::IsFraction(n))
+		{
+			T d = A.Determinant;
+			if(d >= 0)
+				A.SetOnMainDiagon(pow(d, n * (T(1) / A.CountRows)));
+			else
+			{
+				IsCorrect = false;
+				return MATRIX();
+			}
+		}else
+			B = A;
+		for (unsigned r = 0, m = (abs(n) - 1); r < m; r++)
+			B = A * B;
+		return B;
+	}
 
 	void SwapRows(unsigned r1, unsigned r2)
 	{
@@ -985,6 +1085,46 @@ public:
 			}
 	}
 
+	MATRIX GetRowEchelon()
+	{
+	   MATRIX This = *this;
+	   This.ToRowEchelon();
+	   return This;
+	}
+
+	/*
+		Ступенчатый вид по строкам
+	*/
+	void ToRowEchelon()
+	{
+		MATRIX & A = *this;
+		int  l, factor1;
+		for (unsigned i = 0,r = 0, k; i < min(_Fields._CColumns, _Fields._CRows); i++)  
+		{
+			if (A[r][i] == 0) 
+			{
+				for (k = r + 1; k < _Fields._CRows; k++) 
+					if (A[k][i] != 0) 
+						break;
+				if (k < _Fields._CRows)   
+					A.SwapRows(r, k);
+			}
+			if (A[r][i] != 0) 
+			{
+				for (k=r+1; k < _Fields._CRows; k++) 
+				{
+					if (A[k][i] == 0) 
+						continue;
+					l = lcm(A[k][i], A[r][i]);
+					factor1 = l / A[k][i];
+					for (unsigned j = i; j < _Fields._CColumns; j++) 
+						A[k][j] = A[k][j] * factor1 - A[r][j] * (l / A[r][i]);
+				}
+				r++;
+			}
+		}
+	}
+
 	MATRIX GetTriangle() const
 	{
 		MATRIX A = *this;
@@ -1001,9 +1141,9 @@ public:
 				Result[_i][_j] = This[i][j];
 	}	
 	
-	void ToTranspose()
+	typename std::enable_if<cj == ci>::type 
+	ToTranspose()
 	{
-		typedef typename std::enable_if<cj == ci>::type;
 		for(unsigned i = 0;i < CountRows;i++)
 			for(unsigned j = i;j < CountColumns;j++)
 			{
@@ -1022,30 +1162,72 @@ public:
 		return NewMatrix;
 	}
 
-	MATRIX GetInverse()
+	typename std::enable_if
+	<
+		cj == ci, 
+		MATRIX
+	>::type
+	GetInverse()
 	{
-		typedef typename std::enable_if<cj == ci>::type;
-
 		MATRIX & This = *this;
 		if((CountColumns == 1) && (CountRows == 1))
 			return 1 / This[0][0];
-
 		T d = This.Determinant;
 		if ((CountRows != CountColumns) || (d == 0))
 			return 0;
-
 		MATRIX RetMatrix(CountRows, CountColumns);
-		RetMatrix = GetСofactor();
+		RetMatrix = GetAlgebraicComplement();
 		RetMatrix.ToTranspose();
 		return RetMatrix *= ((T)1 / d);
 	}
 
-	inline void ToMinor()
+	typename std::enable_if
+	<
+		cj == ci
+	>::type
+	ToInverse()
 	{
-		*this = GetMinor();
+
+		MATRIX & This = *this;
+		if((CountColumns == 1) && (CountRows == 1))
+		{
+			This[0][0] = 1 / This[0][0];
+			return;
+		}
+		T d = This.Determinant;
+		if ((CountRows != CountColumns) || (d == 0))
+			return;
+		This.ToAlgebraicComplement();
+		This.ToTranspose();
+		This *= ((T)1 / d);
 	}
 
-	MATRIX GetMinor()
+	inline void ToAllMinors()
+	{
+		*this = GetAllMinors();
+	}
+
+	T GetMinor(unsigned i, unsigned j)
+	{
+		MATRIX & This = *this;
+		MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(CountRows - 1, CountColumns -1);
+		
+		for (unsigned _i = 0, __i = 0; _i < CountRows; _i++) 
+		{
+			if (_i == i) 
+				continue;
+			for (unsigned _j = 0, __j = 0; _j < CountColumns; _j++) 
+			{
+				if (_j == j) 
+					continue;
+				TempMatrix[__i][__j++] = This[_i][_j]; 
+			}
+			__i++;
+		}
+		return TempMatrix.Determinant;
+	}
+
+	MATRIX GetAllMinors()
 	{
 		MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(CountRows - 1, CountColumns -1 );
 		MATRIX Ret(CountRows, CountColumns);
@@ -1068,10 +1250,10 @@ public:
 				}
 				Ret[i][j] = TempMatrix.Determinant;
 			}
-			return Ret;
+		return Ret;
 	}
 
-	void ToСofactor()
+	void ToAlgebraicComplement()
 	{
 		MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(CountRows - 1, CountColumns -1 );
 		MATRIX Ret(CountRows, CountColumns);
@@ -1094,10 +1276,10 @@ public:
 				}
 				Ret[i][j] = (((i + j) & 1)?(T)-1:(T)1) * TempMatrix.Determinant;
 			}
-			This = Ret;
+		This = Ret;
 	}
 
-	MATRIX GetСofactor()
+	MATRIX GetAlgebraicComplement() //алгебраическое дополнение
 	{
 		MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(CountRows - 1, CountColumns -1 );
 		MATRIX Ret(CountRows, CountColumns);
@@ -1120,22 +1302,23 @@ public:
 				}
 				Ret[i][j] = (((i + j) & 1)?(T)-1:(T)1) * TempMatrix.Determinant;
 			}
-			return Ret;
+		return Ret;
 	}
-
 
 	void SetOnMainDiagon(T Val)
 	{
-		MATRIX & This = *this;
-		for(unsigned i = 0, m = min(CountColumns, CountRows);i < m;i++)
-			This[i][i] = Val;
+		MATRIX & A = *this;
+		for(unsigned i = 0;i < A.CountRows;i++)
+			for(unsigned j = 0;j < A.CountColumns;j++)
+					A[i][j] = (i == j)?Val:T(0);
 	}
 
 	void SetOnSecDiagon(T Val)
 	{
-		MATRIX & This = *this;
-		for(unsigned i = CountColumns - 1, m = min(, CountRows);(int)i >= 0;i++)
-			This[i][i] = Val;
+		MATRIX & A = *this;
+		for(unsigned i = A.CountRows - 1;(int)i >= 0;i--)
+			for(unsigned j = A.CountColumns - 1;(int)j >= 0;j--)
+				A[i][j] = (i == j)?Val:T(0);
 	}
 
 };
