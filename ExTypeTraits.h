@@ -1,6 +1,7 @@
 #ifndef __EXTYPETRAITS_H__
 #define __EXTYPETRAITS_H__
 
+#include <malloc.h>
 #include <type_traits>
 
 namespace std
@@ -89,9 +90,9 @@ namespace std
 			return Val;
 		}
 
-		inline Type operator()(const Type NewVal) const
+		inline typename std::enable_if<!OnWriteErr,Type>::type 
+		operator()(const Type NewVal) const
 		{
-			typedef std::enable_if<!OnWriteErr>::type;
 			return NewVal;
 		}
 
@@ -105,19 +106,75 @@ namespace std
 	template<typename T>
 	struct is_equal<T, T>: true_type {};
 
+	template<bool Cond, typename RetType> 
+	struct gen_err_type  	
+	{ 
+	private: 
+		class type__ 
+		{ 
+			RetType * v; 
+		}; 
+	public: 
+		typedef typename conditional<Cond, RetType, type__>::type type; 
+	}; 
 
 
-	template<bool Cond, typename RetType>
-	struct gen_err_type
+
+
+	template<typename TypeNumber>
+	bool IsFraction(TypeNumber Val)
 	{
-	private:
-	   class type__
-	   {
-		   RetType * v;
-	   };
-	public:
-		typedef typename conditional<Cond, RetType, type__>::type type;
-	};
+		return std::is_floating_point<TypeNumber>::value && (Val != (TypeNumber)((long long)(Val)));
+	}
+
+	template<typename DestType, typename SourceType>
+    inline typename std::enable_if
+	<
+		 (sizeof(DestType) == sizeof(SourceType)) &&
+		 (!std::is_scalar<SourceType>::value || !std::is_scalar<DestType>::value) &&
+		 !std::is_const<DestType>::value
+	>::type 
+	ValCopy(DestType & Dest, SourceType & Source)
+	{
+		struct COP_STRUCT{DestType __val;};
+		(COP_STRUCT&)Dest = (COP_STRUCT&)Source;
+	}
+
+	template<typename DestType, typename SourceType>
+    inline typename std::enable_if
+	<
+		 (sizeof(DestType) != sizeof(SourceType)) &&
+		 !std::is_const<DestType>::value
+	>::type 
+	ValCopy(DestType & Dest, SourceType & Source, size_t LenCopy)
+	{
+		memcpy(&Dest, &Source, LenCopy);
+	}
+
+	template<typename DestType, typename SourceType>
+    inline typename std::enable_if
+	<
+		 (sizeof(DestType) != sizeof(SourceType)) &&
+		 (!std::is_scalar<SourceType>::value || !std::is_scalar<DestType>::value) &&
+		 !std::is_const<DestType>::value
+	>::type 
+	ValCopy(DestType & Dest, SourceType & Source)
+	{
+		struct COP_STRUCT{char __val[max(sizeof(DestType), sizeof(SourceType))];};
+		(COP_STRUCT&)Dest = (COP_STRUCT&)Source;
+	}
+
+	template<typename DestType, typename SourceType>
+    inline typename std::enable_if
+	<
+		 std::is_scalar<SourceType>::value &&
+		 std::is_scalar<DestType>::value &&
+		 !std::is_const<DestType>::value
+	>::type 
+	ValCopy(DestType & Dest, SourceType & Source)
+	{
+		Dest = Source;
+	}
 
 };
 #endif
