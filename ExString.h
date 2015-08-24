@@ -331,12 +331,12 @@ struct __stream_io
 
 	static inline bool PutChar(FILE * s, char v)
 	{
-	  return fputc(v, s);
+	  return fputc(v, s) != EOF;
 	}
 
 	static inline bool PutChar(FILE * s, wchar_t v)
 	{
-	  return fputwc(v, s);
+	  return fputwc(v, s) != WEOF;
 	}
 
 	template<typename TypeChar>
@@ -352,7 +352,7 @@ struct __stream_io
 
 	static inline bool Write(FILE * s,  wchar_t * Str, size_t Len)
 	{
-		return fputws(Str, s) != EOF;
+		return fputws(Str, s) != WEOF;
 	}	
 	
 	template<typename TypeChar>
@@ -464,31 +464,29 @@ inline STR_STAT NumberToString(TypeNumber Val, TypeChar (&Buf)[BufSize])
 template<typename TypeNumber, typename TypeChar>
 STR_STAT _i_NumberToString(TypeNumber Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
 {
-	size_t CountWrited = 0;
-	if(std::is_signed<TypeNumber>::value && (Number < 0) && (Len > 0))
-	{
-		Str[CountWrited++] = CHAR_TYPE(TypeChar,'-');
-		Number = -Number;		
-	}
+	TypeChar *s = Str, *b = s + Len;
 
-	std::make_unsigned<TypeNumber>::type t = 0;
-	unsigned char CountDigit = 0;
+	std::make_unsigned<TypeNumber>::type AbsNum;
+    if(std::is_signed<TypeNumber>::value && (Number < 0) && (s < b))
+	{
+		*(s++) = CHAR_TYPE(TypeChar,'-');
+		AbsNum = -Number;
+	}else
+		AbsNum = Number;
+
+	TypeChar Buf[40];
+	TypeChar *m = Buf + 30, *c = m;
+	unsigned char i = 0;
 	do
 	{
-	      t = t * Radix + Number % Radix;
-		  CountDigit++;
-	}while((Number /= Radix) > 0);
-	do
-	{		
-		if(CountWrited >= Len)
-			return CountWrited;
-		unsigned char  digval = (unsigned char)(t % Radix);
-		Str[CountWrited++] = DIGIT_TO_ALPHA(TypeChar, digval);
-		CountDigit--;
-	}while(((t /= Radix) > 0) || (CountDigit > 0));
-	if(CountWrited < Len)
-		Str[CountWrited] = CHAR_TYPE(TypeChar,'\0');
-	return STR_STAT(CountWrited, true);
+		  decltype(AbsNum % Radix) digval = AbsNum % Radix;
+		  *(--c) = DIGIT_TO_ALPHA(TypeChar, digval);
+	}while((AbsNum /= Radix) > 0);
+	for(;(c < m) && (s < b);c++, s++)
+		*s = *c;
+	if(s < b)
+		*s = CHAR_TYPE(TypeChar,'\0');
+	return STR_STAT(s - Str, true);
 }
 
 template<bool IsScaleEps, typename TypeChar>
@@ -1169,12 +1167,12 @@ inline bool IsDigit(TypeChar c)
 
 inline bool IsLatter(wchar_t c)
 {
-	return iswalpha(c);
+	return iswalpha(c) != 0;
 }
 
 inline bool IsLatter(char c)
 {
-	return isalpha(c);
+	return isalpha(c) != 0;
 }
 
 
