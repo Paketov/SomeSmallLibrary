@@ -475,8 +475,7 @@ STR_STAT _i_NumberToString(TypeNumber Number, TypeChar * Str, size_t Len, unsign
 		AbsNum = Number;
 
 	TypeChar Buf[40];
-	TypeChar *m = Buf + 30, *c = m;
-	unsigned char i = 0;
+	TypeChar *m = Buf + 40, *c = m;
 	do
 	{
 		  decltype(AbsNum % Radix) digval = AbsNum % Radix;
@@ -540,31 +539,32 @@ STR_STAT _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsig
 
 	unsigned long long Integer = (unsigned long long)uNumber;
 	uNumber = uNumber - Integer + 1.0;
+	TypeChar Buf[40];
+	TypeChar *m = Buf + 40, *c = m;
 
+	if(IsScaleEps)
 	{
-		unsigned long long t = 0;
-		unsigned char CountDigit = 0;
-		if(IsScaleEps)
+		for(;Integer > 0;Integer /= Radix, Eps1 *= Radix)
 		{
-			for(;Integer > 0;Integer /= Radix, CountDigit++)
-			{
-				t = t * Radix + Integer % Radix;
-				Eps1 *= Radix;
-			}
-		}else
-		{
-			for(;Integer > 0;Integer /= Radix, CountDigit++)
-				t = t * Radix + Integer % Radix;
+			unsigned char digval = Integer % Radix;				
+			*(--c) = DIGIT_TO_ALPHA(TypeChar, digval);
 		}
-		do  
- 		{ 
-			if(CountWrited >= Len)
-				return CountWrited;
-			unsigned char  digval = (unsigned char) (t % Radix); 
- 			Str[CountWrited++] = DIGIT_TO_ALPHA(TypeChar, digval);		
-			CountDigit--; 
- 		} while ((CountWrited < Len) && (((t /= Radix) > 0) || (CountDigit > 0))); 
-	}
+	}else
+	{
+		for(;Integer > 0;Integer /= Radix)
+		{
+			unsigned char digval = Integer % Radix;
+			*(--c) = DIGIT_TO_ALPHA(TypeChar, digval);
+		}
+	}			
+	if(c == m)
+		*(--c) = CHAR_TYPE(TypeChar, '0');
+
+	for(;c < m;c++, CountWrited++)
+		if(CountWrited >= Len)
+			return CountWrited;
+		else
+			Str[CountWrited] = *c;
 
 	Str[CountWrited++] = CHAR_TYPE(TypeChar,'.');
 	{
@@ -576,22 +576,25 @@ STR_STAT _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsig
 			uNumber *= Radix;
 		}
 	}
+	
 	Integer = (unsigned long long)uNumber;
 	if((uNumber - Integer) >= 0.5)
 		Integer++;
+	
+	c = m;
+	for(;Integer > 1; Integer /= Radix)
 	{
-		unsigned long long t = 0;
-		for(;Integer > 1;Integer /= Radix)
-			t = t * Radix + Integer % Radix;
-		do 
-		{
-			if(CountWrited >= Len)
-				return CountWrited;
-			unsigned char  digval = (unsigned char) (t % Radix);
-			Str[CountWrited++] = DIGIT_TO_ALPHA(TypeChar, digval);
-		} while ((CountWrited < Len) && (t /= Radix) > 0);
+		unsigned char digval = Integer % Radix;
+		*(--c) = DIGIT_TO_ALPHA(TypeChar, digval);
 	}
+	if(c == m)
+		*(--c) = CHAR_TYPE(TypeChar, '0');
 
+	for(;c < m;c++, CountWrited++)
+		if(CountWrited >= Len)
+			return CountWrited;
+		else
+			Str[CountWrited] = *c;
 	if(Exp)
 	{
 		if(CountWrited >= Len)
