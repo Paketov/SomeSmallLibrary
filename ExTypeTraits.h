@@ -106,6 +106,17 @@ namespace std
 	template<typename T>
 	struct is_equal<T, T>: true_type {};
 
+	struct empty_type
+	{
+	};
+
+
+	template<bool Cond, typename RetType>
+	struct not_empty_if
+	{
+		typedef typename conditional<Cond, RetType, empty_type>::type type; 
+	};
+
 	template<bool Cond, typename RetType> 
 	struct gen_err_type  	
 	{ 
@@ -119,14 +130,152 @@ namespace std
 	}; 
 
 
-
-
 	template<typename TypeNumber>
-	bool IsFraction(TypeNumber Val)
+	typename std::enable_if<std::is_floating_point<TypeNumber>::value,bool>::type  
+	IsFraction(TypeNumber Val)
 	{
-		return std::is_floating_point<TypeNumber>::value && (Val != (TypeNumber)((long long)(Val)));
+		return Val != (TypeNumber)((long long)(Val));
 	}
 
+	template<typename TypeNumber>
+	typename std::enable_if<!std::is_floating_point<TypeNumber>::value,bool>::type  
+	IsFraction(TypeNumber Val)
+	{
+		return false;
+	}
+
+	template <typename Type>
+	inline const size_t countof(Type)
+	{ 	
+		return 1;
+	}
+
+	template <typename Type, size_t Len>
+	inline const size_t countof(Type (&)[Len])
+	{ 	
+		return Len;
+	}
+
+	//remove_all_pointers
+
+	//Example: std::remove_all_pointers<int****>::type equal int.
+	template<typename _T>
+	struct remove_all_pointers
+	{
+		typedef _T type;
+	};
+
+
+	template<typename _T>
+	struct remove_all_pointers<_T*>
+	{
+		typedef typename remove_all_pointers<_T>::type type;
+	};
+
+	//Example: std::count_pointers<int****>::value equal 4.
+	template<typename _T>
+	struct count_pointers
+	{
+		static const unsigned value = 0;
+	};
+
+
+	template<typename _T>
+	struct count_pointers<_T*>
+	{
+		static const unsigned value = count_pointers<_T>::value + 1;
+	};
+
+	/*
+	Example: 
+	 int q0 = 9, *q1 = &q0, **q2 = &q1;
+	 std::add_count_pointers<int, 2>::type w2 = q2;
+	 w2 equal q2.
+	*/
+
+	template<typename _T, unsigned Count>
+	struct add_count_pointers
+	{
+	    typedef typename add_count_pointers<_T*, Count - 1>::type type;
+	};
+
+	template<typename _T>
+	struct add_count_pointers<_T, 0>
+	{
+	   typedef _T type;
+	};
+
+
+	/*
+	Example: 
+		char && e0 = 343434;
+		std::move_pointers<double, decltype(e0)>::type dssdfdff = 0.8989; //double && dssdfdff
+	*/
+
+	template<typename DestType, typename>
+	struct move_pointers
+	{
+	    typedef DestType type;
+	};
+
+	template<typename DestType, typename SourceType>
+	struct move_pointers<DestType, SourceType&>
+	{
+	    typedef typename std::move_pointers<DestType, SourceType>::type  &type;
+	};
+
+	template<typename DestType, typename SourceType>
+	struct move_pointers<DestType, SourceType&&>
+	{
+	    typedef typename std::move_pointers<DestType, SourceType>::type  &&type;
+	};
+
+	template<typename DestType, typename SourceType>
+	struct move_pointers<DestType, SourceType*>
+	{
+	    typedef typename std::move_pointers<DestType, SourceType>::type  *type;
+	};
+
+	template<typename DestType, typename SourceType, size_t Len>
+	struct move_pointers<DestType, SourceType[Len]>
+	{
+	    typedef typename std::move_pointers<DestType, SourceType>::type  type[Len];
+	};
+
+
+	/*
+	Example: 
+	 int q0 = 9, *q1 = &q0, **q2 = &q1;
+	 std::valueof(q2) = 12;
+	 auto a = std::valueof(q2); // a == 12
+	 q0 equal 12.
+	*/
+
+	template <typename Type>
+	inline 
+	typename std::enable_if
+	<
+		std::is_pointer<Type>::value,
+		typename std::remove_all_pointers<Type>::type &
+	>::type  
+	valueof(Type & Pointer)
+	{
+		return valueof(*Pointer);
+	}
+
+	template <typename Type>
+	inline 
+	typename std::enable_if
+	<
+		!std::is_pointer<Type>::value, 
+		Type &
+	>::type  
+	valueof(Type & Value)
+	{
+		return Value;
+	}
+
+	//Copy value
 	template<typename DestType, typename SourceType>
     inline typename std::enable_if
 	<
@@ -137,7 +286,7 @@ namespace std
 	ValCopy(DestType & Dest, SourceType & Source)
 	{
 		struct COP_STRUCT{DestType __val;};
-		(COP_STRUCT&)Dest = (COP_STRUCT&)Source;
+		(COP_STRUCT&)valueof(Dest) = (COP_STRUCT&)valueof(Source);
 	}
 
 	template<typename DestType, typename SourceType>
@@ -161,8 +310,9 @@ namespace std
 	ValCopy(DestType & Dest, SourceType & Source)
 	{
 		struct COP_STRUCT{char __val[max(sizeof(DestType), sizeof(SourceType))];};
-		(COP_STRUCT&)Dest = (COP_STRUCT&)Source;
+		(COP_STRUCT&)valueof(Dest) = (COP_STRUCT&)valueof(Source);
 	}
+
 
 	template<typename DestType, typename SourceType>
     inline typename std::enable_if
@@ -173,7 +323,7 @@ namespace std
 	>::type 
 	ValCopy(DestType & Dest, SourceType & Source)
 	{
-		Dest = Source;
+		valueof(Dest) = valueof(Source);
 	}
 
 };
