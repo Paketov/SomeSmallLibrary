@@ -539,6 +539,12 @@ STR_STAT _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsig
 
 	unsigned long long Integer = (unsigned long long)uNumber;
 	uNumber = uNumber - Integer + 1.0;
+	if(uNumber >= 2.0)
+	{
+		uNumber--;
+		Integer++;
+	}
+
 	TypeChar Buf[40];
 	TypeChar *m = Buf + 40, *c = m;
 
