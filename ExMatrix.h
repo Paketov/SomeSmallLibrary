@@ -234,7 +234,7 @@ public:
 	{
 		matrix_check(Val._Fields._Count == _Fields._Count, "Column count not equal");
 		if(IsStatic)
-			std::ValCopy(_Fields.v, Val._Fields.v);
+			std::val_copy(_Fields.v, Val._Fields.v);
 		else
 			memcpy(_Fields.v, Val._Fields.v, sizeof(T) * _Fields._Count);
 		return *this;
@@ -277,7 +277,7 @@ public:
 	operator =(const T (&New)[_j])
 	{
 		matrix_check_index(_j == _Fields._Count, "In array size not equal column count");
-	   std::ValCopy(_Fields.v, New);
+	   std::val_copy(_Fields.v, New);
 	   return *this;
 	}
 
@@ -358,7 +358,7 @@ private:
 			nj = Enother._Fields.nj;
 			ni = Enother._Fields.ni;
 			v = NewVal;
-			std::ValCopy(*v, Enother._Fields.v);
+			std::val_copy(*v, Enother._Fields.v);
 			return true;
 		}
 
@@ -390,7 +390,7 @@ private:
 			nj = _j;
 			ni = _i;
 			v = NewVal;
-			std::ValCopy(*v, Enother);
+			std::val_copy(*v, Enother);
 			return true;
 		}
 
@@ -441,7 +441,11 @@ private:
 	public:
 		static const unsigned ni= ci;
 		static const unsigned nj = cj;
-		T					  v[ci][cj];
+		union
+		{
+			T				  v[ci * cj];
+			T				  v2[ci][cj];
+		};
 
 		inline bool Allocate(const unsigned, const unsigned) const
 		{
@@ -450,7 +454,7 @@ private:
 
 		inline bool Copy(const MATRIX<T, ci, cj> & Enother)
 		{
-			std::ValCopy(v, Enother._Fields.v);
+			std::val_copy(v, Enother._Fields.v);
 			return true;
 		}
 
@@ -465,7 +469,7 @@ private:
 		inline bool Copy(const MATRIX<T, 0, 0> & Enother)
 		{
 			matrix_check((nj == Enother.CountColumns) && (ni == Enother.CountRows), "Count column and row not equal.");
-			std::ValCopy(v, *Enother._Fields.v);
+			std::val_copy(v, *Enother._Fields.v);
 			return true;
 		}
 
@@ -492,7 +496,7 @@ private:
 		>::type 
 		Copy(const T (&Enother)[_i][_j])
 		{
-			std::ValCopy(v, Enother);
+			std::val_copy(v, Enother);
 			return true;
 		}
 
@@ -549,7 +553,11 @@ private:
 		{
 			MATRIX & This = *(MATRIX*)this;
 			if((This._Fields.ni == 1) && (This._Fields.nj == 1))
-				return 1 / This[0][0];
+			{
+				MATRIX ret;
+				ret[0][0] = T(1) / This[0][0];
+				return ret;
+			}
 			matrix_check_index(This._Fields.ni == This._Fields.nj, "Matrix is not square");
 			T d = This.Determinant;
 			matrix_check_index(d != T(0), "Determinant eq. zero");
@@ -1316,11 +1324,8 @@ public:
 	typename std::enable_if<std::is_convertible<_T, T>::value, MATRIX&>::type 
 	operator *=(_T Val)
 	{
-		for(unsigned i = 0;i < _Fields.ni;i++)
-		{
-			for(unsigned j = 0;j < _Fields.nj;j++)
-				(*this)[i][j] *= Val;
-		}
+		for(unsigned i = 0, m = _Fields.nj * _Fields.ni;i < m;i++)
+			_Fields.v[i] *= Val;
 		return *this;
 	}	
 	
@@ -1328,13 +1333,10 @@ public:
 	typename std::enable_if<std::is_convertible<_T, T>::value, MATRIX>::type 
 	operator *(_T Val)
 	{
-		MATRIX Ret = *this;
-		for(unsigned i = 0;i < _Fields.ni;i++)
-		{
-			for(unsigned j = 0;j < _Fields.nj;j++)
-				Ret[i][j] *= Val;
-		}
-		return Ret;
+		MATRIX This = *this;
+		for(unsigned i = 0, m = This._Fields.nj * This._Fields.ni;i < m;i++)
+			This._Fields.v[i] *= Val;
+		return This;
 	}
 
 	template<typename _T, unsigned _i, unsigned _j>
@@ -1364,7 +1366,7 @@ public:
 	>::type
 	operator *(MATRIX<_T, _i, _j> & Val)
 	{
-		matrix_check(_Fields.ni == Val._Fields.nj, "Count column and row not equal.");
+		matrix_check(_Fields.nj == Val._Fields.ni, "Count column and row not equal.");
 		MATRIX & This = *this;
 		typename TYPE_MUL_SOLUTION<_T, _i, _j>::type Ret(_Fields.ni, Val._Fields.nj);
 		for(unsigned i = 0;i < Ret._Fields.ni;i++)
@@ -1383,11 +1385,8 @@ public:
 	typename std::enable_if<std::is_convertible<_T, T>::value, MATRIX&>::type 
 	operator /=(_T Val)
 	{
-		for(unsigned i = 0; i < _Fields.ni; i++)
-		{
-			for(unsigned j = 0; j < _Fields.nj; j++)
-				(*this)[i][j] /= Val;
-		}
+		for(unsigned i = 0, m = _Fields.nj * _Fields.ni;i < m;i++)
+			_Fields.v[i] /= Val;
 		return *this;
 	}	
 	
@@ -1395,13 +1394,10 @@ public:
 	typename std::enable_if<std::is_convertible<_T, T>::value, MATRIX>::type 
 	operator /(_T Val)
 	{
-		MATRIX Ret = *this;
-		for(unsigned i = 0;i < _Fields.ni;i++)
-		{
-			for(unsigned j = 0;j < _Fields.nj;j++)
-				Ret[i][j] /= Val;
-		}
-		return Ret;
+		MATRIX This = *this;
+		for(unsigned i = 0, m = This._Fields.nj * This._Fields.ni;i < m;i++)
+			This._Fields.v[i] /= Val;
+		return This;
 	}
 
 	template<typename _T, unsigned _n>
@@ -1447,11 +1443,9 @@ public:
 	>::type
 	operator +=(_T Value)
 	{
-		MATRIX & This = *this;
-		for(unsigned i = 0;i < CountRows;i++)
-			for(unsigned j = 0;j < CountColumns;j++)
-				This[i][j] += Value;
-		return This;
+		for(unsigned i = 0, m = _Fields.nj * _Fields.ni;i < m;i++)
+			_Fields.v[i] += Value;
+		return *this;
 	}
 
 	template<typename _T, unsigned _i, unsigned _j>
@@ -1469,11 +1463,9 @@ public:
 			(_Fields.ni == Another._Fields.ni), 
 			"Count column and row not equal."
 		);
-		MATRIX & This = *this;
-		for(unsigned i = 0;i < CountRows;i++)
-			for(unsigned j = 0;j < CountColumns;j++)
-				This[i][j] += Another[i][j];
-		return This;
+		for(unsigned i = 0, m = _Fields.nj * _Fields.ni;i < m;i++)
+			_Fields.v[i] += Another._Fields.v[i];
+		return *this;
 	}
 
 	template<typename _T>
@@ -1485,9 +1477,8 @@ public:
 	operator +(_T Value)
 	{
 		MATRIX This = *this;
-		for(unsigned i = 0;i < CountRows;i++)
-			for(unsigned j = 0;j < CountColumns;j++)
-				This[i][j] += Value;
+		for(unsigned i = 0, m = This._Fields.nj * This._Fields.ni;i < m;i++)
+			This._Fields.v[i] += Value;
 		return This;
 	}
 
@@ -1506,10 +1497,10 @@ public:
 			(_Fields.ni == Another._Fields.ni), 
 			"Count column and row not equal."
 		);
+
 		MATRIX This = *this;
-		for(unsigned i = 0;i < CountRows;i++)
-			for(unsigned j = 0;j < CountColumns;j++)
-				This[i][j] += Another[i][j];
+		for(unsigned i = 0, m = This._Fields.nj * This._Fields.ni;i < m;i++)
+			This._Fields.v[i] += Another._Fields.v[i];
 		return This;
 	}
 	
@@ -1523,11 +1514,9 @@ public:
 	>::type
 	operator-=(_T Value)
 	{
-		MATRIX & This = *this;
-		for(unsigned i = 0;i < CountRows;i++)
-			for(unsigned j = 0;j < CountColumns;j++)
-				This[i][j] -= Value;
-		return This;
+		for(unsigned i = 0, m = _Fields.nj * _Fields.ni;i < m;i++)
+			_Fields.v[i] -= Value;
+		return *this
 	}
 
 	template<typename _T, unsigned _i, unsigned _j>
@@ -1545,11 +1534,9 @@ public:
 			(_Fields.ni == Another._Fields.ni), 
 			"Count column and row not equal."
 		);
-		MATRIX & This = *this;
-		for(unsigned i = 0;i < CountRows;i++)
-			for(unsigned j = 0;j < CountColumns;j++)
-				This[i][j] -= Another[i][j];
-		return This;
+		for(unsigned i = 0, m = _Fields.nj * _Fields.ni;i < m;i++)
+			_Fields.v[i] -= Another._Fields.v[i];
+		return *this;
 	}
 
 	template<typename _T>
@@ -1561,9 +1548,8 @@ public:
 	operator -(_T Value)
 	{
 		MATRIX This = *this;
-		for(unsigned i = 0;i < CountRows;i++)
-			for(unsigned j = 0;j < CountColumns;j++)
-				This[i][j] -= Value;
+		for(unsigned i = 0, m = This._Fields.nj * This._Fields.ni;i < m;i++)
+			This._Fields.v[i] -= Value;
 		return This;
 	}
 
@@ -1583,12 +1569,13 @@ public:
 			"Count column and row not equal."
 		);
 		MATRIX This = *this;
-		for(unsigned i = 0;i < CountRows;i++)
-			for(unsigned j = 0;j < CountColumns;j++)
-				This[i][j] -= Another[i][j];
+		for(unsigned i = 0, m = This._Fields.nj * This._Fields.ni;i < m;i++)
+			This._Fields.v[i] -= Another._Fields.v[i];
 		return This;
 	}
 	///////
+
+
 
 	void SwapRows(unsigned r1, unsigned r2)
 	{
@@ -1659,7 +1646,7 @@ public:
 	{
 		MATRIX & A = *this;
 		int  l, factor1;
-		for (unsigned i = 0,r = 0, k; i < min(_Fields.nj, _Fields.ni); i++)  
+		for (unsigned i = 0, r = 0, k; i < min(_Fields.nj, _Fields.ni); i++)  
 		{
 			if (A[r][i] == 0) 
 			{
@@ -1692,14 +1679,16 @@ public:
 		return A;
 	}
 
-	template<class _T, unsigned _i, unsigned _j>
-	void GetMiniMap(MATRIX<_T, _i, _j> & Result, unsigned StartRow, unsigned StartColumn)
+	template<typename _T, unsigned _i, unsigned _j>
+	typename std::enable_if<std::is_convertible<T, _T>::value>::type
+	GetMiniMap(MATRIX<_T, _i, _j> & Dest, unsigned StartRow = 0, unsigned StartColumn = 0)
 	{
 		MATRIX & This = *this;
-		for(unsigned i = StartRow, _i = 0; i < CountRows;i++, _i++)
-			for(unsigned j = StartColumn, _j = 0;j < CountColumns;j++, _j++)
-				Result[_i][_j] = This[i][j];
+		for(unsigned i = StartRow, _i = 0; (i < _Fields.ni) && (_i < Dest._Fields.ni);i++, _i++)
+			for(unsigned j = StartColumn, _j = 0;(j < _Fields.nj) && (_j < Dest._Fields.nj);j++, _j++)
+				Dest[_i][_j] = This[i][j];
 	}	
+
 
 	MATRIX<T, cj, ci> GetTranspose()
 	{
@@ -1780,6 +1769,117 @@ public:
 		for(unsigned i = A.CountRows - 1;(int)i >= 0;i--)
 			for(unsigned j = A.CountColumns - 1;(int)j >= 0;j--)
 				A[i][j] = (i == j)?Val:T(0);
+	}
+
+	template<typename _T, unsigned _i, unsigned _j>
+	bool operator==(MATRIX<_T, _i, _j> & Enother)
+	{
+	   if(
+		   !std::is_convertible<T, _T>::value || 
+		   (_Fields.ni != Enother._Fields.ni) || 
+		   (_Fields.nj != Enother._Fields.nj)
+		 )
+		   return false;
+	   for(unsigned i = 0, m = _Fields.nj * _Fields.ni;i < m;i++)
+			if(_Fields.v[i] != Enother._Fields.v[i])
+				return false;
+	   return true;
+	}
+
+	template<typename _T, unsigned _i, unsigned _j>
+	bool operator==(_T (&Enother)[_i][_j])
+	{
+	   if(
+		   !std::is_convertible<T, _T>::value || 
+		   (_Fields.ni != _i) || 
+		   (_Fields.nj != _j)
+		 )
+		   return false;
+	   for(unsigned i = 0, m = _i * _j;i < m;i++)
+			if(_Fields.v[i] != ((_T*)Enother)[i])
+				return false;
+	   return true;
+	}
+
+	template<typename _T, unsigned _i, unsigned _j>
+	inline bool operator!=(MATRIX<_T, _i, _j> & Enother)
+	{
+	   return !operator==(Enother);
+	}
+
+	template<typename _T, unsigned _i, unsigned _j>
+	inline bool operator!=(_T (&Enother)[_i][_j])
+	{
+	   return !operator==(Enother);
+	}
+
+	/*
+	  Solve for linear equalation;
+	  Example:
+		double v[2][3] = 
+		{
+			  1,2,3,
+			  4,5,6
+		};
+		MATRIX<double, 2, 3> x = v;
+		MATRIX<double, 2, 1> solve = x.SolveLinEq();
+		solve eq. 
+		{
+			-1,
+			2
+		}
+	*/
+	inline MATRIX<T, ci, ((cj == 0)?0:1)> SolveLinEq()
+	{
+		matrix_check((_Fields.ni + 1) == _Fields.nj, "Matrix coefficients is not square.");
+		MATRIX<T, ci, ci> CoefMatr(_Fields.ni, _Fields.ni);
+	    GetMiniMap(CoefMatr);
+		MATRIX<T, ci, ((cj == 0)?0:1)> RightValMatrix(_Fields.ni, 1);
+		GetMiniMap(RightValMatrix, 0, _Fields.ni);
+		CoefMatr.ToInverse();
+		return CoefMatr * RightValMatrix;
+	}
+
+	/*
+	  Solve for linear equalation;
+	  Example:
+		double v[2][2] = 
+		{
+			  1,2,
+			  4,5
+		};
+
+		double e[2][1] = 
+		{
+			  3,
+			  6
+		};
+
+		MATRIX<double, 2, 3> x = v;
+		MATRIX<double, 2, 1> x = e;
+		MATRIX<double, 2, 1> solve = x.SolveLinEq(x);
+		solve eq. 
+		{
+			-1,
+			2
+		}
+	*/
+
+	template<unsigned _i, unsigned _j>
+	inline typename std::enable_if
+	<
+		!MATRIX<T, _i, _j>::IsStaticArr ||
+		(ci == _i) && (_j == 1),
+		MATRIX<T, ci, ((cj == 0)?0:1)>
+	>::type
+	SolveLinEq(MATRIX<T, _i, _j> & RightValMatrix)
+	{
+		matrix_check(IsSquare, "Matrix coefficients is not square.");
+		matrix_check(RightValMatrix._Fields.ni == _Fields.ni, "Matrix \"RightValMatrix\" is not \
+		equal by count rows with matrix coefficients");
+		matrix_check(RightValMatrix._Fields.ni == 1, "Matrix \"RightValMatrix\" is not \
+		equal by columns with 1");
+		return GetInverse() * RightValMatrix;
 	}
 
 };
