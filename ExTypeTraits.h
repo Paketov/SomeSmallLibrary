@@ -4,6 +4,25 @@
 #include <malloc.h>
 #include <type_traits>
 
+
+/*
+	is_equal<t1, t2>::value
+	empty_type
+	not_empty_if<bool, t>::type
+	gen_err_type<bool, t>::type
+	IsFraction(Number)
+	countof(array)
+	count_pointers<t>::value
+	add_count_pointers<t, count_add>::true
+	remove_pointers<t>::type
+	remove_pointers_ref<t>::type
+	remove_pointers_ref_arr<t>::type
+	move_pointers_ref_arr<t1, t2>::type
+	sizeof_value<type>::value
+	valueof(variable)
+	val_copy(var_dest, var_source)
+*/
+
 namespace std
 {		
 
@@ -90,7 +109,7 @@ namespace std
 			return Val;
 		}
 
-		inline typename std::enable_if<!OnWriteErr,Type>::type 
+		inline typename  enable_if<!OnWriteErr,Type>::type 
 		operator()(const Type NewVal) const
 		{
 			return NewVal;
@@ -131,14 +150,14 @@ namespace std
 
 
 	template<typename TypeNumber>
-	typename std::enable_if<std::is_floating_point<TypeNumber>::value,bool>::type  
+	typename  enable_if<is_floating_point<TypeNumber>::value,bool>::type  
 	IsFraction(TypeNumber Val)
 	{
 		return Val != (TypeNumber)((long long)(Val));
 	}
 
 	template<typename TypeNumber>
-	typename std::enable_if<!std::is_floating_point<TypeNumber>::value,bool>::type  
+	typename enable_if<!is_floating_point<TypeNumber>::value,bool>::type  
 	IsFraction(TypeNumber Val)
 	{
 		return false;
@@ -156,23 +175,10 @@ namespace std
 		return Len;
 	}
 
-	//remove_all_pointers
-
-	//Example: std::remove_all_pointers<int****>::type equal int.
-	template<typename _T>
-	struct remove_all_pointers
-	{
-		typedef _T type;
-	};
-
-
-	template<typename _T>
-	struct remove_all_pointers<_T*>
-	{
-		typedef typename remove_all_pointers<_T>::type type;
-	};
-
-	//Example: std::count_pointers<int****>::value equal 4.
+	/*
+	Example: 
+		std::count_pointers<int****>::value equal 4.
+	*/
 	template<typename _T>
 	struct count_pointers
 	{
@@ -188,9 +194,9 @@ namespace std
 
 	/*
 	Example: 
-	 int q0 = 9, *q1 = &q0, **q2 = &q1;
-	 std::add_count_pointers<int, 2>::type w2 = q2;
-	 w2 equal q2.
+		int q0 = 9, *q1 = &q0, **q2 = &q1;
+		std::add_count_pointers<int, 2>::type w2 = q2;
+		w2 equal q2.
 	*/
 
 	template<typename _T, unsigned Count>
@@ -205,6 +211,94 @@ namespace std
 	   typedef _T type;
 	};
 
+	/*
+	Example: 
+		std::remove_all_pointers<int****>::type equal int.
+	*/
+	template<typename _T>
+	struct remove_pointers
+	{
+		typedef _T type;
+	};
+
+	template<typename _T>
+	struct remove_pointers<_T*>
+	{
+		typedef typename remove_pointers<_T>::type type;
+	};
+
+	/*
+	Example: 
+		int (& arr)[12];
+		std::remove_ref_pointers<decltype(arr)>::type eq. int[12]
+
+	    int ***& v;
+		std::remove_ref_pointers<decltype(v)>::type eq. int
+	*/
+	template<typename SourceType>
+	struct remove_pointers_ref
+	{
+	    typedef SourceType type;
+	};
+
+	template<typename SourceType>
+	struct remove_pointers_ref<SourceType&>
+	{
+	    typedef typename remove_pointers_ref<SourceType>::type  type;
+	};
+
+	template<typename SourceType>
+	struct remove_pointers_ref<SourceType&&>
+	{
+	    typedef typename remove_pointers_ref<SourceType>::type  type;
+	};
+
+	template<typename SourceType>
+	struct remove_pointers_ref<SourceType*>
+	{
+	    typedef typename remove_pointers_ref<SourceType>::type  type;
+	};
+
+
+	/*
+	Example: 
+		int (& arr)[12];
+		std::remove_ref_pointers_arr<decltype(arr)>::type eq. int
+
+	    int ***& v;
+		std::remove_ref_pointers_arr<decltype(v)>::type eq. int
+	*/
+
+	template<typename SourceType>
+	struct remove_pointers_ref_arr
+	{
+	    typedef SourceType type;
+	};
+
+	template<typename SourceType>
+	struct remove_pointers_ref_arr<SourceType&>
+	{
+	    typedef typename remove_pointers_ref_arr<SourceType>::type  type;
+	};
+
+	template<typename SourceType>
+	struct remove_pointers_ref_arr<SourceType&&>
+	{
+	    typedef typename remove_pointers_ref_arr<SourceType>::type  type;
+	};
+
+	template<typename SourceType>
+	struct remove_pointers_ref_arr<SourceType*>
+	{
+	    typedef typename remove_pointers_ref_arr<SourceType>::type  type;
+	};
+
+	template<typename SourceType, size_t Len>
+	struct remove_pointers_ref_arr<SourceType[Len]>
+	{
+	    typedef typename remove_pointers_ref_arr<SourceType>::type  type;
+	};
+
 
 	/*
 	Example: 
@@ -213,51 +307,62 @@ namespace std
 	*/
 
 	template<typename DestType, typename>
-	struct move_pointers
+	struct move_pointers_ref_arr
 	{
 	    typedef DestType type;
 	};
 
 	template<typename DestType, typename SourceType>
-	struct move_pointers<DestType, SourceType&>
+	struct move_pointers_ref_arr<DestType, SourceType&>
 	{
-	    typedef typename std::move_pointers<DestType, SourceType>::type  &type;
+	    typedef typename move_pointers_ref_arr<DestType, SourceType>::type  &type;
 	};
 
 	template<typename DestType, typename SourceType>
-	struct move_pointers<DestType, SourceType&&>
+	struct move_pointers_ref_arr<DestType, SourceType&&>
 	{
-	    typedef typename std::move_pointers<DestType, SourceType>::type  &&type;
+	    typedef typename move_pointers_ref_arr<DestType, SourceType>::type  &&type;
 	};
 
 	template<typename DestType, typename SourceType>
-	struct move_pointers<DestType, SourceType*>
+	struct move_pointers_ref_arr<DestType, SourceType*>
 	{
-	    typedef typename std::move_pointers<DestType, SourceType>::type  *type;
+	    typedef typename move_pointers_ref_arr<DestType, SourceType>::type  *type;
 	};
 
 	template<typename DestType, typename SourceType, size_t Len>
-	struct move_pointers<DestType, SourceType[Len]>
+	struct move_pointers_ref_arr<DestType, SourceType[Len]>
 	{
-	    typedef typename std::move_pointers<DestType, SourceType>::type  type[Len];
+	    typedef typename move_pointers_ref_arr<DestType, SourceType>::type  type[Len];
 	};
 
+
+	/*
+		Example: 
+		int (& arr)[12];
+		std::remove_ref_pointers_arr<decltype(arr)>::type eq. int
+
+	    int ***& v;
+		std::remove_ref_pointers_arr<decltype(v)>::type eq. int
+	*/
+	template<typename Type>
+	struct sizeof_value
+	{
+	    static const size_t value = sizeof(remove_pointers_ref<Type>::type);
+	};
 
 	/*
 	Example: 
 	 int q0 = 9, *q1 = &q0, **q2 = &q1;
 	 std::valueof(q2) = 12;
 	 auto a = std::valueof(q2); // a == 12
+	 char w0[12];
+	 std::valueof(w0)[0] = '0'; //w0[0] == '0'
 	 q0 equal 12.
 	*/
-
 	template <typename Type>
 	inline 
-	typename std::enable_if
-	<
-		std::is_pointer<Type>::value,
-		typename std::remove_all_pointers<Type>::type &
-	>::type  
+	typename enable_if<is_pointer<Type>::value, typename remove_pointers<Type>::type&>::type  
 	valueof(Type & Pointer)
 	{
 		return valueof(*Pointer);
@@ -265,63 +370,66 @@ namespace std
 
 	template <typename Type>
 	inline 
-	typename std::enable_if
-	<
-		!std::is_pointer<Type>::value, 
-		Type &
-	>::type  
+	typename enable_if<!is_pointer<Type>::value, Type &>::type  
 	valueof(Type & Value)
 	{
 		return Value;
 	}
 
-	//Copy value
+	/*
+	Example: 
+	 double a = 123.456, b, *c = &b;
+	 std::val_copy(c, a); //b eq. 123.456
+
+	 int d[3] = {1,2,3}, e[3];
+	 std::val_copy(e, d); //e eq. {1,2,3}
+	*/
+
 	template<typename DestType, typename SourceType>
-    inline typename std::enable_if
+    inline typename enable_if
 	<
-		 (sizeof(DestType) == sizeof(SourceType)) &&
-		 (!std::is_scalar<SourceType>::value || !std::is_scalar<DestType>::value) &&
-		 !std::is_const<DestType>::value
+		 (sizeof_value<DestType>::value == sizeof_value<SourceType>::value) &&
+		 (!is_scalar<SourceType>::value || !is_scalar<DestType>::value) &&
+		 !is_const<DestType>::value
 	>::type 
-	ValCopy(DestType & Dest, SourceType & Source)
+	val_copy(DestType & Dest, SourceType & Source)
 	{
 		struct COP_STRUCT{DestType __val;};
 		(COP_STRUCT&)valueof(Dest) = (COP_STRUCT&)valueof(Source);
 	}
 
 	template<typename DestType, typename SourceType>
-    inline typename std::enable_if
+    inline typename enable_if
 	<
-		 (sizeof(DestType) != sizeof(SourceType)) &&
-		 !std::is_const<DestType>::value
+		 (sizeof_value<DestType>::value != sizeof_value<SourceType>::value) &&
+		 !is_const<DestType>::value
 	>::type 
-	ValCopy(DestType & Dest, SourceType & Source, size_t LenCopy)
+	val_copy(DestType & Dest, SourceType & Source, size_t LenCopy)
 	{
 		memcpy(&Dest, &Source, LenCopy);
 	}
 
 	template<typename DestType, typename SourceType>
-    inline typename std::enable_if
+    inline typename enable_if
 	<
-		 (sizeof(DestType) != sizeof(SourceType)) &&
-		 (!std::is_scalar<SourceType>::value || !std::is_scalar<DestType>::value) &&
-		 !std::is_const<DestType>::value
+		 (sizeof_value<DestType>::value != sizeof_value<SourceType>::value) &&
+		 (!is_scalar<SourceType>::value || !is_scalar<DestType>::value) &&
+		 !is_const<DestType>::value
 	>::type 
-	ValCopy(DestType & Dest, SourceType & Source)
+	val_copy(DestType & Dest, SourceType & Source)
 	{
-		struct COP_STRUCT{char __val[max(sizeof(DestType), sizeof(SourceType))];};
+		struct COP_STRUCT{char __val[max(sizeof_value<DestType>::value, sizeof_value<SourceType>::value)];};
 		(COP_STRUCT&)valueof(Dest) = (COP_STRUCT&)valueof(Source);
 	}
 
-
 	template<typename DestType, typename SourceType>
-    inline typename std::enable_if
+    inline typename enable_if
 	<
-		 std::is_scalar<SourceType>::value &&
-		 std::is_scalar<DestType>::value &&
-		 !std::is_const<DestType>::value
-	>::type 
-	ValCopy(DestType & Dest, SourceType & Source)
+		 is_scalar<SourceType>::value &&
+		 is_scalar<DestType>::value &&
+		 !is_const<DestType>::value
+	>::type
+	val_copy(DestType & Dest, SourceType & Source)
 	{
 		valueof(Dest) = valueof(Source);
 	}
