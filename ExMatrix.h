@@ -328,6 +328,15 @@ private:
 		unsigned nj;
 		T * v;
 
+		inline T & at(unsigned i = 0, unsigned j = 0)
+		{
+#ifdef _MATRIX_CHECK_INDEXES
+			matrix_check_index(i < ni, "i");
+			matrix_check_index(j < nj, "j");
+#endif
+			return v[i * _Fields.nj + j];
+		}
+
 		inline bool Allocate(const unsigned Row, const unsigned Col)
 		{
 			T * NewVal = (T*)realloc(v, sizeof(T) * Col * Row);
@@ -446,6 +455,15 @@ private:
 			T				  v[ci * cj];
 			T				  v2[ci][cj];
 		};
+
+		inline T & at(unsigned i = 0, unsigned j = 0)
+		{
+#ifdef _MATRIX_CHECK_INDEXES
+			matrix_check_index(i < ni, "i");
+			matrix_check_index(j < nj, "j");
+#endif
+			return v2[i][j];
+		}
 
 		inline bool Allocate(const unsigned, const unsigned) const
 		{
@@ -604,13 +622,12 @@ private:
 	public:
 		void operator()()
 		{
-			MATRIX & This = *(MATRIX*)this;
-			for(unsigned i = 0;i < This._Fields.ni;i++)
-				for(unsigned j = i;j < This._Fields.nj;j++)
+			for(unsigned i = 0;i < _Fields.ni;i++)
+				for(unsigned j = i;j < _Fields.nj;j++)
 				{
-					T temp = This.at(i, j);
-					This.at(i, j) = This.at(j, i);
-					This.at(j, i) = temp;
+					T temp = _Fields.at(i, j);
+					_Fields.at(i, j) = _Fields.at(j, i);
+					_Fields.at(j, i) = temp;
 				}
 		}
 	};
@@ -727,7 +744,6 @@ private:
 		{
 			MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(_Fields.ni - 1, _Fields.nj -1);
 			MATRIX Ret(_Fields.ni, _Fields.nj);
-			MATRIX & This = *(MATRIX*)this;
 			matrix_check(_Fields.ni == _Fields.nj, "Count column and row not equal.");
 			for (unsigned i = 0; i < _Fields.ni; i++) 
 				for (unsigned j = 0; j < _Fields.nj; j++) 
@@ -740,13 +756,13 @@ private:
 						{
 							if (_j == j) 
 								continue;
-							TempMatrix.at(__i, __j++) = This.at(_i, _j); 
+							TempMatrix.at(__i, __j++) = _Fields.at(_i, _j); 
 						}
 						__i++;
 					}
 					Ret.at(i, j) = (((i + j) & 1)?T(-1):T(1)) * TempMatrix.Determinant;
 				}
-				This = Ret;
+			*(MATRIX*)this = Ret;
 		}
 	};
 
@@ -758,7 +774,6 @@ private:
 		{
 			MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(_Fields.ni - 1, _Fields.nj -1 );
 			MATRIX Ret(_Fields.ni, _Fields.nj);
-			MATRIX & This = *(MATRIX*)this;
 			matrix_check(_Fields.ni == _Fields.nj, "Count column and row not equal.");
 			for (unsigned i = 0; i < _Fields.ni; i++) 
 				for (unsigned j = 0; j < _Fields.nj; j++) 
@@ -771,13 +786,13 @@ private:
 						{
 							if (_j == j) 
 								continue;
-							TempMatrix.at(__i, __j++) = This.at(_i, _j); 
+							TempMatrix.at(__i, __j++) = _Fields.at(_i, _j); 
 						}
 						__i++;
 					}
 					Ret.at(i, j) = (((i + j) & 1)?T(-1):T(1)) * TempMatrix.Determinant;
 				}
-				return Ret;
+			return Ret;
 		}
 	};
 
@@ -788,7 +803,6 @@ private:
 
 		T operator()(unsigned i, unsigned j)
 		{
-			MATRIX & This = *this;
 			MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(_Fields.ni - 1, _Fields.nj - 1);
 			for (unsigned _i = 0, __i = 0; _i < _Fields.ni; _i++) 
 			{
@@ -798,7 +812,7 @@ private:
 				{
 					if (_j == j) 
 						continue;
-					TempMatrix.at(__i, __j++) = This.at(_i, _j); 
+					TempMatrix.at(__i, __j++) = _Fields.at(_i, _j); 
 				}
 				__i++;
 			}
@@ -944,6 +958,55 @@ private:
 		}
 	};
 
+	class _LU_DECOMPOSITION
+	{
+		__MATRIX_FIELDS_DEF;
+	public:
+		template
+		<
+			   typename uT, typename lT,
+			   unsigned li, unsigned ui
+		>
+		typename std::enable_if
+		<
+		   std::is_convertible<T, uT>::value &&
+		   std::is_convertible<T, lT>::value &&
+	       (!MATRIX<lT,li, li>::IsStaticArr || (li == ci)) &&
+		   (!MATRIX<uT,ui, ui>::IsStaticArr || (ui == ci))
+		>::type 
+		operator()(MATRIX<lT,li, li> & l, MATRIX<uT,ui, ui> & u)
+		{
+
+			for (unsigned i = 0; i < _Fields.ni; i++)
+			{
+				for (unsigned j = 0; j < _Fields.ni; j++)
+				{
+					if (j < i)
+						l.at(j, i) = 0;
+					else
+					{
+						l.at(j, i) = _Fields.at(j, i);
+						for (unsigned k = 0; k < i; k++)
+							l.at(j, i) = l.at(j, i) - l.at(j, k) * u.at(k, i);
+					}
+				}
+				for (unsigned j = 0; j < _Fields.nj; j++)
+				{
+					if (j < i)
+						u.at(i, j) = 0;
+					else if (j == i)
+						u.at(i, j) = 1;
+					else
+					{
+						u.at(i, j) = _Fields.at(i, j) / l.at(i, i);
+						for (unsigned k = 0; k < i; k++)
+							u.at(i, j) = u.at(i, j) - ((l.at(i, k) * u.at(k, j)) / l.at(i, i));
+					}
+				}
+			}
+		}
+	};
+
 public:
 	union
 	{
@@ -1011,7 +1074,7 @@ public:
 				   return false;
 			   for (unsigned i = 0; i < _Fields.ni; i++)
 				   for (unsigned j = 0; j < _Fields.nj; j++) 
-					   if(at(i, j) != at(j, i))
+					   if(_Fields.at(i, j) != _Fields.at(j, i))
 						   return false;
 				return true;
 			}
@@ -1023,12 +1086,11 @@ public:
 		public:
 			operator bool()
 			{
-			   if(ci != cj)
+			   if(_Fields.ni != _Fields.nj)
 				   return false;
-			   MATRIX & This = *(MATRIX*)this;
 			   for (unsigned i = 0; i < _Fields.ni; i++)
 				   for (unsigned j = 0; j < _Fields.nj; j++) 
-					   if(This[i][j] != -This[j][i])
+					   if(_Fields.at(i, j) != -_Fields.at(j, i))
 						   return false;
 				return true;
 			}
@@ -1040,17 +1102,16 @@ public:
 		public:
 			operator bool()
 			{
-			   MATRIX & This = *(MATRIX*)this;
 			   for (unsigned i = 0; i < _Fields.ni; i++)
 				   for (unsigned j = 0; j < _Fields.nj; j++) 
 				   {
 					   if(i == j)
 					   {
-					      if(This[i][j] == T(0))
+					      if(_Fields.at(i, j) == T(0))
 							  return false;
 					   }else
 					   {
-					       if(This[i][j] != T(0))
+					       if(_Fields.at(i, j) != T(0))
 							  return false;
 					   }
 				   }
@@ -1064,17 +1125,16 @@ public:
 		public:
 			operator bool()
 			{
-			   MATRIX & This = *(MATRIX*)this;
 			   for (unsigned i = 0; i < _Fields.ni; i++)
 				   for (unsigned j = 0; j < _Fields.nj; j++) 
 				   {
 					   if(i == j)
 					   {
-					      if(This[i][j] != T(1))
+					      if(_Fields.at(i, j) != T(1))
 							  return false;
 					   }else
 					   {
-					       if(This[i][j] != T(0))
+					       if(_Fields.at(i, j) != T(0))
 							  return false;
 					   }
 				   }
@@ -1086,12 +1146,11 @@ public:
 		{
 			__MATRIX_FIELDS_DEF;
 		public:
-			operator T()
+			inline operator T()
 			{
-				MATRIX & This = *(MATRIX*)this;
 				T Res = T(0);
 				for (unsigned i = 0; (i < _Fields.ni) && (i < _Fields.nj); i++)
-					Res += This[i][i];
+					Res += _Fields.at(i, i);
 				return Res;
 			}
 		} Track;
@@ -1125,6 +1184,7 @@ public:
 		typename std::not_empty_if<ci == cj, _TO_ADJOINT>::type				ToAdjoint;
 		typename std::not_empty_if<ci == cj, _GET_ADJOINT>::type			GetAdjoint;
 		typename std::not_empty_if<ci == cj, _GET_ALGEBRAIC_COMPLEMENT>::type	GetAlgebraicComplement;
+		typename std::not_empty_if<ci == cj, _LU_DECOMPOSITION>::type       LUDecomposition;
 
 		/*
 		Example:
@@ -1466,10 +1526,10 @@ public:
 	void RemoveCol(unsigned Pos)
 	{
 		CountColumns = CountColumns - 1;
-		for (int j = pos; j < _Fields.nj; j++) 
+		for (int j = Pos; j < _Fields.nj; j++) 
 		{
 			for (int i = 0; i < _Fields.ni; i++) 
-				(*this)v[i][j] = v[i][j+1];
+				at(i, j) = at(i, j+1);
 		}
 	}
 
@@ -1480,7 +1540,7 @@ public:
 		for (int i = Pos; i < _Fields.ni; i++) 
 		{
 			for (int j = 0; j < _Fields.nj; j++)
-				(*this)[i][j] = v[i+1][j];
+				at(i, j) = at(i+1, j);
 		}
 	}
 
@@ -2035,35 +2095,6 @@ public:
 		matrix_check(RightValMatrix._Fields.ni == 1, "Matrix \"RightValMatrix\" is not \
 		equal by columns with 1");
 		return GetInverse() * RightValMatrix;
-	}
-
-	void LUDecomposition(MATRIX & L, MATRIX & U)
-	{
-		MATRIX & A = *this;
-		for (int i = 0; i < _Fields.ci; i++)
-		{
-			L[i][0] = A[i][0];
-			U[0][i] = A[0][i] / L[0][0];
-		}
-		for (int i = 1; i < _Fields.ci; i++)
-		{
-			for (int j = 1; j < _Fields.cj; j++)
-			{
-				if (i >= j)
-				{
-					T sum = T(0);
-					for (int k = 0; k < j; k++)
-						sum += L [i][k] * U[k][j];
-					L [i][j] = A[i][j] - sum;
-				}else
-				{
-					T sum = T(0);
-					for (int k = 0; k < i; k++)
-						sum += L[i][k] * U[k][j];
-					U [i][j] = (A[i][j] - sum) / L[i][i];
-				}
-			}
-		}
 	}
 
 };
