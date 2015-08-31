@@ -533,6 +533,15 @@ public:
 	typedef typename std::conditional<IsStaticArr, FIELD_STATIC, FIELD_DYNAMIC>::type TFIELDS;
 private:
 
+	inline T & at(unsigned i = 0, unsigned j = 0)
+	{
+#ifdef _MATRIX_CHECK_INDEXES
+	   matrix_check_index(i < _Fields.ni, "i");
+	   matrix_check_index(j < _Fields.nj, "j");
+#endif
+	   return _Fields.v[i * _Fields.nj + j];
+	}
+
 	template<typename _T, unsigned _i, unsigned _j>
 	struct TYPE_MUL_SOLUTION
 	{
@@ -555,7 +564,7 @@ private:
 			if((This._Fields.ni == 1) && (This._Fields.nj == 1))
 			{
 				MATRIX ret;
-				ret[0][0] = T(1) / This[0][0];
+				ret.at() = T(1) / This.at();
 				return ret;
 			}
 			matrix_check_index(This._Fields.ni == This._Fields.nj, "Matrix is not square");
@@ -577,7 +586,7 @@ private:
 			MATRIX & This = *(MATRIX*)this;
 			if((This._Fields.nj == 1) && (This._Fields.ni == 1))
 			{
-				This[0][0] = 1 / This[0][0];
+				This.at() = T(1) / This.at();
 				return;
 			}
 			matrix_check_index(This._Fields.ni == This._Fields.nj, "Matrix is not square");
@@ -585,7 +594,7 @@ private:
 			matrix_check_index(d != T(0), "Determinant eq. zero");
 			This.ToAdjoint();
 			This.ToTranspose();
-			This *= ((T)1 / d);
+			This *= (T(1) / d);
 		}
 	};
 
@@ -599,9 +608,9 @@ private:
 			for(unsigned i = 0;i < This._Fields.ni;i++)
 				for(unsigned j = i;j < This._Fields.nj;j++)
 				{
-					T temp = This[i][j];
-					This[i][j] = This[j][i];
-					This[j][i] = temp;
+					T temp = This.at(i, j);
+					This.at(i, j) = This.at(j, i);
+					This.at(j, i) = temp;
 				}
 		}
 	};
@@ -614,7 +623,7 @@ private:
 		static T Solution(MATRIX<T, _i, _i> & Val)
 		{
 			if (Val.CountColumns == 1)
-				return Val[0][0];
+				return Val.at();
 
 			MATRIX<T, max(0, (int)_i - 1), max(0, (int)_i - 1)> add(Val.CountRows - 1, Val.CountColumns - 1);
 			T d = T(0);
@@ -626,13 +635,13 @@ private:
 						if (x == i) 
 							continue;
 						if (x < i)
-							add[x][y - 1] = Val[x][y];
+							add.at(x, y - 1) = Val.at(x, y);
 						else
-							add[x - 1][y - 1] = Val[x][y];
+							add.at(x - 1, y - 1) = Val.at(x, y);
 					}
 				if (i % 2) 
-					Val[i][0] = -Val[i][0];
-				d += Val[i][0] * Solution(add);
+					Val.at(i, 0) = -Val.at(i, 0);
+				d += Val.at(i, 0) * Solution(add);
 			}
 			return d;
 		}
@@ -731,11 +740,11 @@ private:
 						{
 							if (_j == j) 
 								continue;
-							TempMatrix[__i][__j++] = This[_i][_j]; 
+							TempMatrix.at(__i, __j++) = This.at(_i, _j); 
 						}
 						__i++;
 					}
-					Ret[i][j] = (((i + j) & 1)?T(-1):T(1)) * TempMatrix.Determinant;
+					Ret.at(i, j) = (((i + j) & 1)?T(-1):T(1)) * TempMatrix.Determinant;
 				}
 				This = Ret;
 		}
@@ -762,11 +771,11 @@ private:
 						{
 							if (_j == j) 
 								continue;
-							TempMatrix[__i][__j++] = This[_i][_j]; 
+							TempMatrix.at(__i, __j++) = This.at(_i, _j); 
 						}
 						__i++;
 					}
-					Ret[i][j] = (((i + j) & 1)?T(-1):T(1)) * TempMatrix.Determinant;
+					Ret.at(i, j) = (((i + j) & 1)?T(-1):T(1)) * TempMatrix.Determinant;
 				}
 				return Ret;
 		}
@@ -789,7 +798,7 @@ private:
 				{
 					if (_j == j) 
 						continue;
-					TempMatrix[__i][__j++] = This[_i][_j]; 
+					TempMatrix.at(__i, __j++) = This.at(_i, _j); 
 				}
 				__i++;
 			}
@@ -797,6 +806,143 @@ private:
 		}
 	};
 
+	class _GET_SIMPLEX_MIN
+	{
+		__MATRIX_FIELDS_DEF;
+	public:
+		MATRIX<T, ((ci == 0)?0:1), cj> operator()() 
+		{
+			bool IsSuccess;
+			return operator()(IsSuccess);
+		}
+
+		MATRIX<T, ((ci == 0)?0:1), cj> operator()(bool & IsSuccess) 
+		{
+			MATRIX tab = *(MATRIX*)this;
+			MATRIX<T, ((ci == 0)?0:1),cj> Res(1, _Fields.ni, T(0));
+			IsSuccess = false;
+			for(int loop = 0; ;loop++) 
+			{
+				int pivot_col, pivot_row;
+				pivot_col = _GET_SIMPLEX_MAX::SearchMaxCol(tab);
+				if(pivot_col < 0)
+					break;
+				pivot_row = _GET_SIMPLEX_MAX::SearchMinRatioRow(tab, pivot_col);
+				if(pivot_row < 0) //Функция не ограничена
+					return Res;
+				_GET_SIMPLEX_MAX::RetransformMatrix(tab, pivot_row, pivot_col);
+				if(loop > 20) 
+					return Res;
+			}
+			_GET_SIMPLEX_MAX::SearchBasicVars(Res, tab);
+			IsSuccess = true;
+			return Res;
+		}
+	};
+
+	class _GET_SIMPLEX_MAX
+	{
+		__MATRIX_FIELDS_DEF;
+
+		friend _GET_SIMPLEX_MIN;
+		static int SearchMinCol(MATRIX & tab)
+		{
+			T min = T(0);
+			int pivot_col = -1;
+			for(int j = 1; j < tab._Fields.nj; j++) 
+				if (tab.at(0, j) < min) 
+					min = tab.at(0, pivot_col = j);
+			return pivot_col;
+		}
+
+		static int SearchMaxCol(MATRIX & tab)
+		{
+			T max = T(0);
+			int pivot_col = -1;
+			for(int j = 1; j < tab._Fields.nj; j++) 
+				if (tab.at(0, j) >= max) 
+					max = tab.at(0, pivot_col = j);
+			return pivot_col;
+		}
+
+		static int SearchMinRatioRow(MATRIX & tab, int column)
+		{
+			T minimal = 999e+100 * 999e+100 * 999e+100;
+			int pivot_row = -1;
+			for(int i = 1; i < tab._Fields.ni; i++) 
+				if ((tab.at(i, column) >= 0.0) && (abs(tab.at(i, 0) / tab.at(i, column)) < minimal))
+					minimal = abs(tab.at(i, 0) / tab.at(pivot_row = i, column));
+			return pivot_row;
+		}
+
+
+		static void RetransformMatrix(MATRIX & tab, unsigned row, unsigned col)
+		{
+			long double ratio = tab.at(row, col);
+			for(unsigned i = 0;i < tab._Fields.ni;i++)
+			{
+				T multiplier = tab.at(i, col);
+				if(i != row)
+				{
+					for(unsigned j = 0;j < tab._Fields.nj;j++)
+						tab.at(i, j) -= multiplier * tab.at(row, j) / ratio;
+				}
+			}
+			for(unsigned i = 0;i < tab._Fields.nj;i++)
+				tab.at(row, i) /= ratio;
+		}
+
+		static void SearchBasicVars(MATRIX<T, ((ci == 0)?0:1),cj> & Out, MATRIX & In)
+		{
+			Out.at() = In.at();
+			for(unsigned j = 1, jo = 1;j < In._Fields.nj;j++)
+			{
+				int xi = -1;
+				for(int i = 1; i < In._Fields.ni; i++) 
+				{
+					if (In.at(i, j) == T(1)) 
+					{
+						if (xi == -1)
+							xi = i;
+						else
+							xi = -1;
+					} else if(In.at(i, j) != T(0))
+						xi = -1;
+				}
+				Out.at(0, jo++) = (xi != -1)? In.at(xi, 0):T(0);
+			}
+		}
+
+	public:
+		MATRIX<T, ((ci == 0)?0:1), cj> operator()() 
+		{
+			bool IsSuccess;
+			return operator()(IsSuccess);
+		}
+
+		MATRIX<T, ((ci == 0)?0:1), cj> operator()(bool & IsSuccess) 
+		{
+			MATRIX tab = *(MATRIX*)this;
+			MATRIX<T, ((ci == 0)?0:1),cj> Res(1, _Fields.ni, T(0));
+			IsSuccess = false;
+			for(int loop = 0; ;loop++) 
+			{
+				int pivot_col, pivot_row;
+				pivot_col = SearchMinCol(tab);
+				if(pivot_col < 0)
+					break;
+				pivot_row = SearchMinRatioRow(tab, pivot_col);
+				if(pivot_row < 0) //Функция не ограничена
+					return Res;
+				RetransformMatrix(tab, pivot_row, pivot_col);
+				if(loop > 20) 
+					return Res;
+			}
+			SearchBasicVars(Res, tab);
+			IsSuccess = true;
+			return Res;
+		}
+	};
 
 public:
 	union
@@ -847,7 +993,7 @@ public:
 				{
 					T sum = 0;
 					for (unsigned j = 0; j < re._Fields.nj; j++)
-						sum += abs(re[i][j]);
+						sum += abs(re.at(i, j));
 					if (sum == 0) 
 						null++;
 				}
@@ -863,10 +1009,9 @@ public:
 			{
 			   if(ci != cj)
 				   return false;
-			   MATRIX & This = *(MATRIX*)this;
 			   for (unsigned i = 0; i < _Fields.ni; i++)
 				   for (unsigned j = 0; j < _Fields.nj; j++) 
-					   if(This[i][j] != This[j][i])
+					   if(at(i, j) != at(j, i))
 						   return false;
 				return true;
 			}
@@ -980,6 +1125,26 @@ public:
 		typename std::not_empty_if<ci == cj, _TO_ADJOINT>::type				ToAdjoint;
 		typename std::not_empty_if<ci == cj, _GET_ADJOINT>::type			GetAdjoint;
 		typename std::not_empty_if<ci == cj, _GET_ALGEBRAIC_COMPLEMENT>::type	GetAlgebraicComplement;
+
+		/*
+		Example:
+			double tab[4][7]  = 
+			{ // bas.  a  b  c  d  e  f
+				{ 0,  -2,-3, 0, 1, 0, 0},  // F = 2a + 3b - d -> max
+				{ 16,  2,-1, 0,-2, 1, 0},  // 2a - b - 2d + e = 16
+				{ 18,  3, 2, 1,-3, 0, 0},  // 3a - 2b + c - 3d = 18
+				{ 24, -1, 3, 0, 4, 0, 1}   // -a + 3b + 4d + f = 24
+			};
+
+			MATRIX<double, 4, 7> matr(tab); 
+			bool IsSuccess; 
+			                                             //              F           a           b       c  d        e         f
+			auto Result = hdh.GetSimplexMax(IsSuccess); // Result Eq. {25.636363, 0.545454, 8.18181818, 0, 0, 23.09090909090, 0}
+			                                            // IsSuccess Eq. true
+		
+		*/
+		_GET_SIMPLEX_MAX													GetSimplexMax; //Maximization via simplex method
+		_GET_SIMPLEX_MIN													GetSimplexMin; //Minimization via simplex method
 	};
 
 public:
@@ -1374,8 +1539,8 @@ public:
 			{
 				T Summ = T(0);
 				for(unsigned k = 0;k < _Fields.nj;k++)
-					Summ += This[i][k] * Val[k][j];
-				Ret[i][j] = Summ;
+					Summ += at(i, k) * Val.at(k, j);
+				Ret.at(i, j) = Summ;
 			}
 		return Ret;
 	}
@@ -1580,36 +1745,34 @@ public:
 	void SwapRows(unsigned r1, unsigned r2)
 	{
 		MATRIX & This = *this;
-		for (unsigned j = 0; j < CountColumns; j++) 
+		for (unsigned j = 0; j < _Fields.nj; j++) 
 		{
-			register T tmp = This[r2][j];
-			This[r2][j] = This[r1][j];
-			This[r1][j] = tmp;
+			register T tmp = at(r2, j);
+			at(r2, j) = at(r1, j);
+			at(r1, j) = tmp;
 		}
 	}
 
 	void SwapColumns(unsigned r1, unsigned r2)
 	{
-		MATRIX & This = *this;
-		for (unsigned i = 0; i < CountRows; i++) 
+		for (unsigned i = 0; i < _Fields.ni; i++) 
 		{
-			register T tmp = This[i][r2];
-			This[i][r2] = This[i][r1];
-			This[i][r2] = tmp;
+			register T tmp = at(i, r2);
+			at(i, r2) = at(i, r1);
+			at(i, r2) = tmp;
 		}
 	}
 
 	void ToTriangle()
 	{
-		MATRIX & A = *this;
-		unsigned MinNull0 = A.CountColumns, MinNull1 = 0;
-		for (unsigned k = 0; k < (A.CountRows - 1); k++) 
+		unsigned MinNull0 = _Fields.nj, MinNull1 = 0;
+		for (unsigned k = 0; k < (_Fields.ni - 1); k++) 
 		{
-			MinNull0 = A.CountColumns;
-			for (unsigned v = k; v < A.CountRows; v++) 
+			MinNull0 = _Fields.nj;
+			for (unsigned v = k; v < _Fields.ni; v++) 
 			{
 				unsigned CountNull = 0;
-				for (;(CountNull < A.CountRows) && (A[v][CountNull] == 0); CountNull++);
+				for (;(CountNull < _Fields.ni) && (at(v, CountNull) == 0); CountNull++);
 				if (CountNull < MinNull0)
 				{
 					MinNull0 = CountNull;
@@ -1617,18 +1780,18 @@ public:
 				}
 			}
 			if (k != MinNull1) 
-				A.SwapRows(k, MinNull1);
+				SwapRows(k, MinNull1);
 		}
-		if (A[0][0] == 0) 
+		if (at() == 0) 
 			return;
-		for (unsigned j = 0; j < A.CountRows; j++)
-			for (unsigned u = (j + 1); u < A.CountColumns; u++) 
+		for (unsigned j = 0; j < _Fields.ni; j++)
+			for (unsigned u = (j + 1); u < _Fields.nj; u++) 
 			{
-				if (A[u][j] == 0) 
+				if (at(u, j) == 0) 
 					continue;
-				T M = -(A[u][j] / A[j][j]);
-				for (unsigned k = 0; k < A.CountRows; k++)
-					A[u][k] += (A[j][k] * M);
+				T M = -(at(u, j) / at(j, j));
+				for (unsigned k = 0; k < _Fields.ni; k++)
+					at(u, k) += (at(j, k) * M);
 			}
 	}
 
@@ -1644,28 +1807,27 @@ public:
 	*/
 	void ToRowEchelon()
 	{
-		MATRIX & A = *this;
 		int  l, factor1;
 		for (unsigned i = 0, r = 0, k; i < min(_Fields.nj, _Fields.ni); i++)  
 		{
-			if (A[r][i] == 0) 
+			if (at(r, i) == 0) 
 			{
 				for (k = r + 1; k < _Fields.ni; k++) 
-					if (A[k][i] != 0) 
+					if (at(k, i) != 0) 
 						break;
 				if (k < _Fields.ni)   
-					A.SwapRows(r, k);
+					SwapRows(r, k);
 			}
-			if (A[r][i] != 0) 
+			if (at(r, i) != 0) 
 			{
-				for (k=r+1; k < _Fields.ni; k++) 
+				for (k = r + 1; k < _Fields.ni; k++) 
 				{
-					if (A[k][i] == 0) 
+					if (at(k, i) == 0) 
 						continue;
-					l = lcm(A[k][i], A[r][i]);
-					factor1 = l / A[k][i];
+					l = lcm(at(k, i), at(r, i));
+					factor1 = l / at(k, i);
 					for (unsigned j = i; j < _Fields.nj; j++) 
-						A[k][j] = A[k][j] * factor1 - A[r][j] * (l / A[r][i]);
+						at(k, j) = at(k, j) * factor1 - at(r, j) * (l / at(r, i));
 				}
 				r++;
 			}
@@ -1683,10 +1845,9 @@ public:
 	typename std::enable_if<std::is_convertible<T, _T>::value>::type
 	GetMiniMap(MATRIX<_T, _i, _j> & Dest, unsigned StartRow = 0, unsigned StartColumn = 0)
 	{
-		MATRIX & This = *this;
 		for(unsigned i = StartRow, _i = 0; (i < _Fields.ni) && (_i < Dest._Fields.ni);i++, _i++)
 			for(unsigned j = StartColumn, _j = 0;(j < _Fields.nj) && (_j < Dest._Fields.nj);j++, _j++)
-				Dest[_i][_j] = This[i][j];
+				Dest.at(_i, _j) = at(i, j);
 	}	
 
 
@@ -1697,9 +1858,7 @@ public:
 		for(unsigned i = 0;i < _Fields.ni;i++)
 		{
 			for(unsigned j = 0;j < _Fields.nj;j++)
-			{
-				NewMatrix[j][i] = This[i][j];
-			}
+				NewMatrix.at(j, i) = This.at(i, j);
 		}
 		return NewMatrix;
 	}
@@ -1711,18 +1870,16 @@ public:
 
 	T GetMinor(unsigned i, unsigned j)
 	{
-		MATRIX & This = *this;
 		MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(CountRows - 1, CountColumns -1);
-		
-		for (unsigned _i = 0, __i = 0; _i < CountRows; _i++) 
+		for (unsigned _i = 0, __i = 0; _i < _Fields.ni; _i++) 
 		{
 			if (_i == i) 
 				continue;
-			for (unsigned _j = 0, __j = 0; _j < CountColumns; _j++) 
+			for (unsigned _j = 0, __j = 0; _j < _Fields.nj; _j++) 
 			{
 				if (_j == j) 
 					continue;
-				TempMatrix[__i][__j++] = This[_i][_j]; 
+				TempMatrix.at(__i, __j++) = at(_i,_j); 
 			}
 			__i++;
 		}
@@ -1735,40 +1892,38 @@ public:
 		MATRIX Ret(CountRows, CountColumns);
 		MATRIX & This = *this;
 
-		for (unsigned i = 0; i < CountRows; i++) 
-			for (unsigned j = 0; j < CountColumns; j++) 
+		for (unsigned i = 0; i < _Fields.ni; i++) 
+			for (unsigned j = 0; j < _Fields.nj; j++) 
 			{
-				for (unsigned _i = 0, __i = 0; _i < CountRows; _i++) 
+				for (unsigned _i = 0, __i = 0; _i < _Fields.ni; _i++) 
 				{
 					if (_i == i) 
 						continue;
-					for (unsigned _j = 0, __j = 0; _j < CountColumns; _j++) 
+					for (unsigned _j = 0, __j = 0; _j < _Fields.nj; _j++) 
 					{
 						if (_j == j) 
 							continue;
-						TempMatrix[__i][__j++] = This[_i][_j]; 
+						TempMatrix.at(__i, __j++) = This.at(_i, _j); 
 					}
 					__i++;
 				}
-				Ret[i][j] = TempMatrix.Determinant;
+				Ret.at(i, j) = TempMatrix.Determinant;
 			}
 		return Ret;
 	}
 
 	void SetOnMainDiagon(T Val)
 	{
-		MATRIX & A = *this;
-		for(unsigned i = 0;i < A.CountRows;i++)
-			for(unsigned j = 0;j < A.CountColumns;j++)
-					A[i][j] = (i == j)?Val:T(0);
+		for(unsigned i = 0;i < _Fields.ni;i++)
+			for(unsigned j = 0;j < _Fields.nj;j++)
+					at(i, j) = (i == j)?Val:T(0);
 	}
 
 	void SetOnSecDiagon(T Val)
 	{
-		MATRIX & A = *this;
-		for(unsigned i = A.CountRows - 1;(int)i >= 0;i--)
-			for(unsigned j = A.CountColumns - 1;(int)j >= 0;j--)
-				A[i][j] = (i == j)?Val:T(0);
+		for(unsigned i = _Fields.ni - 1;(int)i >= 0;i--)
+			for(unsigned j = _Fields.nj - 1;(int)j >= 0;j--)
+				at(i, j) = (i == j)?Val:T(0);
 	}
 
 	template<typename _T, unsigned _i, unsigned _j>
@@ -1880,6 +2035,35 @@ public:
 		matrix_check(RightValMatrix._Fields.ni == 1, "Matrix \"RightValMatrix\" is not \
 		equal by columns with 1");
 		return GetInverse() * RightValMatrix;
+	}
+
+	void LUDecomposition(MATRIX & L, MATRIX & U)
+	{
+		MATRIX & A = *this;
+		for (int i = 0; i < _Fields.ci; i++)
+		{
+			L[i][0] = A[i][0];
+			U[0][i] = A[0][i] / L[0][0];
+		}
+		for (int i = 1; i < _Fields.ci; i++)
+		{
+			for (int j = 1; j < _Fields.cj; j++)
+			{
+				if (i >= j)
+				{
+					T sum = T(0);
+					for (int k = 0; k < j; k++)
+						sum += L [i][k] * U[k][j];
+					L [i][j] = A[i][j] - sum;
+				}else
+				{
+					T sum = T(0);
+					for (int k = 0; k < i; k++)
+						sum += L[i][k] * U[k][j];
+					U [i][j] = (A[i][j] - sum) / L[i][i];
+				}
+			}
+		}
 	}
 
 };
