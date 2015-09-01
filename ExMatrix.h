@@ -1,6 +1,46 @@
 #ifndef __EX_MATRIX_H__
 #define __EX_MATRIX_H__
 
+/*
+  MATRIX class.
+  Paketovs 
+  2015
+
+  Example job:
+
+    double A[2][2] = 
+	{
+		1,2,
+		3,4
+	};
+
+  	MATRIX<double, 2, 2> j(A);      //Static version
+	auto SizeMatrix = sizeof(j);	//SizeMatrix eq. 32
+	MATRIX<double> b(A);			//Dynamic version
+	SizeMatrix = sizeof(b);			//SizeMatrix eq. 12 on 32bit machine (CountColumn + CountRow + pointer).
+	bool JIsOrtogonal = j.IsOrtogonal;
+
+	MATRIX<double, 2, 2> L(2,2);
+	MATRIX<double> U(2,2);
+	j.LUDecomposition(L, U);       //LU Factorization
+	auto sec_j = L * U;
+
+
+	if(sec_j == j)
+	{
+	    //This block is executed
+	}
+	if(j.IsSingular)
+	{
+	    //This block is not executed
+	}
+	auto InverseMatrix = j.ToInverse();
+
+	j[0] = U[1]; //Copy 1 row from U to 0 index j.
+
+*/
+
+
 #include <malloc.h>
 #include <string.h>
 #include <string>
@@ -18,10 +58,6 @@
 #else
 #define matrix_check_index(Check, Message)  
 #endif
-
-
-
-
 
 
 
@@ -561,6 +597,7 @@ private:
 			return 0;
 		return (a*b) / gcd(a,b);
 	}
+
 	class PARENT_FIELDS
 	{
 	protected:
@@ -1196,10 +1233,57 @@ private:
 		}
 	};
 
+	class _REMOVE_COLUMN: PARENT_FIELDS
+	{
+		static void RemoveCol(MATRIX & Target, unsigned Pos)
+		{
+			for (int j = Pos, _j = Pos + 1, h = _j + Pos, m = Target._Fields.ni * Target._Fields.nj; _j < m; j++, _j++) 
+			{
+				Target._Fields.v[j] = Target._Fields.v[_j];
+				if(_j == h)
+					_j++, h += Pos;
+			}
+		}
+
+	public:
+		bool operator()(unsigned Pos)
+		{
+			MATRIX & This = *(MATRIX*)this;
+			RemoveCol(This, Pos);
+			bool res = _Fields.Allocate(_Fields.ni, _Fields.nj - 1);
+			if(res)
+				This.CountColumns = _Fields.nj - 1;
+			return res;
+		}
+	};
+
+	class _REMOVE_ROW: PARENT_FIELDS
+	{		
+		static void RemoveRow(MATRIX & Target, unsigned Pos)
+		{
+			for (int i = Pos, m = Target._Fields.ni - 1; i < m; i++) 
+			{
+				for (int j = 0; j < Target._Fields.nj; j++)
+					Target._Fields.at(i, j) = Target._Fields.at(i + 1, j);
+			}
+		}
+	public:
+		bool operator()(unsigned Pos)
+		{
+			MATRIX & This = *(MATRIX*)this;
+			RemoveRow(This, Pos);
+			bool res = _Fields.Allocate(_Fields.ni - 1, _Fields.nj);
+			if(res)
+				This.CountRows = _Fields.ni - 1;
+			return res;
+		}
+	};
+
 public:
 	union
 	{
 		__MATRIX_FIELDS_DEF;
+
 		class
 		{
 			__MATRIX_FIELDS_DEF;
@@ -1378,10 +1462,12 @@ public:
 		typename std::not_empty_if<ci == cj, _GET_ADJOINT>::type			GetAdjoint;
 		typename std::not_empty_if<ci == cj, _GET_ALGEBRAIC_COMPLEMENT>::type	GetAlgebraicComplement;
 		typename std::not_empty_if<ci == cj, _LU_DECOMPOSITION>::type       LUDecomposition;
-
 		typename std::not_empty_if<ci == cj, _TO_ALL_MINORS>::type			ToAllMinors;
 		typename std::not_empty_if<ci == cj, _GET_MINOR>::type				GetMinor;
 		typename std::not_empty_if<ci == cj, _GET_ALL_MINORS>::type			GetAllMinors;
+		typename std::not_empty_if<!IsStaticArr, _REMOVE_ROW>::type			RemoveRow;
+		typename std::not_empty_if<!IsStaticArr, _REMOVE_COLUMN>::type		RemoveCol;
+
 		typename std::conditional<ci == cj, _IS_SINGULAR_SQUARE, _IS_SINGULAR_RECT >::type IsSingular;
 		_SOLVE_LIN_EQ														SolveLinEq;
 		/*
@@ -1721,27 +1807,6 @@ public:
 		_Fields.Deinit();
 	}
 
-	void RemoveCol(unsigned Pos)
-	{
-		CountColumns = CountColumns - 1;
-		for (int j = Pos; j < _Fields.nj; j++) 
-		{
-			for (int i = 0; i < _Fields.ni; i++) 
-				at(i, j) = at(i, j+1);
-		}
-	}
-
-	//typename std::enable_if<((ci * cj) == 0)>::type 
-	void RemoveRow(unsigned Pos)
-	{
-		CountRows = CountRows - 1;
-		for (int i = Pos; i < _Fields.ni; i++) 
-		{
-			for (int j = 0; j < _Fields.nj; j++)
-				at(i, j) = at(i+1, j);
-		}
-	}
-
 	//Mul
 	template<class _T>
 	typename std::enable_if<std::is_convertible<_T, T>::value, MATRIX&>::type 
@@ -1857,7 +1922,6 @@ public:
 	}
 
 	//Add
-
 	template<typename _T>
 	typename std::enable_if
 	<
@@ -1998,8 +2062,6 @@ public:
 	}
 	///////
 
-
-
 	void SwapRows(unsigned r1, unsigned r2)
 	{
 		MATRIX & This = *this;
@@ -2108,12 +2170,11 @@ public:
 				Dest.at(_i, _j) = at(i, j);
 	}	
 
-
 	MATRIX<T, cj, ci> GetTranspose()
 	{
 		MATRIX & This = *this;
 		MATRIX<T, cj, ci> NewMatrix(_Fields.nj, _Fields.ni);
-		for(unsigned i = 0;i < _Fields.ni;i++)
+		for(unsigned i = 0; i < _Fields.ni; i++)
 		{
 			for(unsigned j = 0;j < _Fields.nj;j++)
 				NewMatrix.at(j, i) = This.at(i, j);
