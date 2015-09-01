@@ -19,27 +19,11 @@
 #define matrix_check_index(Check, Message)  
 #endif
 
-inline long long gcd(long long a, long long b)
-{
-	a = llabs(a);
-	b = llabs(b);
-	if (a*b == 0)   
-		return a + b;
-	if (a == b) 
-		return a;
-	return ((a > b)? gcd(a % b, b): gcd(a, b % a));
-}
-
-inline long long lcm(long long a, long long b)
-{
-	if (a*b == 0) 
-		return 0;
-	return (a*b) / gcd(a,b);
-}
 
 
 
-//Retrive, row as multi reference
+
+
 
 template<class T, unsigned cj = 0>
 class ROW
@@ -334,7 +318,7 @@ private:
 			matrix_check_index(i < ni, "i");
 			matrix_check_index(j < nj, "j");
 #endif
-			return v[i * _Fields.nj + j];
+			return v[i * nj + j];
 		}
 
 		inline bool Allocate(const unsigned Row, const unsigned Col)
@@ -560,6 +544,29 @@ private:
 	   return _Fields.v[i * _Fields.nj + j];
 	}
 
+	static inline long long gcd(long long a, long long b)
+	{
+		a = llabs(a);
+		b = llabs(b);
+		if (a*b == 0)   
+			return a + b;
+		if (a == b) 
+			return a;
+		return ((a > b)? gcd(a % b, b): gcd(a, b % a));
+	}
+
+	static inline long long lcm(long long a, long long b)
+	{
+		if (a*b == 0) 
+			return 0;
+		return (a*b) / gcd(a,b);
+	}
+	class PARENT_FIELDS
+	{
+	protected:
+	   __MATRIX_FIELDS_DEF;
+	};
+
 	template<typename _T, unsigned _i, unsigned _j>
 	struct TYPE_MUL_SOLUTION
 	{
@@ -572,42 +579,39 @@ private:
 		type;
 	};
 
-	class _GET_INVERSE
+	class _GET_INVERSE: PARENT_FIELDS
 	{
-		__MATRIX_FIELDS_DEF;
 	public:
 		MATRIX operator()()
 		{
-			MATRIX & This = *(MATRIX*)this;
-			if((This._Fields.ni == 1) && (This._Fields.nj == 1))
+			matrix_check_index(_Fields.ni == _Fields.nj, "Matrix is not square");
+			if((_Fields.ni == 1) && (_Fields.nj == 1))
 			{
 				MATRIX ret;
-				ret.at() = T(1) / This.at();
+				ret.at() = T(1) / _Fields.at();
 				return ret;
 			}
-			matrix_check_index(This._Fields.ni == This._Fields.nj, "Matrix is not square");
+			MATRIX & This = *(MATRIX*)this;
 			T d = This.Determinant;
 			matrix_check_index(d != T(0), "Determinant eq. zero");
-			MATRIX RetMatrix(This._Fields.ni, This._Fields.nj);
-			RetMatrix = This.GetAdjoint();
+			MATRIX RetMatrix = This.GetAdjoint();
 			RetMatrix.ToTranspose();
 			return RetMatrix *= (T(1) / d);
 		}
 	};
 
-	class _TO_INVERSE
+	class _TO_INVERSE: PARENT_FIELDS
 	{
-		__MATRIX_FIELDS_DEF;
 	public:
 		void operator()()
 		{
-			MATRIX & This = *(MATRIX*)this;
-			if((This._Fields.nj == 1) && (This._Fields.ni == 1))
+			matrix_check_index(_Fields.ni == _Fields.nj, "Matrix is not square");
+			if((_Fields.nj == 1) && (_Fields.ni == 1))
 			{
-				This.at() = T(1) / This.at();
+				_Fields.at() = T(1) / _Fields.at();
 				return;
 			}
-			matrix_check_index(This._Fields.ni == This._Fields.nj, "Matrix is not square");
+			MATRIX & This = *(MATRIX*)this;
 			T d = This.Determinant;
 			matrix_check_index(d != T(0), "Determinant eq. zero");
 			This.ToAdjoint();
@@ -616,12 +620,12 @@ private:
 		}
 	};
 
-	class _TO_TRANSPOSE
+	class _TO_TRANSPOSE: PARENT_FIELDS
 	{
-		__MATRIX_FIELDS_DEF;
 	public:
 		void operator()()
 		{
+			matrix_check_index(_Fields.ni == _Fields.nj, "Matrix is not square");
 			for(unsigned i = 0;i < _Fields.ni;i++)
 				for(unsigned j = i;j < _Fields.nj;j++)
 				{
@@ -632,10 +636,8 @@ private:
 		}
 	};
 
-	class _DETERMINANT
+	class _DETERMINANT: PARENT_FIELDS
 	{
-		__MATRIX_FIELDS_DEF;
-
 		template<unsigned _i>
 		static T Solution(MATRIX<T, _i, _i> & Val)
 		{
@@ -667,48 +669,19 @@ private:
 
 		operator T() const
 		{
+			matrix_check(_Fields.ni == _Fields.nj, "Matrix is not square.");
 			MATRIX This = *(MATRIX*)this;
-			matrix_check(This._Fields.ni == This._Fields.nj, "Matrix is not square.");
 			return Solution(This);
 		}
-
 	};
 
-	class _POW_RECT
+	class _POW_SQUARE: PARENT_FIELDS
 	{
-		__MATRIX_FIELDS_DEF;
 	public:
 		template<typename DegreeType>
 		MATRIX operator()(DegreeType n) const
 		{
-			MATRIX B, A = *(MATRIX*)this;
-			if(n < 0)
-			{
-				matrix_check(false, "It is impossible to build a negative power rectangular matrix.");
-				return MATRIX();
-			}else if(n == 0)
-			{
-				A.SetOnMainDiagon(T(1));
-				return A;
-			}else if(std::IsFraction(n))
-			{
-				matrix_check(false, "It is impossible to build a fractional power rectangular matrix.");
-				return MATRIX();
-			}else
-				B = A;
-			for (unsigned r = 0, m = (abs(n) - 1); r < m; r++)
-				B = A * B;
-			return B;
-		}
-	};
-
-	class _POW_SQUARE
-	{
-		__MATRIX_FIELDS_DEF;
-	public:
-		template<typename DegreeType>
-		MATRIX operator()(DegreeType n) const
-		{
+			matrix_check(_Fields.ni == _Fields.nj, "Matrix not square.");
 			MATRIX B, A = *(MATRIX*)this;
 			if(n < 0)
 			{
@@ -736,15 +709,14 @@ private:
 		}
 	};
 
-	class _TO_ADJOINT
+	class _TO_ADJOINT: PARENT_FIELDS
 	{
-		__MATRIX_FIELDS_DEF;
 	public:
 		void operator()()
 		{
+			matrix_check(_Fields.ni == _Fields.nj, "Matrix not square.");
 			MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(_Fields.ni - 1, _Fields.nj -1);
 			MATRIX Ret(_Fields.ni, _Fields.nj);
-			matrix_check(_Fields.ni == _Fields.nj, "Count column and row not equal.");
 			for (unsigned i = 0; i < _Fields.ni; i++) 
 				for (unsigned j = 0; j < _Fields.nj; j++) 
 				{
@@ -766,15 +738,14 @@ private:
 		}
 	};
 
-	class _GET_ADJOINT
+	class _GET_ADJOINT: PARENT_FIELDS
 	{
-		__MATRIX_FIELDS_DEF;
 	public:
 		MATRIX operator()() //алгебраическое дополнение
 		{
+			matrix_check(_Fields.ni == _Fields.nj, "Matrix not square.");
 			MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(_Fields.ni - 1, _Fields.nj -1 );
 			MATRIX Ret(_Fields.ni, _Fields.nj);
-			matrix_check(_Fields.ni == _Fields.nj, "Count column and row not equal.");
 			for (unsigned i = 0; i < _Fields.ni; i++) 
 				for (unsigned j = 0; j < _Fields.nj; j++) 
 				{
@@ -796,13 +767,13 @@ private:
 		}
 	};
 
-	class _GET_ALGEBRAIC_COMPLEMENT
+	class _GET_ALGEBRAIC_COMPLEMENT: PARENT_FIELDS
 	{
-		__MATRIX_FIELDS_DEF;
 	public:
 
 		T operator()(unsigned i, unsigned j)
 		{
+			matrix_check_index(_Fields.ni == _Fields.nj, "Matrix is not square");
 			MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(_Fields.ni - 1, _Fields.nj - 1);
 			for (unsigned _i = 0, __i = 0; _i < _Fields.ni; _i++) 
 			{
@@ -820,11 +791,31 @@ private:
 		}
 	};
 
-	class _GET_SIMPLEX_MIN
+	class _GET_SIMPLEX_MIN: PARENT_FIELDS
 	{
-		__MATRIX_FIELDS_DEF;
 	public:
-		MATRIX<T, ((ci == 0)?0:1), cj> operator()() 
+		/*
+		Parameters
+		  tab - matrix for retransform
+		  return: 0 - if success, 1 - is overflow limited of loops, -1 - is function not limited
+		*/
+		static int Solution(MATRIX & tab, unsigned MaxLoop = 20)
+		{
+			for(int loop = 0; loop < MaxLoop;loop++) 
+			{
+				int pivot_col, pivot_row;
+				pivot_col = _GET_SIMPLEX_MAX::SearchMaxCol(tab);
+				if(pivot_col < 0)
+					return 0;
+				pivot_row = _GET_SIMPLEX_MAX::SearchMinRatioRow(tab, pivot_col);
+				if(pivot_row < 0) //Функция не ограничена
+					return -1;
+				_GET_SIMPLEX_MAX::RetransformMatrix(tab, pivot_row, pivot_col);
+			}
+			return 1;
+		}
+
+		inline MATRIX<T, ((ci == 0)?0:1), cj> operator()() 
 		{
 			bool IsSuccess;
 			return operator()(IsSuccess);
@@ -834,19 +825,10 @@ private:
 		{
 			MATRIX tab = *(MATRIX*)this;
 			MATRIX<T, ((ci == 0)?0:1),cj> Res(1, _Fields.ni, T(0));
-			IsSuccess = false;
-			for(int loop = 0; ;loop++) 
+			if(Solution(tab) != 0)
 			{
-				int pivot_col, pivot_row;
-				pivot_col = _GET_SIMPLEX_MAX::SearchMaxCol(tab);
-				if(pivot_col < 0)
-					break;
-				pivot_row = _GET_SIMPLEX_MAX::SearchMinRatioRow(tab, pivot_col);
-				if(pivot_row < 0) //Функция не ограничена
-					return Res;
-				_GET_SIMPLEX_MAX::RetransformMatrix(tab, pivot_row, pivot_col);
-				if(loop > 20) 
-					return Res;
+				IsSuccess = false;
+				return Res;
 			}
 			_GET_SIMPLEX_MAX::SearchBasicVars(Res, tab);
 			IsSuccess = true;
@@ -854,9 +836,8 @@ private:
 		}
 	};
 
-	class _GET_SIMPLEX_MAX
+	class _GET_SIMPLEX_MAX: PARENT_FIELDS
 	{
-		__MATRIX_FIELDS_DEF;
 
 		friend _GET_SIMPLEX_MIN;
 		static int SearchMinCol(MATRIX & tab)
@@ -928,7 +909,29 @@ private:
 		}
 
 	public:
-		MATRIX<T, ((ci == 0)?0:1), cj> operator()() 
+
+		/*
+		Parameters
+		  @tab - matrix for retransform
+		  return: 0 - if success, 1 - is overflow limited of loops, -1 - is function not limited
+		*/
+		static int Solution(MATRIX & tab, unsigned MaxLoop = 20)
+		{
+			for(unsigned loop = 0; loop < MaxLoop;loop++) 
+			{
+				int pivot_col, pivot_row;
+				pivot_col = SearchMinCol(tab);
+				if(pivot_col < 0)
+					return 0;
+				pivot_row = SearchMinRatioRow(tab, pivot_col);
+				if(pivot_row < 0) //Function not limited
+					return -1;
+				RetransformMatrix(tab, pivot_row, pivot_col);	
+			}
+			return 1;
+		}
+
+		inline MATRIX<T, ((ci == 0)?0:1), cj> operator()() 
 		{
 			bool IsSuccess;
 			return operator()(IsSuccess);
@@ -938,19 +941,10 @@ private:
 		{
 			MATRIX tab = *(MATRIX*)this;
 			MATRIX<T, ((ci == 0)?0:1),cj> Res(1, _Fields.ni, T(0));
-			IsSuccess = false;
-			for(int loop = 0; ;loop++) 
+			if(Solution(tab) != 0)
 			{
-				int pivot_col, pivot_row;
-				pivot_col = SearchMinCol(tab);
-				if(pivot_col < 0)
-					break;
-				pivot_row = SearchMinRatioRow(tab, pivot_col);
-				if(pivot_row < 0) //Функция не ограничена
-					return Res;
-				RetransformMatrix(tab, pivot_row, pivot_col);
-				if(loop > 20) 
-					return Res;
+				IsSuccess = false;
+				return Res;
 			}
 			SearchBasicVars(Res, tab);
 			IsSuccess = true;
@@ -958,9 +952,8 @@ private:
 		}
 	};
 
-	class _LU_DECOMPOSITION
+	class _LU_DECOMPOSITION: PARENT_FIELDS
 	{
-		__MATRIX_FIELDS_DEF;
 	public:
 		template
 		<
@@ -971,12 +964,16 @@ private:
 		<
 		   std::is_convertible<T, uT>::value &&
 		   std::is_convertible<T, lT>::value &&
-	       (!MATRIX<lT,li, li>::IsStaticArr || (li == ci)) &&
-		   (!MATRIX<uT,ui, ui>::IsStaticArr || (ui == ci))
+		   (!IsStaticArr ||
+			   (!MATRIX<lT,li, li>::IsStaticArr || (li == ci)) &&
+			   (!MATRIX<uT,ui, ui>::IsStaticArr || (ui == ci))
+		   )
 		>::type 
-		operator()(MATRIX<lT,li, li> & l, MATRIX<uT,ui, ui> & u)
+		operator()(MATRIX<lT, li, li> & l, MATRIX<uT, ui, ui> & u)
 		{
-
+			matrix_check(_Fields.ni == _Fields.nj, "Matrix is not square.");
+			matrix_check(l._Fields.ni == l._Fields.nj, "L matrix is not square.");
+			matrix_check(u._Fields.ni == u._Fields.nj, "U matrix is not square.");
 			for (unsigned i = 0; i < _Fields.ni; i++)
 			{
 				for (unsigned j = 0; j < _Fields.ni; j++)
@@ -1004,6 +1001,198 @@ private:
 					}
 				}
 			}
+		}
+	};
+
+	class _SOLVE_LIN_EQ_WITH_ARG: public PARENT_FIELDS
+	{
+	public:
+		/*
+		  Solve for linear equalation;
+		  Example:
+			double v[2][2] = 
+			{
+				  1,2,
+				  4,5
+			};
+
+			double e[2][1] = 
+			{
+				  3,
+				  6
+			};
+
+			MATRIX<double, 2, 3> x = v;
+			MATRIX<double, 2, 1> x = e;
+			MATRIX<double, 2, 1> solve = x.SolveLinEq(x);
+			solve eq. 
+			{
+				-1,
+				2
+			}
+		*/
+		template<unsigned _i, unsigned _j>
+		inline typename std::enable_if
+		<
+			!MATRIX<T, _i, _j>::IsStaticArr || 
+			!IsStaticArr ||
+			(ci == _i) && (_j == 1),
+			MATRIX<T, ci, ((cj == 0)?0: 1)>
+		>::type
+		operator()(MATRIX<T, _i, _j> & RightValMatrix)
+		{
+			MATRIX & This = *(MATRIX*)this;
+			matrix_check(This.IsSquare, "Matrix coefficients is not square.");
+			matrix_check(RightValMatrix._Fields.ni == _Fields.ni, "Matrix \"RightValMatrix\" is not \
+																  equal by count rows with matrix coefficients");
+			matrix_check(RightValMatrix._Fields.nj == 1, "Matrix \"RightValMatrix\" is not \
+														 equal by columns with 1");
+			return This.GetInverse() * RightValMatrix;
+		}
+	};
+
+	class _SOLVE_LIN_EQ_WITHOUT_ARG: public PARENT_FIELDS
+	{
+	public:
+		/*
+		  Solve for linear equalation;
+		  Example:
+			double v[2][3] = 
+			{
+				  1,2,3,
+				  4,5,6
+			};
+			MATRIX<double, 2, 3> x = v;
+			MATRIX<double, 2, 1> solve = x.SolveLinEq();
+			solve eq. 
+			{
+				-1,
+				2
+			}
+		*/
+		inline MATRIX<T, ci, ((cj == 0)?0:1)> operator()()
+		{
+			MATRIX & This = *(MATRIX*)this;
+			matrix_check((_Fields.ni + 1) == _Fields.nj, "Matrix coefficients is not square.");
+			MATRIX<T, ci, ci> CoefMatr(_Fields.ni, _Fields.ni);
+			This.GetMiniMap(CoefMatr);
+			MATRIX<T, ci, ((cj == 0)?0:1)> RightValMatrix(_Fields.ni, 1);
+			This.GetMiniMap(RightValMatrix, 0, _Fields.ni);
+			CoefMatr.ToInverse();
+			return CoefMatr * RightValMatrix;
+		}
+	};
+
+	class _SOLVE_LIN_EQ_WITHOUT_ARG_: public _SOLVE_LIN_EQ_WITH_ARG
+	{
+	public:
+		_SOLVE_LIN_EQ_WITH_ARG::operator();
+		inline MATRIX<T, ci, ((cj == 0)?0:1)> operator()()
+		{
+			_SOLVE_LIN_EQ_WITHOUT_ARG & This = *(_SOLVE_LIN_EQ_WITHOUT_ARG*)this;
+			return This.operator()();
+		}
+	};
+	
+	class _SOLVE_LIN_EQ: 
+	public std::conditional
+	< 
+		!IsStaticArr,
+		_SOLVE_LIN_EQ_WITHOUT_ARG_,
+    	typename std::not_empty_if
+		<
+			((ci == cj) || ((ci + 1) == cj)), 
+			typename std::conditional
+			<
+				ci == cj,
+				_SOLVE_LIN_EQ_WITH_ARG,
+				_SOLVE_LIN_EQ_WITHOUT_ARG
+			>::type
+		>::type
+	>::type
+	{
+	};
+
+	class _TO_ALL_MINORS: PARENT_FIELDS
+	{
+	public:
+		inline void operator()()
+		{
+			MATRIX & This = *(MATRIX*)this;
+			This = This.GetAllMinors();
+		}
+	};
+
+	class _GET_MINOR : PARENT_FIELDS
+	{
+	public:
+		T operator()(unsigned i, unsigned j)
+		{
+			matrix_check(_Fields.ni == _Fields.nj, "Matrix is not square.");
+			MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(_Fields.ni - 1, _Fields.nj -1);
+			for (unsigned _i = 0, __i = 0; _i < _Fields.ni; _i++) 
+			{
+				if (_i == i) 
+					continue;
+				for (unsigned _j = 0, __j = 0; _j < _Fields.nj; _j++) 
+				{
+					if (_j == j) 
+						continue;
+					TempMatrix.at(__i, __j++) = _Fields.at(_i,_j); 
+				}
+				__i++;
+			}
+			return TempMatrix.Determinant;
+		}
+	};
+
+	class _GET_ALL_MINORS : PARENT_FIELDS
+	{
+	public:
+		MATRIX operator()()
+		{
+			matrix_check(_Fields.ni == _Fields.nj, "Matrix is not square.");
+			MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(_Fields.ni - 1, _Fields.nj -1);
+			MATRIX Ret(_Fields.ni, _Fields.nj);
+			for (unsigned i = 0; i < _Fields.ni; i++) 
+				for (unsigned j = 0; j < _Fields.nj; j++) 
+				{
+					for (unsigned _i = 0, __i = 0; _i < _Fields.ni; _i++) 
+					{
+						if (_i == i) 
+							continue;
+						for (unsigned _j = 0, __j = 0; _j < _Fields.nj; _j++) 
+						{
+							if (_j == j) 
+								continue;
+							TempMatrix.at(__i, __j++) = _Fields.at(_i, _j); 
+						}
+						__i++;
+					}
+					Ret.at(i, j) = TempMatrix.Determinant;
+				}
+			return Ret;
+		}
+	};
+
+	class _IS_SINGULAR_SQUARE : PARENT_FIELDS
+	{
+	public:
+		//Вырожденная ли матрица
+		operator bool()
+		{
+			MATRIX & This = *(MATRIX*)this;
+			return T(0) == T(This.Determinant);
+		}
+	};
+
+	class _IS_SINGULAR_RECT
+	{
+	public:
+		//Вырожденная ли матрица
+		operator bool()
+		{
+			return false;
 		}
 	};
 
@@ -1123,6 +1312,7 @@ public:
 		{
 			__MATRIX_FIELDS_DEF;
 		public:
+			//Единичная матрица
 			operator bool()
 			{
 			   for (unsigned i = 0; i < _Fields.ni; i++)
@@ -1176,16 +1366,24 @@ public:
 			}
 		} IsOrtogonal;
 
+
+
+
 		typename std::not_empty_if<ci == cj, _DETERMINANT>::type			Determinant;
 		typename std::not_empty_if<ci == cj, _GET_INVERSE>::type			GetInverse;
 		typename std::not_empty_if<ci == cj, _TO_INVERSE>::type				ToInverse;
 		typename std::not_empty_if<ci == cj, _TO_TRANSPOSE>::type			ToTranspose;
-		typename std::conditional<ci == cj, _POW_SQUARE, _POW_RECT>::type	Pow;
+		typename std::not_empty_if<ci == cj,  _POW_SQUARE>::type			Pow;
 		typename std::not_empty_if<ci == cj, _TO_ADJOINT>::type				ToAdjoint;
 		typename std::not_empty_if<ci == cj, _GET_ADJOINT>::type			GetAdjoint;
 		typename std::not_empty_if<ci == cj, _GET_ALGEBRAIC_COMPLEMENT>::type	GetAlgebraicComplement;
 		typename std::not_empty_if<ci == cj, _LU_DECOMPOSITION>::type       LUDecomposition;
 
+		typename std::not_empty_if<ci == cj, _TO_ALL_MINORS>::type			ToAllMinors;
+		typename std::not_empty_if<ci == cj, _GET_MINOR>::type				GetMinor;
+		typename std::not_empty_if<ci == cj, _GET_ALL_MINORS>::type			GetAllMinors;
+		typename std::conditional<ci == cj, _IS_SINGULAR_SQUARE, _IS_SINGULAR_RECT >::type IsSingular;
+		_SOLVE_LIN_EQ														SolveLinEq;
 		/*
 		Example:
 			double tab[4][7]  = 
@@ -1923,55 +2121,6 @@ public:
 		return NewMatrix;
 	}
 
-	inline void ToAllMinors()
-	{
-		*this = GetAllMinors();
-	}
-
-	T GetMinor(unsigned i, unsigned j)
-	{
-		MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(CountRows - 1, CountColumns -1);
-		for (unsigned _i = 0, __i = 0; _i < _Fields.ni; _i++) 
-		{
-			if (_i == i) 
-				continue;
-			for (unsigned _j = 0, __j = 0; _j < _Fields.nj; _j++) 
-			{
-				if (_j == j) 
-					continue;
-				TempMatrix.at(__i, __j++) = at(_i,_j); 
-			}
-			__i++;
-		}
-		return TempMatrix.Determinant;
-	}
-
-	MATRIX GetAllMinors()
-	{
-		MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(CountRows - 1, CountColumns -1);
-		MATRIX Ret(CountRows, CountColumns);
-		MATRIX & This = *this;
-
-		for (unsigned i = 0; i < _Fields.ni; i++) 
-			for (unsigned j = 0; j < _Fields.nj; j++) 
-			{
-				for (unsigned _i = 0, __i = 0; _i < _Fields.ni; _i++) 
-				{
-					if (_i == i) 
-						continue;
-					for (unsigned _j = 0, __j = 0; _j < _Fields.nj; _j++) 
-					{
-						if (_j == j) 
-							continue;
-						TempMatrix.at(__i, __j++) = This.at(_i, _j); 
-					}
-					__i++;
-				}
-				Ret.at(i, j) = TempMatrix.Determinant;
-			}
-		return Ret;
-	}
-
 	void SetOnMainDiagon(T Val)
 	{
 		for(unsigned i = 0;i < _Fields.ni;i++)
@@ -2027,76 +2176,6 @@ public:
 	{
 	   return !operator==(Enother);
 	}
-
-	/*
-	  Solve for linear equalation;
-	  Example:
-		double v[2][3] = 
-		{
-			  1,2,3,
-			  4,5,6
-		};
-		MATRIX<double, 2, 3> x = v;
-		MATRIX<double, 2, 1> solve = x.SolveLinEq();
-		solve eq. 
-		{
-			-1,
-			2
-		}
-	*/
-	inline MATRIX<T, ci, ((cj == 0)?0:1)> SolveLinEq()
-	{
-		matrix_check((_Fields.ni + 1) == _Fields.nj, "Matrix coefficients is not square.");
-		MATRIX<T, ci, ci> CoefMatr(_Fields.ni, _Fields.ni);
-	    GetMiniMap(CoefMatr);
-		MATRIX<T, ci, ((cj == 0)?0:1)> RightValMatrix(_Fields.ni, 1);
-		GetMiniMap(RightValMatrix, 0, _Fields.ni);
-		CoefMatr.ToInverse();
-		return CoefMatr * RightValMatrix;
-	}
-
-	/*
-	  Solve for linear equalation;
-	  Example:
-		double v[2][2] = 
-		{
-			  1,2,
-			  4,5
-		};
-
-		double e[2][1] = 
-		{
-			  3,
-			  6
-		};
-
-		MATRIX<double, 2, 3> x = v;
-		MATRIX<double, 2, 1> x = e;
-		MATRIX<double, 2, 1> solve = x.SolveLinEq(x);
-		solve eq. 
-		{
-			-1,
-			2
-		}
-	*/
-
-	template<unsigned _i, unsigned _j>
-	inline typename std::enable_if
-	<
-		!MATRIX<T, _i, _j>::IsStaticArr ||
-		(ci == _i) && (_j == 1),
-		MATRIX<T, ci, ((cj == 0)?0:1)>
-	>::type
-	SolveLinEq(MATRIX<T, _i, _j> & RightValMatrix)
-	{
-		matrix_check(IsSquare, "Matrix coefficients is not square.");
-		matrix_check(RightValMatrix._Fields.ni == _Fields.ni, "Matrix \"RightValMatrix\" is not \
-		equal by count rows with matrix coefficients");
-		matrix_check(RightValMatrix._Fields.ni == 1, "Matrix \"RightValMatrix\" is not \
-		equal by columns with 1");
-		return GetInverse() * RightValMatrix;
-	}
-
 };
 
 
