@@ -3,7 +3,7 @@
 
 /*
   MATRIX class.
-  Paketovs 
+  Paketov 
   2015
 
   Example job:
