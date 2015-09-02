@@ -1,6 +1,18 @@
 #ifndef __EX_STRING_H__
 #define __EX_STRING_H__
 
+/*
+     ExString
+	 Paketov
+	 2015.
+
+	 Library for optimize work with C-like string in C++.
+	 Convert from string to number and number to string 
+	 have optimize on account of small number calls.
+*/
+
+
+
 #include <string>
 #include <sstream>
 #include <iostream>
@@ -1112,6 +1124,77 @@ inline size_t StringLength(const char * Str)
 inline size_t StringLength(const wchar_t * Str)
 {
   return wcslen(Str);
+}
+
+inline const char * StringSearch(const char * BaseStr, const char * SubStr)
+{
+  return strstr(BaseStr, SubStr);
+}
+
+inline const wchar_t * StringSearch(const wchar_t * BaseStr, const wchar_t * SubStr)
+{
+  return wcsstr(BaseStr, SubStr);
+}
+
+inline int StringCompare(const char * Str1, const char * Str2, size_t MaxCount)
+{
+  return strncmp(Str1, Str2, MaxCount);
+}
+
+inline int StringCompare(const wchar_t * Str1, const wchar_t * Str2, size_t MaxCount)
+{
+  return wcsncmp(Str1, Str2, MaxCount);
+}
+
+inline int StringCompare(const char * Str1, const char * Str2)
+{
+  return strcmp(Str1, Str2);
+}
+
+inline int StringCompare(const wchar_t * Str1, const wchar_t * Str2)
+{
+  return wcscmp(Str1, Str2);
+}
+
+
+inline int StringICompare(const char * Str1, const char * Str2, size_t MaxCount)
+{
+  return strnicmp(Str1, Str2, MaxCount);
+}
+
+inline int StringICompare(const wchar_t * Str1, const wchar_t * Str2, size_t MaxCount)
+{
+  return wcsnicmp(Str1, Str2, MaxCount);
+}
+
+inline int StringICompare(const char * Str1, const char * Str2)
+{
+  return stricmp(Str1, Str2);
+}
+
+inline int StringICompare(const wchar_t * Str1, const wchar_t * Str2)
+{
+  return wcsicmp(Str1, Str2);
+}
+
+inline char * StringCopy(char * Dest, const char * Source, size_t MaxCount)
+{
+  return strncpy(Dest, Source, MaxCount);
+}
+
+inline wchar_t * StringCopy(wchar_t * Dest, const wchar_t * Source, size_t MaxCount)
+{
+  return wcsncpy(Dest, Source, MaxCount);
+}
+
+inline char * StringCopy(char * Dest, const char * Source)
+{
+  return strcpy(Dest, Source);
+}
+
+inline wchar_t * StringCopy(wchar_t * Dest, const wchar_t * Source)
+{
+  return wcscpy(Dest, Source);
 }
 
 template<typename TypeChar, typename StreamType, TypeChar (*GetChar)(StreamType), void (*UngetChar)(StreamType, TypeChar)>
