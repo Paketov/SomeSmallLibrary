@@ -6,7 +6,7 @@
   Paketov 
   2015
 
-  Example job:
+  Example working:
 
     double A[2][2] = 
 	{
@@ -64,46 +64,227 @@
 template<class T, unsigned cj = 0>
 class ROW
 {
-	static const bool IsStaticArr = cj != 0;
+	static const bool IsStaticArr = (cj != 0) && (cj != unsigned(-1));
 
-	class FIELD_DYNAMIC
-	{
-	public:
-		unsigned _Count;
-		T * v;
-		inline void SetV(T * Val)
-		{   
-			v = Val;
-		}
-
-		inline unsigned SetCount(const unsigned Val)
-		{   
-			return _Count = Val;
-		}
-	};
-
-	class FIELD_STATIC
+	//Static version
+	class TFIELDS_STATIC
 	{
 	public:
 		static const unsigned _Count = cj;
 		T v[cj];
 
-		inline void SetV(T * Val) const{}
-
 		inline unsigned SetCount(const unsigned Val) const
 		{   
 			return Val;
 		}
+
+		inline void Init() const {}
+
+		inline void Deinit() const {}
+
+		inline void Allocate(const unsigned) const {}
+
+		template<typename _T, unsigned _j>
+		inline void Copy(const ROW<_T, _j> & Another)
+		{
+			matrix_check(Another._Fields._Count == _Count, "Count columns not equal.");
+			std::arr_copy_cast(v, Another._Fields.v);
+		}
+
+		template<typename _T>
+		inline void Copy(_T * Arr, unsigned count)
+		{
+			matrix_check(count == _Count, "Count columns not equal.");
+			std::arr_copy_cast(v, Arr);
+		}
+
+		template<typename _T>
+		inline void Copy(const _T (&Arr)[cj])
+		{
+			std::arr_copy_cast(v, Arr);
+		}
 	};
 
-	typedef typename std::conditional<IsStaticArr, FIELD_STATIC, FIELD_DYNAMIC>::type TFIELDS;
+	//Version represent as interator
+	class TFIELDS_INTERATOR
+	{
+	public:
+		unsigned _Count;
+		T * v;
 
-#define	__ROW_FIELDS \
-	TFIELDS _Fields;
+		inline unsigned SetCount(const unsigned Val)
+		{   
+			return _Count = Val;
+		}
+
+		inline void Init()
+		{
+		    v = NULL;
+			_Count = 0;
+		}
+
+		inline void Deinit() const {}
+
+		inline void Allocate(const unsigned) const {}
+
+		template<typename _T>
+		inline void Copy(const ROW<_T, 0> & Another)
+		{
+			matrix_check(Another._Fields._Count == _Count, "Count columns not equal.");
+			std::arr_copy_cast(v, Another._Fields.v, Another._Fields._Count);
+		}
+
+		template<typename _T, unsigned _j>
+		inline void Copy(const ROW<_T, _j> & Another)
+		{
+			matrix_check(Another._Fields._Count == _Count, "Count columns not equal.");
+			std::arr_copy_cast(v, Another._Fields.v);
+		}
+
+		template<typename _T>
+		inline void Copy(_T * Arr, unsigned count)
+		{
+			if(v == NULL)
+			{
+				v = Arr, _Count = count;
+				return;
+			}
+			matrix_check(count == _Count, "Count columns not equal.");
+			std::arr_copy_cast(v, Arr, count);
+		}
+
+		template<typename _T, unsigned _j>
+		inline void Copy(const _T (&Arr)[_j])
+		{
+			matrix_check(_j == _Count, "Count columns not equal.");
+			std::arr_copy_cast(v, Arr);
+		}
+	};
+
+	//Dynamic version
+	class TFIELDS_DYNAMIC
+	{
+	public:
+		unsigned _Count;
+		T * v;
+
+		inline unsigned SetCount(const unsigned Val)
+		{   
+			return _Count = Val;
+		}
+
+		inline void Init()
+		{
+		    v = NULL;
+			_Count = 0;
+		}
+
+		inline void Deinit()
+		{
+		   if(v != NULL)
+			   free(v);
+		}
+
+		inline void Allocate(const unsigned Count)
+		{
+			T * NewVal = (T*)realloc(v, sizeof(T) * Count);
+			matrix_check(NewVal != NULL, "Not alloc memory for row.");
+			_Count = Count;
+			v = NewVal;
+		}
+
+		template<typename _T>
+		void Copy(const ROW<_T, 0> & Another)
+		{
+			Allocate(Another._Fields._Count);
+			std::arr_copy_cast(v, Another._Fields.v, Another._Fields._Count);
+		}
+
+		template<typename _T, unsigned _j>
+		void Copy(const ROW<_T, _j> & Another)
+		{
+			Allocate(Another._Fields._Count);
+			std::arr_copy_cast(v, Another._Fields.v);
+		}
+
+		template<typename _T>
+		inline void Copy(_T * Arr, unsigned count)
+		{
+			Allocate(count);
+			std::arr_copy_cast(v, Arr, count);
+		}
+
+		template<typename _T, unsigned _j>
+		void Copy(const _T (&Arr)[_j])
+		{
+			Allocate(_j);
+			std::arr_copy_cast(v, Arr);
+		}
+	};
+
+	typedef typename std::conditional
+	<
+		cj == unsigned(-1),
+		TFIELDS_INTERATOR, 
+		typename std::conditional
+		<
+			cj == 0,
+			TFIELDS_DYNAMIC,
+			TFIELDS_STATIC
+		>::type
+	>::type TFIELDS;
+
+#define	__ROW_FIELDS TFIELDS _Fields;
 
 	template<class, unsigned, unsigned> friend class MATRIX;
 
+	class _REMOVE_ELEMENT
+	{
+		__ROW_FIELDS;
+	public:
+		void operator()(unsigned Pos, unsigned Count = 1)
+		{			
+			if(Pos >= _Fields._Count)
+				return;
+			unsigned MaxOffset = min(Index + Count, _Fields._Count);
+			unsigned NewCount = _Fields._Count - MaxOffset;
+			memmove((T*)_Fields.v + Pos, (T*)_Fields.v + MaxOffset, sizeof(T) * NewCount);
+			_Fields.Allocate(NewCount + Pos);
+		}
+	};
+
+	class _INSERT_ELEMENT
+	{
+		__ROW_FIELDS;
+	public:
+
+		void operator()(unsigned Pos, unsigned Count = 1)
+		{
+			if(Pos > _Fields._Count)
+			{
+			   Count += (Pos - _Fields._Count);
+			   Pos = _Fields._Count;
+			}
+			_Fields.Allocate(_Fields._Count + Count);
+			memmove(&_Fields.v[Pos + Count], &_Fields.v[Pos], sizeof(T) * (_Fields._Count - Pos - Count));
+		}
+
+		void operator()(unsigned Pos, unsigned Count, T Value)
+		{
+			if(Pos > _Fields._Count)
+			{
+			   Count += (Pos - _Fields._Count);
+			   Pos = _Fields._Count;
+			}
+			_Fields.Allocate(_Fields._Count + Count);
+			memmove(((T*)_Fields.v) + (Pos + Count), ((T*)_Fields.v) + Pos, sizeof(T) * (_Fields._Count - Pos - Count));
+			std::arr_set_elements(_Fields.v[Pos], Value, Count);
+		}
+	};
+
 public:
+
+
 	union
 	{
 		__ROW_FIELDS;
@@ -111,45 +292,127 @@ public:
 		class
 		{
 			__ROW_FIELDS;
+
+			friend ROW;
+
+			inline unsigned operator=(unsigned NewVal)
+			{
+				return _Fields.SetCount(NewVal);
+			}
+
 		public:
 			inline operator unsigned()
 			{
 				return _Fields._Count;
 			}
 		} Count;
-	};
-private:
-	ROW(T * Column, unsigned Count)
-	{
-		_Fields.SetCount(Count);
-		_Fields.SetV(Column);
-	}
 
-	template <unsigned Index = 0>
-	class __SETTER
+		typename std::not_empty_if<cj == 0, _REMOVE_ELEMENT>::type	RemoveElement;
+		typename std::not_empty_if<cj == 0, _INSERT_ELEMENT>::type	InsertElement;
+	};
+
+private:
+
+	template <unsigned StaticSize, unsigned Index>
+	class TSETTER
 	{
 		ROW * r;
-	public:
-		inline __SETTER(ROW * r)
+		friend ROW;
+		
+		inline TSETTER(ROW * r)
 		{
 			this->r = r;
 		}
+	public:
+
 
 		inline typename std::enable_if
 		<
-			!IsStaticArr || (Index < cj), 
-			__SETTER<Index + 1> 
+			!IsStaticArr || (Index <= cj), 
+			TSETTER<StaticSize, Index + 1> 
 		>::type 
 		operator <<(T Val)
 		{
 			(*r)[Index] = Val;
-			return __SETTER<Index + 1>(r);
+			return TSETTER<StaticSize, Index + 1>(r);
 		}
 	};
 
-public: 
 
-	//////
+	template <unsigned Index>
+	class TSETTER<0, Index>
+	{
+		ROW * r;
+		friend ROW;
+
+		inline TSETTER(ROW * r)
+		{
+			this->r = r;
+		}
+	public:
+
+
+		inline TSETTER<0, Index + 1> operator <<(T Val)
+		{
+			if(Index >= r->Count)
+				r->_Fields.Allocate(Index + 1);
+			(*r)[Index] = Val;
+			return TSETTER<0, Index + 1>(r);
+		}
+	};
+
+public:
+
+	ROW()
+	{
+		_Fields.Init();
+	}
+
+	ROW(T * Column, unsigned Count)
+	{
+		_Fields.Init();
+		_Fields.Copy(Column, Count);
+	}
+
+	template<typename _T, unsigned _j>
+	ROW
+	(
+		ROW<_T, _j> & Val,
+		typename std::enable_if
+		<
+			std::is_convertible<_T, T>::value &&
+			(!IsStaticArr || !ROW<_T, _j>::IsStaticArr || (cj == _j)), 
+			std::empty_type
+		>::type = std::empty_type()
+	)
+	{
+		_Fields.Init();
+		_Fields.Copy(Val);
+	}
+
+	template<typename _T, unsigned _j>
+	ROW
+	(
+		_T (&Val)[_j],
+		typename std::enable_if
+		<
+			std::is_convertible<_T, T>::value && !IsStaticArr || (cj == _j), 
+			std::empty_type
+		>::type = std::empty_type()
+	)
+	{
+		_Fields.Init();
+		_Fields.Copy(Val);
+	}
+
+	ROW(unsigned _Count)
+	{
+		_Fields.Init();
+		_Fields.Allocate(_Count);
+	}
+
+	/////////////
+
 	template<class TypeChar>
 	STR_STAT FromText(const TypeChar * Str, size_t Len = 0xfffff)
 	{
@@ -248,28 +511,11 @@ public:
 		return STR_STAT(CountWrited, true);
 	}
 
-	///////////
+	/////////////
 
 	inline ROW & operator =(ROW & Val)
 	{
-		matrix_check(Val._Fields._Count == _Fields._Count, "Column count not equal");
-		if(IsStatic)
-			std::val_copy(_Fields.v, Val._Fields.v);
-		else
-			memcpy(_Fields.v, Val._Fields.v, sizeof(T) * _Fields._Count);
-		return *this;
-	}
-
-	template<unsigned _j>
-	inline typename std::enable_if
-	<
-		!IsStaticArr || !ROW<T, _j>::IsStaticArr || (cj == _j), 
-		ROW &
-	>::type 
-	operator =(ROW<T, _j>& Val)
-	{
-		matrix_check(Val._Fields._Count == _Fields._Count, "Column count not equal");
-		memcpy(_Fields.v, Val._Fields.v, sizeof(T) * _Fields._Count);
+		_Fields.Copy(Val);
 		return *this;
 	}
 
@@ -282,23 +528,8 @@ public:
 	>::type 
 	operator =(ROW<_T, _j> & Val)
 	{
-		matrix_check(Val._Fields._Count  == _Fields._Count, "Column count not equal");
-		for(unsigned i = 0;i < _Fields._Count; i++)
-			_Fields.v[i] = (T)Val._Fields.v[i];
+		_Fields.Copy(Val);
 		return *this;
-	}
-
-	template<unsigned _j>
-	inline typename std::enable_if
-	<
-		!IsStaticArr || (cj == _j),
-		ROW &
-	>::type 
-	operator =(const T (&New)[_j])
-	{
-		matrix_check_index(_j == _Fields._Count, "In array size not equal column count");
-	   std::val_copy(_Fields.v, New);
-	   return *this;
 	}
 
 	template<typename _T, unsigned _j>
@@ -308,12 +539,22 @@ public:
 		(!IsStaticArr || (cj == _j)),
 		ROW &
 	>::type 
-	operator =(const _T (&New)[_j])
+	operator =(const _T (&Val)[_j])
 	{
-		matrix_check_index(_j == _Fields._Count, "In array size not equal column count");
-		for(unsigned i = 0;i < _j;i++)
-			_Fields.v[i] = New[i];
+		_Fields.Copy(Val);
 		return *this;
+	}
+
+    inline void Resize(unsigned NewCount)
+	{
+		_Fields.Allocate(NewCount);
+	}
+
+	template<typename _T>
+	inline typename std::enable_if<std::is_convertible<_T, T>::value>::type
+	SetAllVal(_T NewVal)
+	{
+		std::arr_set_elements(_Fields.v, NewVal, _Fields._Count);
 	}
 
 	inline T & operator[](const unsigned Index)
@@ -322,10 +563,12 @@ public:
 		return _Fields.v[Index];
 	}
 
-	inline __SETTER<1> operator <<(T Val)
+	inline TSETTER<cj, 1> operator <<(T Val)
 	{
+		if(1 > _Fields._Count)
+			_Fields.Allocate(1);
 		(*this)[0] = Val;
-		return __SETTER<1>(this);
+		return TSETTER<cj, 1>(this);
 	}
 };
 
@@ -336,136 +579,12 @@ class MATRIX
 	template<class, unsigned, unsigned> friend class MATRIX;
 public:
 	static const bool IsStaticArr = ci * cj != 0;
-
 private:
 
-#define __MATRIX_FIELDS_DEF TFIELDS _Fields;
-
-	class FIELD_DYNAMIC
-	{
-	public:
-		unsigned ni;
-		unsigned nj;
-		T * v;
-
-		inline T & at(unsigned i = 0, unsigned j = 0)
-		{
-#ifdef _MATRIX_CHECK_INDEXES
-			matrix_check_index(i < ni, "i");
-			matrix_check_index(j < nj, "j");
-#endif
-			return v[i * nj + j];
-		}
-
-		inline bool Allocate(const unsigned Row, const unsigned Col)
-		{
-			T * NewVal = (T*)realloc(v, sizeof(T) * Col * Row);
-			if(NewVal == NULL)
-				return false;
-			v = NewVal;
-			return true;
-		}
-
-		inline bool Copy(const MATRIX<T, 0, 0> & Enother)
-		{
-			T * NewVal = (T*)realloc(v, sizeof(T) * Enother.CountColumns * Enother.CountRows);
-			if(NewVal == NULL)
-				return false;
-			nj = Enother._Fields.nj;
-			ni = Enother._Fields.ni;
-			v = NewVal;
-			memcpy(v, Enother._Fields.v, sizeof(T) * Enother.CountColumns * Enother.CountRows);
-			return true;
-		}
-
-		template<unsigned _i, unsigned _j>
-		inline bool Copy(const MATRIX<T, _i, _j> & Enother)
-		{
-			T * NewVal = (T*)realloc(v, sizeof(T) * Enother.CountColumns * Enother.CountRows);
-			if(NewVal == NULL)
-				return false;
-			nj = Enother._Fields.nj;
-			ni = Enother._Fields.ni;
-			v = NewVal;
-			std::val_copy(*v, Enother._Fields.v);
-			return true;
-		}
-
-		template<class _T, unsigned _i, unsigned _j>
-		inline typename std::enable_if
-		<
-			std::is_convertible<_T, T>::value, 
-			bool
-		>::type Copy(const MATRIX<_T, _i, _j> & Enother)
-		{
-			unsigned  m = Enother.CountColumns * Enother.CountRows;
-			T * NewVal = (T*)realloc(v, sizeof(T) * m);
-			if(NewVal == NULL)
-				return false;
-			nj = Enother._Fields.nj;
-			ni = Enother._Fields.ni;
-			v = NewVal;
-			for(unsigned i = 0;i < m;i++)
-				((T*)v)[i] = ((_T*)Enother._Fields.v)[i];
-			return true;
-		}
-
-		template <unsigned _i, unsigned _j> 
-		inline bool Copy(const T (&Enother)[_i][_j])
-		{
-			T * NewVal = (T*)realloc(v, sizeof(T) * _i * _j);
-			if(NewVal == NULL)
-				return false;
-			nj = _j;
-			ni = _i;
-			v = NewVal;
-			std::val_copy(*v, Enother);
-			return true;
-		}
-
-		template <class _T, unsigned _i, unsigned _j> 
-		inline typename std::enable_if
-		<
-			std::is_convertible<_T, T>::value, 
-			bool
-		>::type 
-		Copy(const _T (&Enother)[_i][_j])
-		{
-			T * NewVal = (T*)realloc(v, sizeof(T) * _i * _j);
-			if(NewVal == NULL)
-				return false;
-			nj = _j;
-			ni = _i;
-			v = NewVal;
-			for(unsigned i = 0;i < (_i * _j);i++)
-				((T*)v)[i] = ((const _T*)Enother)[i];
-			return true;
-		}
-
-		inline unsigned SetCountColumn(const unsigned Val)
-		{   
-			return nj = Val;
-		}
-
-		inline unsigned SetCountRow(const unsigned Val)
-		{   
-			return ni = Val;
-		}
-
-		inline void Init()
-		{
-			v = NULL;
-		}
 
 
-		inline void Deinit()
-		{
-			if(v != NULL)
-				free(v);
-		}
-	};
-
-	class FIELD_STATIC
+	//Static version
+	class TFIELDS_STATIC
 	{
 	public:
 		static const unsigned ni= ci;
@@ -485,70 +604,19 @@ private:
 			return v2[i][j];
 		}
 
-		inline bool Allocate(const unsigned, const unsigned) const
+		inline void Allocate(const unsigned, const unsigned) const {}
+
+		template<typename _T, unsigned _i, unsigned _j>
+		inline void Copy(MATRIX<_T, _i, _j> & Another)
 		{
-			return true;
+			matrix_check((nj == Another.CountColumns) && (ni == Another.CountRows), "Count column and row not equal.");
+			std::arr_copy_cast(v, Another._Fields.v);
 		}
 
-		inline bool Copy(const MATRIX<T, ci, cj> & Enother)
+		template <typename _T> 
+		inline void Copy(const _T (&Arr)[ci][cj])
 		{
-			std::val_copy(v, Enother._Fields.v);
-			return true;
-		}
-
-		template<unsigned _i, unsigned _j>
-		inline bool Copy(const MATRIX<T, _i, _j> & Enother)
-		{
-			typedef typename std::enable_if<false>::type;
-			return true;
-		}
-
-		template<>
-		inline bool Copy(const MATRIX<T, 0, 0> & Enother)
-		{
-			matrix_check((nj == Enother.CountColumns) && (ni == Enother.CountRows), "Count column and row not equal.");
-			std::val_copy(v, *Enother._Fields.v);
-			return true;
-		}
-
-		template<class _T, unsigned _i, unsigned _j>
-		inline typename std::enable_if
-		<
-			(ci == _i) && (cj == _j) && 
-			std::is_convertible<_T, T>::value,
-			bool
-		>::type 
-		Copy(const MATRIX<_T, _i, _j> & Enother)
-		{
-			matrix_check((nj == Enother.CountColumns) && (ni == Enother.CountRows), "Count column and row not equal.");
-			for(unsigned i = 0, m = nj * ni;i < m;i++)
-				((T*)v)[i] = ((_T*)Enother._Fields.v)[i];
-			return true;
-		}
-
-		template <unsigned _i, unsigned _j> 
-		inline typename std::enable_if
-		<
-			(ci == _i) && (cj == _j), 
-			bool
-		>::type 
-		Copy(const T (&Enother)[_i][_j])
-		{
-			std::val_copy(v, Enother);
-			return true;
-		}
-
-		template <class _T, unsigned _i, unsigned _j> 
-		inline typename std::enable_if
-		<
-			(ci == _i) && (cj == _j) && std::is_convertible<_T, T>::value, 
-			bool
-		>::type
-		Copy(const _T (&Enother)[_i][_j])
-		{
-			for(unsigned i = 0;i < (_i * _j);i++)
-				((T*)v)[i] = ((const _T*)Enother)[i];
-			return true;
+			std::arr_copy_cast(v, Arr);
 		}
 
 		inline unsigned SetCountColumn(const unsigned Val) const
@@ -565,10 +633,87 @@ private:
 
 		inline void Deinit() const{}
 	};
+
+	//Dynamic version
+	class TFIELDS_DYNAMIC
+	{
+	public:
+		unsigned ni;
+		unsigned nj;
+		T * v;
+
+		inline T & at(unsigned i = 0, unsigned j = 0)
+		{
+#ifdef _MATRIX_CHECK_INDEXES
+			matrix_check_index(i < ni, "i");
+			matrix_check_index(j < nj, "j");
+#endif
+			return v[i * nj + j];
+		}
+
+		inline void Allocate(unsigned Row, unsigned Col)
+		{
+			T * NewVal = (T*)realloc(v, sizeof(T) * Col * Row);
+			matrix_check(NewVal != NULL, "Not alloc memory for matrix.");
+			v = NewVal;
+			nj = Col;
+			ni = Row;
+		}
+
+		template<typename _T>
+		inline void Copy(const MATRIX<_T, 0, 0> & Another)
+		{
+			Allocate(Another._Fields.ni, Another._Fields.nj);
+			std::arr_copy_cast(v, Another._Fields.v, Another._Fields.ni * Another._Fields.nj);
+		}
+
+		template<typename _T, unsigned _i, unsigned _j>
+		inline void Copy(const MATRIX<_T, _i, _j> & Another)
+		{
+			Allocate(Another._Fields.ni, Another._Fields.nj);
+			std::arr_copy_cast(v, Another._Fields.v);
+		}
+
+		template <class _T, unsigned _i, unsigned _j> 
+		inline void Copy(const _T (&Arr)[_i][_j])
+		{
+			Allocate(_i, _j);
+			std::arr_copy_cast(v, Arr);
+		}
+
+		inline unsigned SetCountColumn(const unsigned Val)
+		{   
+			return nj = Val;
+		}
+
+		inline unsigned SetCountRow(const unsigned Val)
+		{   
+			return ni = Val;
+		}
+
+		inline void Init()
+		{
+			v = NULL;
+			nj = ni = 0;
+		}
+
+		inline void Deinit()
+		{
+			if(v != NULL)
+				free(v);
+		}
+	};
+
+	typedef typename std::conditional
+	<
+		IsStaticArr, 
+		TFIELDS_STATIC, 
+		TFIELDS_DYNAMIC
+	>::type TFIELDS;
+
+#define __MATRIX_FIELDS_DEF TFIELDS _Fields;
 public:
 	typedef T TELEMENT;
-
-	typedef typename std::conditional<IsStaticArr, FIELD_STATIC, FIELD_DYNAMIC>::type TFIELDS;
 private:
 
 	inline T & at(unsigned i = 0, unsigned j = 0)
@@ -1233,49 +1378,134 @@ private:
 		}
 	};
 
+	//Remove
 	class _REMOVE_COLUMN: PARENT_FIELDS
 	{
-		static void RemoveCol(MATRIX & Target, unsigned Pos)
+		void RemoveCol(unsigned Pos, unsigned Count)
 		{
-			for (int j = Pos, _j = Pos + 1, h = _j + Pos, m = Target._Fields.ni * Target._Fields.nj; _j < m; j++, _j++) 
-			{
-				Target._Fields.v[j] = Target._Fields.v[_j];
+			for (int j = 0, _j = 0, h = Pos, m = _Fields.ni * _Fields.nj; ;) 
+			{		
 				if(_j == h)
-					_j++, h += Pos;
+					_j += Count, h += _Fields.nj;
+
+				if(_j >= m)
+					return;
+			    _Fields.v[j++] = _Fields.v[_j++];
 			}
 		}
 
 	public:
-		bool operator()(unsigned Pos)
+		void operator()(unsigned Pos, unsigned Count = 1)
 		{
-			MATRIX & This = *(MATRIX*)this;
-			RemoveCol(This, Pos);
-			bool res = _Fields.Allocate(_Fields.ni, _Fields.nj - 1);
-			if(res)
-				This.CountColumns = _Fields.nj - 1;
-			return res;
+			if(Pos >= _Fields.nj)
+				return;
+			if((Pos + Count) >= _Fields.nj)
+				Count = _Fields.nj - Pos;
+			RemoveCol(Pos, Count);
+			_Fields.Allocate(_Fields.ni, _Fields.nj - Count);
 		}
 	};
 
 	class _REMOVE_ROW: PARENT_FIELDS
 	{		
-		static void RemoveRow(MATRIX & Target, unsigned Pos)
+		void RemoveRow(unsigned Pos, unsigned Count)
 		{
-			for (int i = Pos, m = Target._Fields.ni - 1; i < m; i++) 
-			{
-				for (int j = 0; j < Target._Fields.nj; j++)
-					Target._Fields.at(i, j) = Target._Fields.at(i + 1, j);
-			}
+			T* selem = ((T*)_Fields.v) + Pos * _Fields.nj;
+			memmove
+			(
+				selem, 
+				selem + _Fields.nj * Count, 
+				sizeof(T) * (_Fields.ni * _Fields.nj  - _Fields.nj * Count - Pos * _Fields.nj)
+			);
 		}
 	public:
-		bool operator()(unsigned Pos)
+		void operator()(unsigned Pos, unsigned Count = 1)
 		{
-			MATRIX & This = *(MATRIX*)this;
-			RemoveRow(This, Pos);
-			bool res = _Fields.Allocate(_Fields.ni - 1, _Fields.nj);
-			if(res)
-				This.CountRows = _Fields.ni - 1;
-			return res;
+			if(Pos >= _Fields.ni)
+				return;
+			if((Pos + Count) >= _Fields.ni)
+				Count = _Fields.ni - Pos;
+			RemoveRow(Pos, Count);
+			_Fields.Allocate(_Fields.ni - Count, _Fields.nj);
+		}
+	};
+
+	//Insert
+	class _INSERT_COLUMN: PARENT_FIELDS
+	{
+		void InsertCol(unsigned Pos, unsigned Count)
+		{
+			unsigned OldNj = _Fields.nj - Count;
+			for (int i = _Fields.ni - 1; i >= 0; i--)
+				memmove
+				(
+					&_Fields.v[i * _Fields.nj + Pos + Count], 
+					&_Fields.v[i * OldNj + Pos], 
+					((i == _Fields.ni - 1)?(OldNj - Pos): OldNj) * sizeof(T)
+				);
+		}
+
+	public:
+		void operator()(unsigned Pos, unsigned Count = 1)
+		{
+			if(Pos > _Fields.nj)
+			{
+			   Count += (Pos - _Fields.nj);
+			   Pos = _Fields.nj;
+			}
+			_Fields.Allocate(_Fields.ni, _Fields.nj + Count);
+		    InsertCol(Pos, Count);
+		}
+
+		void operator()(unsigned Pos, unsigned Count, T InitVal)
+		{
+			if(Pos > _Fields.nj)
+			{
+			   Count += (Pos - _Fields.nj);
+			   Pos = _Fields.nj;
+			}
+			_Fields.Allocate(_Fields.ni, _Fields.nj + Count);
+		    InsertCol(Pos, Count);
+			for(unsigned i = 0;i < Count;i++)
+				((MATRIX*)this)->SetColumnVal(Pos + i, InitVal);
+		}
+	};
+
+	class _INSERT_ROW: PARENT_FIELDS
+	{		
+		void InsertRow(unsigned Pos, unsigned Count)
+		{
+			T* selem = ((T*)_Fields.v) + Pos * _Fields.nj;
+			memmove
+			(
+				selem + _Fields.nj * Count, 
+				selem, 
+				sizeof(T) * (_Fields.ni * _Fields.nj  - _Fields.nj * Count - Pos * _Fields.nj)
+			);
+		}
+	public:
+		void operator()(unsigned Pos, unsigned Count = 1)
+		{
+			if(Pos > _Fields.ni)
+			{
+			   Count += (Pos - _Fields.ni);
+			   Pos = _Fields.ni;
+			}
+			_Fields.Allocate(_Fields.ni + Count, _Fields.nj);
+			InsertRow(Pos, Count);
+		}
+
+		void operator()(unsigned Pos, unsigned Count, T InitVal)
+		{
+			if(Pos > _Fields.ni)
+			{
+			   Count += (Pos - _Fields.ni);
+			   Pos = _Fields.ni;
+			}
+			_Fields.Allocate(_Fields.ni + Count, _Fields.nj);
+			InsertRow(Pos, Count);
+			for(unsigned i = 0;i < Count;i++)
+				((MATRIX*)this)->SetRowVal(Pos + i, InitVal);
 		}
 	};
 
@@ -1287,33 +1517,34 @@ public:
 		class
 		{
 			__MATRIX_FIELDS_DEF;
-		public:
-			inline operator unsigned() const
-			{
-				return _Fields.ni;
-			}
+			friend MATRIX;
 
 			inline unsigned operator =(unsigned Val)
 			{
 				return _Fields.SetCountRow(Val);
 			}
-
+		public:
+			
+			inline operator unsigned() const
+			{
+				return _Fields.ni;
+			}
 		} CountRows;
 
 		class
 		{
 			__MATRIX_FIELDS_DEF;
-		public:
-			inline operator unsigned() const
-			{
-				return _Fields.nj;
-			}
+			friend MATRIX;
 
 			inline unsigned operator =(unsigned Val)
 			{
 				return _Fields.SetCountColumn(Val);
 			}
-
+		public:
+			inline operator unsigned() const
+			{
+				return _Fields.nj;
+			}
 		} CountColumns;
 
 		class
@@ -1450,9 +1681,6 @@ public:
 			}
 		} IsOrtogonal;
 
-
-
-
 		typename std::not_empty_if<ci == cj, _DETERMINANT>::type			Determinant;
 		typename std::not_empty_if<ci == cj, _GET_INVERSE>::type			GetInverse;
 		typename std::not_empty_if<ci == cj, _TO_INVERSE>::type				ToInverse;
@@ -1467,6 +1695,8 @@ public:
 		typename std::not_empty_if<ci == cj, _GET_ALL_MINORS>::type			GetAllMinors;
 		typename std::not_empty_if<!IsStaticArr, _REMOVE_ROW>::type			RemoveRow;
 		typename std::not_empty_if<!IsStaticArr, _REMOVE_COLUMN>::type		RemoveCol;
+		typename std::not_empty_if<!IsStaticArr, _INSERT_COLUMN>::type		InsertCol;
+		typename std::not_empty_if<!IsStaticArr, _INSERT_ROW>::type			InsertRow;
 
 		typename std::conditional<ci == cj, _IS_SINGULAR_SQUARE, _IS_SINGULAR_RECT >::type IsSingular;
 		_SOLVE_LIN_EQ														SolveLinEq;
@@ -1494,13 +1724,11 @@ public:
 public:
 
 
-	bool Resize(unsigned i, unsigned j)
+	void Resize(unsigned i, unsigned j)
 	{
 		if(IsStaticArr)
-			return (ci == i) && (cj == j);
-		CountRows = i;
-		CountColumns = j;
-		return _Fields.Allocate(i, j);
+			matrix_check((ci == i) && (cj == j), "Not alloc mem for static matrix");
+		_Fields.Allocate(i, j);
 	}
 
 	template<class TypeChar>
@@ -1516,7 +1744,8 @@ public:
 		CountReaded += StringToNumber(&j, Str + CountReaded, NOT_LESS_Z(Len - CountReaded))(r);
 		if(!r)
 			return CountReaded;
-		return STR_STAT(CountReaded, Resize(i, j));
+		Resize(i, j);
+		return STR_STAT(CountReaded, true);
 	}
 
 	template<class TypeChar>
@@ -1531,7 +1760,8 @@ public:
 		CountReaded += StreamToNumber(&j, Stream)(r);
 		if(!r)
 			return CountReaded;
-		return STR_STAT(CountReaded, Resize(i, j));
+		Resize(i, j);
+		return STR_STAT(CountReaded, true);
 	}
 	
 	STR_STAT ReadSize(FILE * Stream = stdin)
@@ -1545,7 +1775,8 @@ public:
 		CountReaded += StreamToNumber(&j, Stream)(r);
 		if(!r)
 			return CountReaded;
-		return STR_STAT(CountReaded, Resize(i, j));
+		Resize(i, j);
+		return STR_STAT(CountReaded, true);
 	}
 
 	template<class TypeChar>
@@ -1671,58 +1902,64 @@ public:
 	<
 		IsStaticArr,
 		ROW<T, cj> &, 
-		ROW<T, cj>
+		ROW<T, unsigned(-1)>
 	>::type 
 	operator[](const unsigned Index)
 	{
+		struct R1
+		{
+		    static inline ROW<T, unsigned(-1)> Ret(T * pRow, unsigned Cout)
+			{
+			   return ROW<T, unsigned(-1)>(pRow, Cout);
+			}
+		};
+
+		struct R2
+		{
+		    static inline ROW<T, cj>& Ret(T * pRow, unsigned Cout)
+			{
+			   return *(ROW<T, cj>*)pRow;
+			}
+		};
 		matrix_check_index(Index < _Fields.ni, "Row out of bound");
-		if(IsStaticArr)
-			return *(ROW<T, cj>*)((T*)_Fields.v + _Fields.nj * Index);
-		else
-			return ROW<T, cj>((T*)_Fields.v + _Fields.nj * Index, _Fields.nj); 
+		typedef typename std::conditional<IsStaticArr,R2, R1>::type RET;
+		return RET::Ret((T*)_Fields.v + _Fields.nj * Index, _Fields.nj);
 	}
 
 	void SetAllVal(T NewVal)
 	{
-		for(unsigned i = 0, m = CountRows * CountColumns;i < m;i++)
+		for(unsigned i = 0, m = _Fields.ni * _Fields.nj;i < m;i++)
 			((T*)_Fields.v)[i] = NewVal;
 	}
 
 	MATRIX()
 	{
 		_Fields.Init();
-		CountColumns = cj;
-		CountRows = ci;
 	}
 
 	MATRIX(unsigned ni, unsigned nj, T AllVal)
 	{
 		_Fields.Init();
-		CountColumns = nj;
-		CountRows = ni;
-		matrix_check(_Fields.Allocate(ni, nj), "Not alloc memory");
+		_Fields.Allocate(ni, nj);
 		SetAllVal(AllVal);
 	}
 
 	MATRIX(unsigned ni, unsigned nj)
 	{
 		_Fields.Init();
-		CountColumns = nj;
-		CountRows = ni;
-		matrix_check(_Fields.Allocate(ni, nj), "Not alloc memory");
+		_Fields.Allocate(ni, nj);
 	}
 
 	MATRIX(unsigned N)
 	{
 		_Fields.Init();
-		CountRows = CountColumns = N;
-		matrix_check(_Fields.Allocate(N, N), "Not alloc memory");
+		_Fields.Allocate(N, N);
 	}
 
 	MATRIX(const MATRIX & New)
 	{ 
 		_Fields.Init();
-		matrix_check(_Fields.Copy(New),  "Matrix not copied");
+		_Fields.Copy(New);
 	}
 
 	template<typename _T, unsigned _i, unsigned _j>
@@ -1734,11 +1971,11 @@ public:
 			std::is_convertible<_T, T>::value &&
 			(!IsStaticArr || !MATRIX<_T, _i, _j>::IsStaticArr || ((ci == _i) && (cj == _j))), 
 			std::empty_type
-		>::type _d = std::empty_type()
+		>::type = std::empty_type()
 	)
 	{ 
 		_Fields.Init();
-		matrix_check(_Fields.Copy(New),  "Matrix not copied");
+		_Fields.Copy(New);
 	}
 
 
@@ -1750,11 +1987,11 @@ public:
 		<
 			!IsStaticArr || ((ci == _i) && (cj == _j)), 
 			std::empty_type
-		>::type _d = std::empty_type()
+		>::type = std::empty_type()
 	)
 	{ 
 		_Fields.Init();
-		matrix_check(_Fields.Copy(New),  "Matrix not copied");
+		_Fields.Copy(New);
 	}
 
 	template <typename _T, unsigned _i, unsigned _j> 
@@ -1766,16 +2003,17 @@ public:
 			std::is_convertible<_T, T>::value &&
 			(!IsStaticArr || ((ci == _i) && (cj == _j))), 
 			std::empty_type
-		>::type _d = std::empty_type()
+		>::type = std::empty_type()
 	) 
 	{
 		_Fields.Init();
-		matrix_check(_Fields.Copy(New),  "Matrix not copied");
+		_Fields.Copy(New);
 	}
 
 	MATRIX & operator =(const MATRIX & New)
 	{
-		matrix_check(_Fields.Copy(New),  "Matrix not copied");
+		_Fields.Copy(New);
+		return *this;
 	}
 
 	template<class _T, unsigned _i, unsigned _j>
@@ -1787,7 +2025,8 @@ public:
 	>::type
 	operator =(const MATRIX<_T, _i, _j> & New)
 	{
-		matrix_check(_Fields.Copy(New),  "Matrix not copied");
+		_Fields.Copy(New);
+		return *this;
 	}
 
 	template <class _T, unsigned _i, unsigned _j> 
@@ -1799,7 +2038,8 @@ public:
 	>::type
 	operator =(const _T (&New)[_i][_j]) 
 	{ 
-		matrix_check(_Fields.Copy(New),  "Matrix not copied");
+		_Fields.Copy(New);
+		return *this;
 	}
 
 	~MATRIX()
@@ -2003,7 +2243,7 @@ public:
 	{
 		for(unsigned i = 0, m = _Fields.nj * _Fields.ni;i < m;i++)
 			_Fields.v[i] -= Value;
-		return *this
+		return *this;
 	}
 
 	template<typename _T, unsigned _i, unsigned _j>
@@ -2165,9 +2405,9 @@ public:
 	typename std::enable_if<std::is_convertible<T, _T>::value>::type
 	GetMiniMap(MATRIX<_T, _i, _j> & Dest, unsigned StartRow = 0, unsigned StartColumn = 0)
 	{
-		for(unsigned i = StartRow, _i = 0; (i < _Fields.ni) && (_i < Dest._Fields.ni);i++, _i++)
-			for(unsigned j = StartColumn, _j = 0;(j < _Fields.nj) && (_j < Dest._Fields.nj);j++, _j++)
-				Dest.at(_i, _j) = at(i, j);
+		for(unsigned i = StartRow, ie = 0; (i < _Fields.ni) && (ie < Dest._Fields.ni);i++, ie++)
+			for(unsigned j = StartColumn, je = 0;(j < _Fields.nj) && (je < Dest._Fields.nj);j++, je++)
+				Dest.at(ie, je) = at(i, j);
 	}	
 
 	MATRIX<T, cj, ci> GetTranspose()
@@ -2196,23 +2436,36 @@ public:
 				at(i, j) = (i == j)?Val:T(0);
 	}
 
+	void SetColumnVal(unsigned IndexColumn, T Val)
+	{
+		for(unsigned i = 0;i < _Fields.ni;i++)
+			at(i, IndexColumn) = Val;
+	}
+
+	void SetRowVal(unsigned IndexRow, T Val)
+	{
+		for(unsigned j = 0;j < _Fields.nj;j++)
+			at(IndexRow, j) = Val;
+	}
+
+
 	template<typename _T, unsigned _i, unsigned _j>
-	bool operator==(MATRIX<_T, _i, _j> & Enother)
+	bool operator==(MATRIX<_T, _i, _j> & Another)
 	{
 	   if(
 		   !std::is_convertible<T, _T>::value || 
-		   (_Fields.ni != Enother._Fields.ni) || 
-		   (_Fields.nj != Enother._Fields.nj)
+		   (_Fields.ni != Another._Fields.ni) || 
+		   (_Fields.nj != Another._Fields.nj)
 		 )
 		   return false;
 	   for(unsigned i = 0, m = _Fields.nj * _Fields.ni;i < m;i++)
-			if(_Fields.v[i] != Enother._Fields.v[i])
+			if(_Fields.v[i] != Another._Fields.v[i])
 				return false;
 	   return true;
 	}
 
 	template<typename _T, unsigned _i, unsigned _j>
-	bool operator==(_T (&Enother)[_i][_j])
+	bool operator==(_T (&Another)[_i][_j])
 	{
 	   if(
 		   !std::is_convertible<T, _T>::value || 
@@ -2221,21 +2474,21 @@ public:
 		 )
 		   return false;
 	   for(unsigned i = 0, m = _i * _j;i < m;i++)
-			if(_Fields.v[i] != ((_T*)Enother)[i])
+			if(_Fields.v[i] != ((_T*)Another)[i])
 				return false;
 	   return true;
 	}
 
 	template<typename _T, unsigned _i, unsigned _j>
-	inline bool operator!=(MATRIX<_T, _i, _j> & Enother)
+	inline bool operator!=(MATRIX<_T, _i, _j> & Another)
 	{
-	   return !operator==(Enother);
+	   return !operator==(Another);
 	}
 
 	template<typename _T, unsigned _i, unsigned _j>
-	inline bool operator!=(_T (&Enother)[_i][_j])
+	inline bool operator!=(_T (&Another)[_i][_j])
 	{
-	   return !operator==(Enother);
+	   return !operator==(Another);
 	}
 };
 
