@@ -6,6 +6,9 @@
 
 
 /*
+	Paketov
+	2015
+
 	is_equal<t1, t2>::value
 	empty_type
 	not_empty_if<bool, t>::type
@@ -117,18 +120,11 @@ namespace std
 
 	};
 
-	//Template test is type equal
 
 	template<typename T1, typename T2>
-	struct is_equal: false_type {};
+	struct is_equal: is_same<T1, T2> {};
 
-	template<typename T>
-	struct is_equal<T, T>: true_type {};
-
-	struct empty_type
-	{
-	};
-
+	struct empty_type {};
 
 	template<bool Cond, typename RetType>
 	struct not_empty_if
@@ -148,20 +144,27 @@ namespace std
 		typedef typename conditional<Cond, RetType, type__>::type type; 
 	}; 
 
+	/*
+	*IsFraction
+	*/
 
 	template<typename TypeNumber>
-	typename  enable_if<is_floating_point<TypeNumber>::value,bool>::type  
+	typename  enable_if<is_floating_point<TypeNumber>::value, bool>::type  
 	IsFraction(TypeNumber Val)
 	{
 		return Val != (TypeNumber)((long long)(Val));
 	}
 
 	template<typename TypeNumber>
-	typename enable_if<!is_floating_point<TypeNumber>::value,bool>::type  
+	typename enable_if<!is_floating_point<TypeNumber>::value, bool>::type  
 	IsFraction(TypeNumber Val)
 	{
 		return false;
 	}
+
+	/*
+	  countof
+	*/
 
 	template <typename Type>
 	inline const size_t countof(Type)
@@ -175,22 +178,30 @@ namespace std
 		return Len;
 	}
 
+
+	template <typename Type>
+	struct arr_count: integral_constant<size_t, 1>{};
+
+	template <typename Type, size_t Len>
+	struct arr_count<Type[Len]>: integral_constant<size_t, Len * arr_count<Type>::value>{};
+
+
+
 	/*
 	Example: 
 		std::count_pointers<int****>::value equal 4.
 	*/
 	template<typename _T>
-	struct count_pointers
-	{
-		static const unsigned value = 0;
-	};
-
+	struct count_pointers : integral_constant<unsigned, 0>{};
 
 	template<typename _T>
-	struct count_pointers<_T*>
-	{
-		static const unsigned value = count_pointers<_T>::value + 1;
-	};
+	struct count_pointers<_T *> : integral_constant<unsigned, count_pointers<_T>::value + 1>{};
+
+	template<typename _T>
+	struct count_pointers<_T * const> : integral_constant<unsigned, count_pointers<_T>::value + 1>{};
+
+	template<typename _T>
+	struct count_pointers<_T const *> : integral_constant<unsigned, count_pointers<_T>::value + 1>{};
 
 	/*
 	Example: 
@@ -199,106 +210,121 @@ namespace std
 		w2 equal q2.
 	*/
 
-	template<typename _T, unsigned Count>
+	template<typename SourceType, unsigned Count>
 	struct add_count_pointers
 	{
-	    typedef typename add_count_pointers<_T*, Count - 1>::type type;
+	    typedef typename add_count_pointers<SourceType*, Count - 1>::type type;
 	};
 
-	template<typename _T>
-	struct add_count_pointers<_T, 0>
+	template<typename SourceType>
+	struct add_count_pointers<SourceType, 0>
 	{
-	   typedef _T type;
+	   typedef SourceType type;
 	};
+
 
 	/*
 	Example: 
 		std::remove_all_pointers<int****>::type equal int.
 	*/
-	template<typename _T>
-	struct remove_pointers
+
+	struct rem_mod
 	{
-		typedef _T type;
+		enum
+		{
+			REF = 1,
+			RVREF = 2,
+			POI = 4,
+			ARR = 8,
+			POICONST = 16,
+			CONS = 32,
+			VOLATILE = 64,
+			POI_POICONST_VOLA_REF_RVREF = POICONST|POI|VOLATILE|REF|RVREF,
+			ALL = POI_POICONST_VOLA_REF_RVREF|CONS|ARR
+		};
 	};
 
-	template<typename _T>
-	struct remove_pointers<_T*>
+	template<typename SourceType, unsigned Param>
+	struct remove_modifiers
 	{
-		typedef typename remove_pointers<_T>::type type;
+		typedef typename conditional
+		<
+			is_const<SourceType>::value && (Param & rem_mod::CONS), 
+			typename remove_const<SourceType>::type, 
+			SourceType
+		>::type type;
 	};
 
-	/*
-	Example: 
-		int (& arr)[12];
-		std::remove_ref_pointers<decltype(arr)>::type eq. int[12]
-
-	    int ***& v;
-		std::remove_ref_pointers<decltype(v)>::type eq. int
-	*/
-	template<typename SourceType>
-	struct remove_pointers_ref
+	template<typename SourceType, unsigned Param>
+	struct remove_modifiers<SourceType *, Param>
 	{
-	    typedef SourceType type;
+		typedef typename conditional
+		<
+			Param & rem_mod::POI, 
+			typename remove_modifiers<SourceType, Param>::type, 
+			typename remove_modifiers<SourceType, Param>::type *
+		>::type type;
 	};
 
-	template<typename SourceType>
-	struct remove_pointers_ref<SourceType&>
+	template<typename SourceType, unsigned Param>
+	struct remove_modifiers<SourceType &, Param>
 	{
-	    typedef typename remove_pointers_ref<SourceType>::type  type;
+	    typedef typename conditional
+		<
+			Param & rem_mod::REF, 
+			typename remove_modifiers<SourceType, Param>::type, 
+			typename remove_modifiers<SourceType, Param>::type &
+		>::type type;
 	};
 
-	template<typename SourceType>
-	struct remove_pointers_ref<SourceType&&>
+	template<typename SourceType, unsigned Param>
+	struct remove_modifiers<SourceType &&, Param>
 	{
-	    typedef typename remove_pointers_ref<SourceType>::type  type;
+	    typedef typename conditional
+		<
+			Param & rem_mod::RVREF, 
+			typename remove_modifiers<SourceType, Param>::type, 
+			typename remove_modifiers<SourceType, Param>::type &&
+		>::type type;
 	};
 
-	template<typename SourceType>
-	struct remove_pointers_ref<SourceType*>
+	template<typename SourceType, unsigned Param, size_t Len>
+	struct remove_modifiers<SourceType[Len], Param>
 	{
-	    typedef typename remove_pointers_ref<SourceType>::type  type;
+		typedef typename conditional
+		<
+			Param & rem_mod::ARR, 
+			typename remove_modifiers<SourceType, Param>::type, 
+			typename remove_modifiers<SourceType, Param>::type[Len]
+		>::type type;
 	};
 
-
-	/*
-	Example: 
-		int (& arr)[12];
-		std::remove_ref_pointers_arr<decltype(arr)>::type eq. int
-
-	    int ***& v;
-		std::remove_ref_pointers_arr<decltype(v)>::type eq. int
-	*/
-
-	template<typename SourceType>
-	struct remove_pointers_ref_arr
+	template<typename SourceType, unsigned Param>
+	struct remove_modifiers<SourceType * const, Param>
 	{
-	    typedef SourceType type;
+		typedef typename conditional
+		<
+			(Param & rem_mod::POICONST) && (Param & rem_mod::POI), 
+			typename remove_modifiers<SourceType, Param>::type, 
+			typename conditional
+			<
+				Param & rem_mod::POICONST,
+				typename remove_modifiers<SourceType, Param>::type *,
+				typename remove_modifiers<SourceType, Param>::type * const
+			>::type
+		>::type type;
 	};
 
-	template<typename SourceType>
-	struct remove_pointers_ref_arr<SourceType&>
+	template<typename SourceType, unsigned Param>
+	struct remove_modifiers<volatile SourceType , Param>
 	{
-	    typedef typename remove_pointers_ref_arr<SourceType>::type  type;
+	    typedef typename conditional
+		<
+			Param & rem_mod::VOLATILE, 
+			typename remove_modifiers<SourceType, Param>::type, 
+			volatile typename remove_modifiers<SourceType, Param>::type
+		>::type type;
 	};
-
-	template<typename SourceType>
-	struct remove_pointers_ref_arr<SourceType&&>
-	{
-	    typedef typename remove_pointers_ref_arr<SourceType>::type  type;
-	};
-
-	template<typename SourceType>
-	struct remove_pointers_ref_arr<SourceType*>
-	{
-	    typedef typename remove_pointers_ref_arr<SourceType>::type  type;
-	};
-
-	template<typename SourceType, size_t Len>
-	struct remove_pointers_ref_arr<SourceType[Len]>
-	{
-	    typedef typename remove_pointers_ref_arr<SourceType>::type  type;
-	};
-
 
 	/*
 	Example: 
@@ -330,12 +356,23 @@ namespace std
 	    typedef typename move_pointers_ref_arr<DestType, SourceType>::type  *type;
 	};
 
+	template<typename DestType, typename SourceType>
+	struct move_pointers_ref_arr<DestType, SourceType * const>
+	{
+	    typedef typename move_pointers_ref_arr<DestType, SourceType>::type  * const type;
+	};
+
+	template<typename DestType, typename SourceType>
+	struct move_pointers_ref_arr<DestType, SourceType const *>
+	{
+	    typedef typename move_pointers_ref_arr<DestType, SourceType>::type  const * type;
+	};
+
 	template<typename DestType, typename SourceType, size_t Len>
 	struct move_pointers_ref_arr<DestType, SourceType[Len]>
 	{
 	    typedef typename move_pointers_ref_arr<DestType, SourceType>::type  type[Len];
 	};
-
 
 	/*
 		Example: 
@@ -348,7 +385,99 @@ namespace std
 	template<typename Type>
 	struct sizeof_value
 	{
-	    static const size_t value = sizeof(remove_pointers_ref<Type>::type);
+	    static const size_t value = sizeof(typename remove_modifiers<Type, rem_mod::POI_POICONST_VOLA_REF_RVREF>::type);
+	};
+
+
+	/*
+	* arr_type
+	*  Return last pointer on val or array vals;
+	*/
+
+	template<typename Type> struct arr_type {typedef Type type;};
+	template<typename Type, size_t Len> struct arr_type<Type[Len]>{typedef Type type[Len];};
+	template<typename Type, size_t Len> struct arr_type<const Type[Len]>{typedef Type type[Len];};
+	template<typename Type> struct arr_type<Type&>{typedef typename arr_type<Type>::type type;};
+	template<typename Type> struct arr_type<Type&&>{typedef typename arr_type<Type>::type type;};
+	template<typename Type> struct arr_type<volatile Type>{typedef typename arr_type<Type>::type type;};
+	template<typename Type> struct arr_type<Type * const>{typedef typename arr_type<Type*>::type type;};
+	template<typename Type> struct arr_type<const Type>{typedef Type type;};
+
+	template<typename Type> struct arr_type<Type*>
+	{
+	   typedef 
+	   typename conditional
+	   <
+		   !is_pointer<Type>::value && !is_reference<Type>::value && !is_array<Type>::value, Type*, Type
+	   >::type type;
+	};
+
+	template<typename Type> struct arr_type<const Type*>
+	{
+	   typedef const
+	   typename conditional
+	   <
+		   !is_pointer<Type>::value && !is_reference<Type>::value && !is_array<Type>::value, Type*,Type
+	   >::type type;
+	};
+
+	/*
+	* arr_to_single_dimension
+	*/
+
+	template<typename TypeArr, bool IsConvertPointer = false, size_t Count = 1>
+	struct arr_to_single_dimension
+	{
+	      typedef TypeArr type[Count];
+	};
+
+	template<typename TypeArr>
+	struct arr_to_single_dimension<TypeArr*, true>
+	{
+	      typedef typename arr_to_single_dimension<TypeArr, true, 1>::type type;
+	};
+
+	template<typename TypeArr,  bool IsConvertPointer ,size_t Count, size_t Len>
+	struct arr_to_single_dimension<TypeArr[Len], IsConvertPointer, Count>
+	{
+	      typedef typename arr_to_single_dimension<TypeArr, IsConvertPointer, Count * Len>::type type;
+	};
+
+	/*
+	* arr_count_dimension
+	*/
+
+	template<typename TypeArr>
+	struct arr_count_dimension: integral_constant<size_t, 0>{};
+
+	template<typename TypeArr, size_t Len>
+	struct arr_count_dimension<TypeArr[Len]>: integral_constant<size_t, arr_count_dimension<TypeArr>::value + 1>{};
+
+	/*
+	* is_arr_value
+	*/
+
+	template<typename Type>
+	struct is_arr_value : integral_constant<unsigned, 
+		is_array<typename remove_const<typename arr_type<Type>::type>::type>::value ||
+		is_pointer<typename remove_const<typename arr_type<Type>::type>::type>::value
+	>{};
+
+	/*
+	* arr_value_element
+	*/
+
+	template<typename Type> struct arr_value_element 
+	{
+		typedef typename remove_modifiers
+		<
+			typename arr_to_single_dimension<
+			typename remove_pointer<
+			typename arr_type<Type>::type
+			>::type
+			>::type, 
+			rem_mod::ARR
+		>::type type;
 	};
 
 	/*
@@ -360,21 +489,76 @@ namespace std
 	 std::valueof(w0)[0] = '0'; //w0[0] == '0'
 	 q0 equal 12.
 	*/
+
 	template <typename Type>
-	inline 
-	typename enable_if<is_pointer<Type>::value, typename remove_pointers<Type>::type&>::type  
+	inline typename enable_if<!is_pointer<Type>::value, Type &>::type  
+	valueof(Type & Value);
+
+	template <typename Type>
+	inline typename enable_if
+	<
+		is_pointer<Type>::value, 
+		typename remove_modifiers<Type, rem_mod::POI_POICONST_VOLA_REF_RVREF>::type&
+	>::type  
 	valueof(Type & Pointer)
 	{
 		return valueof(*Pointer);
 	}
 
 	template <typename Type>
-	inline 
-	typename enable_if<!is_pointer<Type>::value, Type &>::type  
+	inline typename enable_if<!is_pointer<Type>::value, Type &>::type  
 	valueof(Type & Value)
 	{
 		return Value;
 	}
+
+	/*
+	* arr_valueof_singd
+	* array value as single dimension
+	* represent pointer or val as array or pointer independence of last modifier
+	* Example:
+	* int arr[2] = {1,2}, * arr1, (*arr3)[2];
+	* arr_valueof(arr1); //eq. int &* {1, 2}
+	* int ***** arr4 ;
+	* arr_valueof(arr4); //eq. int &* {1, 2}
+	* arr_valueof(arr); //eq.  int&[2] {1, 2}
+	* arr_valueof(arr3); //eq. int&[2] {1, 2}
+	*/
+
+	template <typename Type>
+	typename arr_type<Type>::type & arr_valueof(Type & Pointer)
+	{
+		typedef typename arr_type<Type>::type RET_TYPE;
+		return (RET_TYPE&)valueof(Pointer);
+	}
+		
+	/*
+	* arr_valueof_singd
+	* array value as single dimension
+	* represent pointer or val as single dimension array
+	* Example:
+	* int arr[2] = {1,2}, * arr1, (*arr3)[2];
+	* arr_valueof(arr1); //eq. int&[1] {1, 2}
+	* int ***** arr4 ;
+	* arr_valueof(arr4); //eq. int&[1] {1, 2}
+	* arr_valueof(arr); //eq.  int&[2] {1, 2}
+	* arr_valueof(arr3); //eq. int&[2] {1, 2}
+	*/
+	template <typename Type>
+	typename arr_to_single_dimension<
+		typename remove_pointer<
+			typename arr_type<Type>::type
+		>::type
+	>::type & 
+	arr_valueof_singd(Type & Pointer)
+	{
+		typedef typename arr_to_single_dimension<
+		typename remove_pointer<typename arr_type<Type>::type>::type>::type  RET_TYPE;
+		return (RET_TYPE&)valueof(Pointer);
+	}
+
+
+
 
 	/*
 	Example: 
@@ -399,14 +583,9 @@ namespace std
 	}
 
 	template<typename DestType, typename SourceType>
-    inline typename enable_if
-	<
-		 (sizeof_value<DestType>::value != sizeof_value<SourceType>::value) &&
-		 !is_const<DestType>::value
-	>::type 
-	val_copy(DestType & Dest, SourceType & Source, size_t LenCopy)
+	inline void val_copy(DestType & Dest, SourceType & Source, size_t LenCopy)
 	{
-		memcpy(&Dest, &Source, LenCopy);
+		memcpy(&valueof(Dest), &valueof(Source), LenCopy);
 	}
 
 	template<typename DestType, typename SourceType>
@@ -418,7 +597,15 @@ namespace std
 	>::type 
 	val_copy(DestType & Dest, SourceType & Source)
 	{
-		struct COP_STRUCT{char __val[max(sizeof_value<DestType>::value, sizeof_value<SourceType>::value)];};
+		struct COP_STRUCT
+		{
+			char __val
+			[
+				((sizeof_value<DestType>::value > sizeof_value<SourceType>::value)?
+				sizeof_value<DestType>::value:
+				sizeof_value<SourceType>::value)
+			];
+		};
 		(COP_STRUCT&)valueof(Dest) = (COP_STRUCT&)valueof(Source);
 	}
 
@@ -431,7 +618,159 @@ namespace std
 	>::type
 	val_copy(DestType & Dest, SourceType & Source)
 	{
-		valueof(Dest) = valueof(Source);
+		typedef typename remove_modifiers<DestType, rem_mod::POI_POICONST_VOLA_REF_RVREF>::type DEST_TYPE;
+		valueof(Dest) = DEST_TYPE(valueof(Source));
+	}
+
+	/*
+	*arr_copy_cast
+	*/
+	template<typename DestType, typename SourceType>
+    inline typename enable_if
+	<
+		 is_equal
+		 <
+			typename arr_value_element<DestType>::type,
+			typename remove_const<typename arr_value_element<SourceType>::type>::type
+		 >::value
+	>::type 
+	arr_copy_cast(DestType & Dest, SourceType & Source)
+	{
+		typedef typename remove_reference<decltype(arr_valueof_singd(Source))>::type SRC_TYPE;
+		typedef typename remove_reference<decltype(arr_valueof_singd(Dest))>::type DST_TYPE;
+
+		static const size_t DestSize = (is_pointer<typename arr_type<DestType>::type>::value)?
+		sizeof_value<SRC_TYPE>::value:
+		sizeof_value<DST_TYPE>::value;
+
+		static const size_t SourceSize = (is_pointer<typename arr_type<SourceType>::type>::value)?
+		sizeof_value<DST_TYPE>::value:
+		sizeof_value<SRC_TYPE>::value;
+		struct COP_STRUCT{char __val[((DestSize < SourceSize)?DestSize:SourceSize)];};
+		(COP_STRUCT&)arr_valueof_singd(Dest) = (COP_STRUCT&)arr_valueof_singd(Source);
+	}
+
+	template<typename DestType, typename SourceType>
+    inline typename enable_if
+	<
+		 !is_equal
+		 <
+			typename arr_value_element<DestType>::type,
+		    typename remove_const<typename arr_value_element<SourceType>::type>::type
+		 >::value &&
+		 is_convertible
+		 <
+			typename arr_value_element<DestType>::type,
+			typename arr_value_element<SourceType>::type
+		 >::value
+	>::type 
+	arr_copy_cast(DestType & Dest, SourceType & Source)
+	{
+		typedef typename remove_reference<decltype(arr_valueof_singd(Source))>::type SRC_TYPE;
+		typedef typename remove_reference<decltype(arr_valueof_singd(Dest))>::type DST_TYPE;
+
+		static const size_t DestSize = 
+		(is_pointer<typename arr_type<DestType>::type>::value)?
+		arr_count<SRC_TYPE>::value:
+		arr_count<DST_TYPE>::value;
+
+		static const size_t SourceSize = 
+		(is_pointer<typename arr_type<SourceType>::type>::value)?
+		arr_count<DST_TYPE>::value:
+		arr_count<SRC_TYPE>::value;
+
+		decltype(arr_valueof_singd(Source)) rSource = arr_valueof_singd(Source);
+		decltype(arr_valueof_singd(Dest)) rDest = arr_valueof_singd(Dest);
+
+		for(size_t i = 0, m = min(DestSize, SourceSize); i < m; i++)
+			val_copy(rDest[i], rSource[i]);
+	}
+
+	template<typename DestType, typename SourceType>
+    inline typename enable_if
+	<
+		 is_equal
+		 <
+			typename arr_value_element<DestType>::type,
+			typename remove_const<typename arr_value_element<SourceType>::type>::type
+		 >::value 
+	>::type 
+	arr_copy_cast(DestType & Dest, SourceType & Source, size_t Count)
+	{
+		typedef typename remove_reference<decltype(arr_valueof_singd(Dest))>::type DST_TYPE;
+		val_copy(Dest, Source, Count * sizeof(DST_TYPE));
+	}
+
+	template<typename DestType, typename SourceType>
+    inline typename enable_if
+	<
+		 !is_equal
+		 <
+			typename arr_value_element<DestType>::type,
+			typename remove_const<typename arr_value_element<SourceType>::type>::type
+		 >::value &&
+		 is_convertible
+		 <
+			typename arr_value_element<DestType>::type,
+			typename arr_value_element<SourceType>::type
+		 >::value
+	>::type 
+	arr_copy_cast(DestType & Dest, SourceType & Source, size_t Count)
+	{
+		typedef typename remove_reference<decltype(arr_valueof_singd(Source))>::type SRC_TYPE;
+		typedef typename remove_reference<decltype(arr_valueof_singd(Dest))>::type DST_TYPE;
+
+		static const size_t DestSize = 
+		(is_pointer<typename arr_type<DestType>::type>::value)?
+		arr_count<SRC_TYPE>::value:
+		arr_count<DST_TYPE>::value;
+
+		static const size_t SourceSize = 
+		(is_pointer<typename arr_type<SourceType>::type>::value)?
+		arr_count<DST_TYPE>::value:
+		arr_count<SRC_TYPE>::value;
+
+		SRC_TYPE & rSource = (SRC_TYPE&)arr_valueof_singd(Source);
+		DST_TYPE & rDest = (DST_TYPE&)arr_valueof_singd(Dest);
+		for(size_t i = 0, m = Count; i < m; i++)
+			val_copy(rDest[i], rSource[i]);
+	}
+
+	/*
+	* arr_set_elements
+	*/
+	template<typename DestType, typename SourceType>
+    inline typename enable_if
+	<
+		 is_convertible
+		 <
+			typename arr_value_element<DestType>::type,
+			typename remove_const<SourceType>::type
+		 >::value
+	>::type 
+	arr_set_elements(DestType & Dest, SourceType & Val, size_t Count)
+	{
+		typedef typename remove_reference<decltype(arr_valueof_singd(Dest))>::type DST_TYPE;
+		DST_TYPE & rDest = (DST_TYPE&)arr_valueof_singd(Dest);
+		for(size_t i = 0, m = Count; i < m; i++)
+			val_copy(rDest[i], Val);
+	}
+
+	template<typename DestType, typename SourceType>
+    inline typename enable_if
+	<
+		 is_convertible
+		 <
+			typename arr_value_element<DestType>::type,
+			typename remove_const<SourceType>::type
+		 >::value
+	>::type 
+	arr_set_elements(DestType & Dest, SourceType & Val)
+	{
+		typedef typename remove_reference<decltype(arr_valueof_singd(Dest))>::type DST_TYPE;
+		DST_TYPE & rDest = (DST_TYPE&)arr_valueof_singd(Dest);
+		for(size_t i = 0, m = countof(rDest); i < m; i++)
+			val_copy(rDest[i], Val);
 	}
 
 };
