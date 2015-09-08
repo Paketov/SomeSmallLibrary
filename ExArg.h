@@ -57,43 +57,43 @@ class EX_ARG
 	{
 		for(int i = 0;i < Count; i++)
 		{
-		  TypeChar *Name, *Val;
-		  if(!Get(arg[i], StringLength(arg[i]), Name, Val))
-			  continue;
-		  
-		  if(CmpNameValues(Name, _Name, _NameLen))
-		  {
-			  Value = Val;
-			  NameArg = Name;
-			  return i;
-		  }
+			TypeChar *Name, *Val;
+			if(!Get(arg[i], StringLength(arg[i]), Name, Val))
+				continue;
+
+			if(CmpNameValues(Name, _Name, _NameLen))
+			{
+				Value = Val;
+				NameArg = Name;
+				return i;
+			}
 		}
-        return -1;
+		return -1;
 	}
 
 	int SearchVal(const TypeChar * SrchValue, unsigned SrchValueLen, TypeChar *& NameArg, TypeChar *& Value)
 	{
 		for(int i = 0;i < Count; i++)
 		{
-		  TypeChar *Name, *Val;
-		  if(!Get(arg[i], StringLength(arg[i]), Name, Val))
-			  continue;
-		  
-		  if(StringCompare(Val, SrchValue, SrchValueLen) == 0)
-		  {
-			  Value = Val;
-			  NameArg = Name;
-			  return i;
-		  }
+			TypeChar *Name, *Val;
+			if(!Get(arg[i], StringLength(arg[i]), Name, Val))
+				continue;
+
+			if(StringCompare(Val, SrchValue, SrchValueLen) == 0)
+			{
+				Value = Val;
+				NameArg = Name;
+				return i;
+			}
 		}
-        return -1;
+		return -1;
 	}
 
 	bool Get(TypeChar * Arg, unsigned Len, TypeChar *& Name, TypeChar *& Value)
 	{
 		if(Len <= PrefixLen)
 			return false;
-	    if(StringCompare(Arg, Prefix, PrefixLen) != 0)
+		if(StringCompare(Arg, Prefix, PrefixLen) != 0)
 			return false;
 		Name = Arg + PrefixLen;
 		const TypeChar * Sep = StringSearch(Name, Separator);
@@ -101,10 +101,14 @@ class EX_ARG
 			Value = (TypeChar*)Sep + SeparatorLen;
 		else 
 			Value = Arg + Len;
-        return true;
+		return true;
 	}
 
-	class _INTERATOR
+public:
+
+	bool i;
+
+	class INTERATOR
 	{
 #define __INTERATOR_FIELDS struct{TypeChar * arg; TypeChar * Value;TypeChar * NameArg;}
 
@@ -120,27 +124,40 @@ class EX_ARG
 				{
 					return arg;
 				}
+				inline TypeChar * operator()()
+				{
+					return  arg;
+				}
 			} FullString;
 
 			class
 			{
 				__INTERATOR_FIELDS;
-				friend _INTERATOR;
+				friend INTERATOR;
 			public:
 				inline operator TypeChar*()
 				{
 					return NameArg;
+				}
+
+				inline TypeChar * operator()()
+				{
+					return  NameArg;
 				}
 			} NameArg;
 
 			class
 			{
 				__INTERATOR_FIELDS;
-				friend _INTERATOR;
 			public:
 				inline operator TypeChar*()
 				{
 					return Value;
+				}
+				
+				inline TypeChar * operator()()
+				{
+					return  Value;
 				}
 			} Value;
 
@@ -155,21 +172,21 @@ class EX_ARG
 			} IsNotHave;
 		};
 
-		inline _INTERATOR(TypeChar* Arg = "", TypeChar * Name = "", TypeChar * Val = "")
+		inline INTERATOR(TypeChar* Arg = "", TypeChar * Name = "", TypeChar * Val = "")
 		{
-		    NameArg.arg = Arg;
+			NameArg.arg = Arg;
 			NameArg.Value = Val;
 			NameArg.NameArg = Name;
 		}
 
 		inline operator bool()
 		{
-		   return NameArg.arg != NULL;
+			return NameArg.arg != NULL;
 		}
 
 		inline operator TypeChar *()
 		{
-		   return NameArg.Value;
+			return NameArg.Value;
 		}
 
 		bool operator==(TypeChar * Enother)
@@ -189,28 +206,25 @@ class EX_ARG
 		operator int()
 		{
 			int Res = 0;
-		    StringDoubleToNumber(&Res, NameArg.Value, 0xffff);
+			StringDoubleToNumber(&Res, NameArg.Value, 0xffff);
 			return Res;
 		}
 
 		operator double()
 		{
 			double Res = 0;
-		    StringToNumber(&Res, NameArg.Value, 0xffff);
+			StringToNumber(&Res, NameArg.Value, 0xffff);
 			return Res;
 		}
 
-		_INTERATOR & operator()(TypeChar *& ArgName, TypeChar *& Value)
+		INTERATOR & operator()(TypeChar *& ArgName, TypeChar *& Value)
 		{
 			ArgName = NameArg.NameArg;
 			Value = NameArg.Value;
-		    return *this;
+			return *this;
 		}
 	};
 
-public:
-
-	bool i;
 
 	EX_ARG
 	(
@@ -229,56 +243,83 @@ public:
 		i = false;
 	}
 
-	/*
-	  Get arg by name.
-	*/
-	inline _INTERATOR operator[](TypeChar * _Name)
+	EX_ARG()
 	{
-		TypeChar * Value = STR_TYPE(TypeChar, ""), *Name = STR_TYPE(TypeChar, "");
-		int Index = Search(_Name, StringLength(_Name), Name, Value);
-		return _INTERATOR(((Index == -1)?STR_TYPE(TypeChar, ""): arg[Index]), Name, Value);
+		arg = NULL;
+		Count = NULL;
+		PrefixLen = 0;
+		SeparatorLen = 0;
+		Prefix[0] = 0;
+		Separator[0] = 0;
+		i = false;
+	}
+
+	void Set
+	(
+		unsigned nCount, 
+		TypeChar * argv[], 
+		const TypeChar * nPrefix = STR_TYPE(TypeChar,"--"), 
+		const TypeChar * nSeparator = STR_TYPE(TypeChar,"=")
+	)
+	{
+		arg = argv;
+		Count = nCount;
+		PrefixLen = StringLength(nPrefix);
+		SeparatorLen = StringLength(nSeparator);
+		StringCopy(Prefix, nPrefix);
+		StringCopy(Separator, nSeparator);
 	}
 
 	/*
-	  Get arg by index.
+	Get arg by name.
 	*/
-	inline _INTERATOR operator[](unsigned Index)
+	inline INTERATOR operator[](TypeChar * _Name)
+	{
+		TypeChar * Value = STR_TYPE(TypeChar, ""), *Name = STR_TYPE(TypeChar, "");
+		int Index = Search(_Name, StringLength(_Name), Name, Value);
+		return INTERATOR(((Index == -1)?STR_TYPE(TypeChar, ""): arg[Index]), Name, Value);
+	}
+
+	/*
+	Get arg by index.
+	*/
+	inline INTERATOR operator[](unsigned Index)
 	{
 		if(Index >= Count)
 			throw "Index out of bound";
 
 		TypeChar *Name = STR_TYPE(TypeChar, ""), *Value = STR_TYPE(TypeChar, "");
 		Get(arg[Index], StringLength(arg[Index]), Name, Value);
-		return _INTERATOR(arg[Index], Name, Value);
+		return INTERATOR(arg[Index], Name, Value);
 	}
 
 	/*
-	 Search arg by val.
+	Search arg by val.
 	*/
-	inline _INTERATOR SearchByVal(TypeChar * SrchValue)
+	inline INTERATOR SearchByVal(TypeChar * SrchValue)
 	{
 		TypeChar *Name = STR_TYPE(TypeChar, ""), *Value = STR_TYPE(TypeChar, "");
 		int Index = SearchVal(SrchValue, StringLength(SrchValue), Name, Value);
-		return _INTERATOR(((Index == -1)? STR_TYPE(TypeChar, ""): arg[Index]), Name, Value);
+		return INTERATOR(((Index == -1)? STR_TYPE(TypeChar, ""): arg[Index]), Name, Value);
 	}
 
 
 	/*
-	 Get another args.
+	Get another args.
 	*/
-	inline _INTERATOR GetAnother(unsigned Index = 0)
+	inline INTERATOR GetAnother(unsigned Index = 0)
 	{
 		for(int i = 0, j = 0;i < Count; i++)
 		{
 			TypeChar *Name = NULL, *Value = NULL;
 			if(!Get(arg[i], StringLength(arg[i]), Name, Value))
 			{
-			   if(j == Index)
-			     return _INTERATOR(arg[i], STR_TYPE(TypeChar, ""), arg[i]);
-			   j++;
+				if(j == Index)
+					return INTERATOR(arg[i], STR_TYPE(TypeChar, ""), arg[i]);
+				j++;
 			}
 		}
-		return _INTERATOR();
+		return INTERATOR();
 	}
 
 };
