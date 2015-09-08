@@ -594,7 +594,12 @@ private:
 			T				  v2[ci][cj];
 		};
 
-		inline T & at(unsigned i = 0, unsigned j = 0)
+		inline MATRIX & GetM() const
+		{
+		    return *(MATRIX*)this;
+		}
+
+		inline T & at(unsigned i = 0, unsigned j = 0) const
 		{
 #ifdef _MATRIX_CHECK_INDEXES
 			matrix_check_index(i < ni, "i");
@@ -641,7 +646,12 @@ private:
 		unsigned nj;
 		T * v;
 
-		inline T & at(unsigned i = 0, unsigned j = 0)
+		inline MATRIX & GetM() const
+		{
+		    return *(MATRIX*)this;
+		}
+
+		inline T & at(unsigned i = 0, unsigned j = 0) const
 		{
 #ifdef _MATRIX_CHECK_INDEXES
 			matrix_check_index(i < ni, "i");
@@ -768,7 +778,7 @@ private:
 				ret.at() = T(1) / _Fields.at();
 				return ret;
 			}
-			MATRIX & This = *(MATRIX*)this;
+			MATRIX & This = _Fields.GetM();
 			T d = This.Determinant;
 			matrix_check_index(d != T(0), "Determinant eq. zero");
 			MATRIX RetMatrix = This.GetAdjoint();
@@ -789,7 +799,7 @@ private:
 				_Fields.at() = T(1) / _Fields.at();
 				return;
 			}
-			MATRIX & This = *(MATRIX*)this;
+			MATRIX & This = _Fields.GetM();
 			T d = This.Determinant;
 			matrix_check_index(d != T(0), "Determinant eq. zero");
 			This.ToAdjoint();
@@ -824,7 +834,7 @@ private:
 			if (Val.CountColumns == 1)
 				return Val.at();
 
-			MATRIX<T, max(0, (int)_i - 1), max(0, (int)_i - 1)> add(Val.CountRows - 1, Val.CountColumns - 1);
+			MATRIX<T, std::not_less_zero<int(_i) - 1>::value, std::not_less_zero<int(_i) - 1>::value> add(Val.CountRows - 1, Val.CountColumns - 1);
 			T d = T(0);
 			for (unsigned i = 0; i < Val.CountColumns; ++i) 
 			{
@@ -850,7 +860,7 @@ private:
 		operator T() const
 		{
 			matrix_check(_Fields.ni == _Fields.nj, "Matrix is not square.");
-			MATRIX This = *(MATRIX*)this;
+			MATRIX This = _Fields.GetM();
 			return Solution(This);
 		}
 	};
@@ -863,7 +873,7 @@ private:
 		MATRIX operator()(DegreeType n) const
 		{
 			matrix_check(_Fields.ni == _Fields.nj, "Matrix not square.");
-			MATRIX B, A = *(MATRIX*)this;
+			MATRIX B, A = _Fields.GetM();
 			if(n < 0)
 			{
 				A.ToInverse();
@@ -897,7 +907,7 @@ private:
 		void operator()()
 		{
 			matrix_check(_Fields.ni == _Fields.nj, "Matrix not square.");
-			MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(_Fields.ni - 1, _Fields.nj -1);
+			MATRIX<T, std::not_less_zero<(int)ci - 1>::value, std::not_less_zero<(int)cj - 1>::value> TempMatrix(_Fields.ni - 1, _Fields.nj -1);
 			MATRIX Ret(_Fields.ni, _Fields.nj);
 			for (unsigned i = 0; i < _Fields.ni; i++) 
 				for (unsigned j = 0; j < _Fields.nj; j++) 
@@ -916,7 +926,7 @@ private:
 					}
 					Ret.at(i, j) = (((i + j) & 1)?T(-1):T(1)) * TempMatrix.Determinant;
 				}
-			*(MATRIX*)this = Ret;
+			_Fields.GetM() = Ret;
 		}
 	};
 
@@ -927,7 +937,7 @@ private:
 		MATRIX operator()() //алгебраическое дополнение
 		{
 			matrix_check(_Fields.ni == _Fields.nj, "Matrix not square.");
-			MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(_Fields.ni - 1, _Fields.nj -1 );
+			MATRIX<T, std::not_less_zero<(int)ci - 1>::value, std::not_less_zero<(int)cj - 1>::value> TempMatrix(_Fields.ni - 1, _Fields.nj -1 );
 			MATRIX Ret(_Fields.ni, _Fields.nj);
 			for (unsigned i = 0; i < _Fields.ni; i++) 
 				for (unsigned j = 0; j < _Fields.nj; j++) 
@@ -958,7 +968,7 @@ private:
 		T operator()(unsigned i, unsigned j)
 		{
 			matrix_check_index(_Fields.ni == _Fields.nj, "Matrix is not square");
-			MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(_Fields.ni - 1, _Fields.nj - 1);
+			MATRIX<T, std::not_less_zero<(int)ci - 1>::value, std::not_less_zero<(int)cj - 1>::value> TempMatrix(_Fields.ni - 1, _Fields.nj - 1);
 			for (unsigned _i = 0, __i = 0; _i < _Fields.ni; _i++) 
 			{
 				if (_i == i) 
@@ -1008,7 +1018,7 @@ private:
 
 		MATRIX<T, ((ci == 0)?0:1), cj> operator()(bool & IsSuccess) 
 		{
-			MATRIX tab = *(MATRIX*)this;
+			MATRIX tab = _Fields.GetM();
 			MATRIX<T, ((ci == 0)?0:1),cj> Res(1, _Fields.ni, T(0));
 			if(Solution(tab) != 0)
 			{
@@ -1024,6 +1034,7 @@ private:
 	class _GET_SIMPLEX_MAX
 	{
 		__MATRIX_FIELDS_DEF;
+
 		friend _GET_SIMPLEX_MIN;
 		static int SearchMinCol(MATRIX & tab)
 		{
@@ -1037,11 +1048,11 @@ private:
 
 		static int SearchMaxCol(MATRIX & tab)
 		{
-			T max = T(0);
+			T Max = T(0);
 			int pivot_col = -1;
 			for(int j = 1; j < tab._Fields.nj; j++) 
-				if (tab.at(0, j) >= max) 
-					max = tab.at(0, pivot_col = j);
+				if (tab.at(0, j) >= Max) 
+					Max = tab.at(0, pivot_col = j);
 			return pivot_col;
 		}
 
@@ -1228,13 +1239,12 @@ private:
 		>::type
 		operator()(MATRIX<T, _i, _j> & RightValMatrix)
 		{
-			MATRIX & This = *(MATRIX*)this;
-			matrix_check(This.IsSquare, "Matrix coefficients is not square.");
+			matrix_check(_Fields.GetM().IsSquare, "Matrix coefficients is not square.");
 			matrix_check(RightValMatrix._Fields.ni == _Fields.ni, "Matrix \"RightValMatrix\" is not \
 																  equal by count rows with matrix coefficients");
 			matrix_check(RightValMatrix._Fields.nj == 1, "Matrix \"RightValMatrix\" is not \
 														 equal by columns with 1");
-			return This.GetInverse() * RightValMatrix;
+			return _Fields.GetM().GetInverse() * RightValMatrix;
 		}
 	};
 
@@ -1261,7 +1271,7 @@ private:
 		*/
 		inline MATRIX<T, ci, ((cj == 0)?0:1)> operator()()
 		{
-			MATRIX & This = *(MATRIX*)this;
+			MATRIX & This = _Fields.GetM();
 			matrix_check((_Fields.ni + 1) == _Fields.nj, "Matrix coefficients is not square.");
 			MATRIX<T, ci, ci> CoefMatr(_Fields.ni, _Fields.ni);
 			This.GetMiniMap(CoefMatr);
@@ -1307,7 +1317,7 @@ private:
 		inline void operator()()
 		{
 			MATRIX & This = *(MATRIX*)this;
-			This = This.GetAllMinors();
+			_Fields.GetM() = _Fields.GetM().GetAllMinors();
 		}
 	};
 
@@ -1318,7 +1328,7 @@ private:
 		T operator()(unsigned i, unsigned j)
 		{
 			matrix_check(_Fields.ni == _Fields.nj, "Matrix is not square.");
-			MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(_Fields.ni - 1, _Fields.nj -1);
+			MATRIX<T, std::not_less_zero<(int)ci - 1>::value, std::not_less_zero<(int)cj - 1>::value> TempMatrix(_Fields.ni - 1, _Fields.nj -1);
 			for (unsigned _i = 0, __i = 0; _i < _Fields.ni; _i++) 
 			{
 				if (_i == i) 
@@ -1342,7 +1352,7 @@ private:
 		MATRIX operator()()
 		{
 			matrix_check(_Fields.ni == _Fields.nj, "Matrix is not square.");
-			MATRIX<T, max(0, (int)ci - 1), max(0, (int)cj - 1)> TempMatrix(_Fields.ni - 1, _Fields.nj -1);
+			MATRIX<T, std::not_less_zero<(int)ci - 1>::value, std::not_less_zero<(int)cj - 1>::value> TempMatrix(_Fields.ni - 1, _Fields.nj -1);
 			MATRIX Ret(_Fields.ni, _Fields.nj);
 			for (unsigned i = 0; i < _Fields.ni; i++) 
 				for (unsigned j = 0; j < _Fields.nj; j++) 
@@ -1372,8 +1382,7 @@ private:
 		//Вырожденная ли матрица
 		operator bool()
 		{
-			MATRIX & This = *(MATRIX*)this;
-			return T(0) == T(This.Determinant);
+			return T(0) == T(_Fields.GetM().Determinant);
 		}
 	};
 
@@ -1480,7 +1489,7 @@ private:
 			_Fields.Allocate(_Fields.ni, _Fields.nj + Count);
 		    InsertCol(Pos, Count);
 			for(unsigned i = 0;i < Count;i++)
-				((MATRIX*)this)->SetColumnVal(Pos + i, InitVal);
+				_Fields.GetM().SetColumnVal(Pos + i, InitVal);
 		}
 	};
 
@@ -1519,7 +1528,7 @@ private:
 			_Fields.Allocate(_Fields.ni + Count, _Fields.nj);
 			InsertRow(Pos, Count);
 			for(unsigned i = 0;i < Count;i++)
-				((MATRIX*)this)->SetRowVal(Pos + i, InitVal);
+				_Fields.GetM().SetRowVal(Pos + i, InitVal);
 		}
 	};
 
@@ -1567,7 +1576,7 @@ public:
 		public:
 			operator unsigned()
 			{
-				MATRIX re = *(MATRIX*)this; 
+				MATRIX re = _Fields.GetM(); 
 				re.ToRowEchelon();
 				unsigned null = 0;
 				for (unsigned i = 0; i < re._Fields.ni; i++) 
@@ -1678,7 +1687,7 @@ public:
 		{
 			__MATRIX_FIELDS_DEF;
 		public:
-			operator bool()
+			operator bool() const
 			{
 				return _Fields.nj == _Fields.ni;
 			}
@@ -1690,8 +1699,7 @@ public:
 		public:
 			operator bool()
 			{
-				MATRIX & This = *(MATRIX*)this;
-				return (This * This.GetTranspose()).IsIdentity;
+				return (_Fields.GetM() * _Fields.GetM().GetTranspose()).IsIdentity;
 			}
 		} IsOrtogonal;
 
