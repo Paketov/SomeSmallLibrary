@@ -246,9 +246,9 @@ class ROW
 		{			
 			if(Pos >= _Fields._Count)
 				return;
-			unsigned MaxOffset = min(Index + Count, _Fields._Count);
+			unsigned MaxOffset = min(Pos + Count, _Fields._Count);
 			unsigned NewCount = _Fields._Count - MaxOffset;
-			memmove((T*)_Fields.v + Pos, (T*)_Fields.v + MaxOffset, sizeof(T) * NewCount);
+			memmove(&_Fields.v[Pos], &_Fields.v[MaxOffset], sizeof(T) * NewCount);
 			_Fields.Allocate(NewCount + Pos);
 		}
 	};
@@ -257,13 +257,12 @@ class ROW
 	{
 		__ROW_FIELDS;
 	public:
-
 		void operator()(unsigned Pos, unsigned Count = 1)
 		{
 			if(Pos > _Fields._Count)
 			{
-			   Count += (Pos - _Fields._Count);
-			   Pos = _Fields._Count;
+				Count += (Pos - _Fields._Count);
+				Pos = _Fields._Count;
 			}
 			_Fields.Allocate(_Fields._Count + Count);
 			memmove(&_Fields.v[Pos + Count], &_Fields.v[Pos], sizeof(T) * (_Fields._Count - Pos - Count));
@@ -273,8 +272,8 @@ class ROW
 		{
 			if(Pos > _Fields._Count)
 			{
-			   Count += (Pos - _Fields._Count);
-			   Pos = _Fields._Count;
+				Count += (Pos - _Fields._Count);
+				Pos = _Fields._Count;
 			}
 			_Fields.Allocate(_Fields._Count + Count);
 			memmove(((T*)_Fields.v) + (Pos + Count), ((T*)_Fields.v) + Pos, sizeof(T) * (_Fields._Count - Pos - Count));
@@ -711,7 +710,8 @@ private:
 		TFIELDS_DYNAMIC
 	>::type TFIELDS;
 
-#define __MATRIX_FIELDS_DEF TFIELDS _Fields;
+#define __MATRIX_FIELDS_DEF TFIELDS _Fields
+
 public:
 	typedef T TELEMENT;
 private:
@@ -743,12 +743,6 @@ private:
 		return (a*b) / gcd(a,b);
 	}
 
-	class PARENT_FIELDS
-	{
-	protected:
-	   __MATRIX_FIELDS_DEF;
-	};
-
 	template<typename _T, unsigned _i, unsigned _j>
 	struct TYPE_MUL_SOLUTION
 	{
@@ -761,8 +755,9 @@ private:
 		type;
 	};
 
-	class _GET_INVERSE: PARENT_FIELDS
+	class _GET_INVERSE
 	{
+		__MATRIX_FIELDS_DEF;
 	public:
 		MATRIX operator()()
 		{
@@ -782,8 +777,9 @@ private:
 		}
 	};
 
-	class _TO_INVERSE: PARENT_FIELDS
+	class _TO_INVERSE
 	{
+	__MATRIX_FIELDS_DEF;
 	public:
 		void operator()()
 		{
@@ -802,8 +798,9 @@ private:
 		}
 	};
 
-	class _TO_TRANSPOSE: PARENT_FIELDS
+	class _TO_TRANSPOSE
 	{
+		__MATRIX_FIELDS_DEF;
 	public:
 		void operator()()
 		{
@@ -818,8 +815,9 @@ private:
 		}
 	};
 
-	class _DETERMINANT: PARENT_FIELDS
+	class _DETERMINANT
 	{
+		__MATRIX_FIELDS_DEF;
 		template<unsigned _i>
 		static T Solution(MATRIX<T, _i, _i> & Val)
 		{
@@ -857,8 +855,9 @@ private:
 		}
 	};
 
-	class _POW_SQUARE: PARENT_FIELDS
+	class _POW_SQUARE
 	{
+		__MATRIX_FIELDS_DEF;
 	public:
 		template<typename DegreeType>
 		MATRIX operator()(DegreeType n) const
@@ -891,8 +890,9 @@ private:
 		}
 	};
 
-	class _TO_ADJOINT: PARENT_FIELDS
+	class _TO_ADJOINT
 	{
+		__MATRIX_FIELDS_DEF;
 	public:
 		void operator()()
 		{
@@ -920,8 +920,9 @@ private:
 		}
 	};
 
-	class _GET_ADJOINT: PARENT_FIELDS
+	class _GET_ADJOINT
 	{
+		__MATRIX_FIELDS_DEF;
 	public:
 		MATRIX operator()() //алгебраическое дополнение
 		{
@@ -949,8 +950,9 @@ private:
 		}
 	};
 
-	class _GET_ALGEBRAIC_COMPLEMENT: PARENT_FIELDS
+	class _GET_ALGEBRAIC_COMPLEMENT
 	{
+		__MATRIX_FIELDS_DEF;
 	public:
 
 		T operator()(unsigned i, unsigned j)
@@ -973,8 +975,9 @@ private:
 		}
 	};
 
-	class _GET_SIMPLEX_MIN: PARENT_FIELDS
+	class _GET_SIMPLEX_MIN
 	{
+		__MATRIX_FIELDS_DEF;
 	public:
 		/*
 		Parameters
@@ -1018,9 +1021,9 @@ private:
 		}
 	};
 
-	class _GET_SIMPLEX_MAX: PARENT_FIELDS
+	class _GET_SIMPLEX_MAX
 	{
-
+		__MATRIX_FIELDS_DEF;
 		friend _GET_SIMPLEX_MIN;
 		static int SearchMinCol(MATRIX & tab)
 		{
@@ -1134,8 +1137,9 @@ private:
 		}
 	};
 
-	class _LU_DECOMPOSITION: PARENT_FIELDS
+	class _LU_DECOMPOSITION
 	{
+		__MATRIX_FIELDS_DEF;
 	public:
 		template
 		<
@@ -1186,8 +1190,9 @@ private:
 		}
 	};
 
-	class _SOLVE_LIN_EQ_WITH_ARG: public PARENT_FIELDS
+	class _SOLVE_LIN_EQ_WITH_ARG
 	{
+		__MATRIX_FIELDS_DEF;
 	public:
 		/*
 		  Solve for linear equalation;
@@ -1233,8 +1238,10 @@ private:
 		}
 	};
 
-	class _SOLVE_LIN_EQ_WITHOUT_ARG: public PARENT_FIELDS
+	class _SOLVE_LIN_EQ_WITHOUT_ARG
 	{
+	protected:
+		__MATRIX_FIELDS_DEF;
 	public:
 		/*
 		  Solve for linear equalation;
@@ -1291,12 +1298,11 @@ private:
 				_SOLVE_LIN_EQ_WITHOUT_ARG
 			>::type
 		>::type
-	>::type
-	{
-	};
+	>::type {};
 
-	class _TO_ALL_MINORS: PARENT_FIELDS
+	class _TO_ALL_MINORS
 	{
+		__MATRIX_FIELDS_DEF;
 	public:
 		inline void operator()()
 		{
@@ -1305,8 +1311,9 @@ private:
 		}
 	};
 
-	class _GET_MINOR : PARENT_FIELDS
+	class _GET_MINOR
 	{
+		__MATRIX_FIELDS_DEF;
 	public:
 		T operator()(unsigned i, unsigned j)
 		{
@@ -1328,8 +1335,9 @@ private:
 		}
 	};
 
-	class _GET_ALL_MINORS : PARENT_FIELDS
+	class _GET_ALL_MINORS
 	{
+		__MATRIX_FIELDS_DEF;
 	public:
 		MATRIX operator()()
 		{
@@ -1357,8 +1365,9 @@ private:
 		}
 	};
 
-	class _IS_SINGULAR_SQUARE : PARENT_FIELDS
+	class _IS_SINGULAR_SQUARE
 	{
+		__MATRIX_FIELDS_DEF;
 	public:
 		//Вырожденная ли матрица
 		operator bool()
@@ -1379,8 +1388,9 @@ private:
 	};
 
 	//Remove
-	class _REMOVE_COLUMN: PARENT_FIELDS
+	class _REMOVE_COLUMN
 	{
+		__MATRIX_FIELDS_DEF;
 		void RemoveCol(unsigned Pos, unsigned Count)
 		{
 			for (int j = 0, _j = 0, h = Pos, m = _Fields.ni * _Fields.nj; ;) 
@@ -1406,8 +1416,10 @@ private:
 		}
 	};
 
-	class _REMOVE_ROW: PARENT_FIELDS
+	class _REMOVE_ROW
 	{		
+		__MATRIX_FIELDS_DEF;
+
 		void RemoveRow(unsigned Pos, unsigned Count)
 		{
 			T* selem = ((T*)_Fields.v) + Pos * _Fields.nj;
@@ -1431,8 +1443,9 @@ private:
 	};
 
 	//Insert
-	class _INSERT_COLUMN: PARENT_FIELDS
+	class _INSERT_COLUMN
 	{
+		__MATRIX_FIELDS_DEF;
 		void InsertCol(unsigned Pos, unsigned Count)
 		{
 			unsigned OldNj = _Fields.nj - Count;
@@ -1471,8 +1484,9 @@ private:
 		}
 	};
 
-	class _INSERT_ROW: PARENT_FIELDS
+	class _INSERT_ROW
 	{		
+		__MATRIX_FIELDS_DEF;
 		void InsertRow(unsigned Pos, unsigned Count)
 		{
 			T* selem = ((T*)_Fields.v) + Pos * _Fields.nj;
