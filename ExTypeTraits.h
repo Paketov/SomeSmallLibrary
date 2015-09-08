@@ -144,6 +144,10 @@ namespace std
 		typedef typename conditional<Cond, RetType, type__>::type type; 
 	}; 
 
+	template<long long Num>
+	struct not_less_zero: integral_constant<unsigned long long, ((Num < 0)?0:Num)>
+	{};
+
 	/*
 	*IsFraction
 	*/
