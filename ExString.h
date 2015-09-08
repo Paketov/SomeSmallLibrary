@@ -43,7 +43,7 @@
 
 #define STR_TYPE(_Type,_Str)		((std::is_equal<_Type, wchar_t>::value)?(_Type*)(L ## _Str):(_Type*)(_Str))
 #define CHAR_TYPE(_Type, _Char)		((_Type)((std::is_equal<_Type, char>::value)?(_Char):(L ## _Char)))
-#define NOT_LESS_Z(Num)			max(0, std::make_signed<decltype(Num)>::type(Num))
+#define NOT_LESS_Z(Num)			 ((0 > std::make_signed<decltype(Num)>::type(Num))?0:Num)
 #define DIGIT_TO_ALPHA(TypeChar, Dig) ((Dig > 9)? (Dig + (CHAR_TYPE(TypeChar,'a') - 10)): (Dig + CHAR_TYPE(TypeChar,'0')))
 #define CMP_I(Val, c)			(((Val) == CHAR_TYPE(decltype(Val), c)) || ((Val) == (CHAR_TYPE(decltype(Val), 'A') + (CHAR_TYPE(decltype(Val), c) - CHAR_TYPE(decltype(Val), 'a')))))
 
