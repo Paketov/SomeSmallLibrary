@@ -17,6 +17,9 @@
 #include <sstream>
 #include <iostream>
 #include <string.h>
+#if _POSIX_VERSION >= 200112L //If posix standart >= POSIX.1-2001
+#include <strings.h>
+#endif
 #include <stdio.h>
 #include <wchar.h>
 #include <typeinfo>
@@ -374,6 +377,54 @@ struct __stream_io
 	}	
 };
 
+/*
+  Decl templates
+*/
+
+template<typename TypeNumber, typename TypeChar>
+STR_STAT _i_NumberToString(TypeNumber Number, TypeChar * Str, size_t Len, unsigned char Radix);
+
+template
+<
+	bool		IsSkipSpace, 
+	typename	TypeNumber, 
+	typename	TypeChar, 
+	typename	StreamType,  
+	TypeChar	(*GetChar)(StreamType), 
+	void		(*UngetChar)(StreamType, TypeChar)
+>
+STR_STAT _i_StreamToNumber(TypeNumber * Dest, StreamType InStream, unsigned char Radix );
+
+template<bool IsSkipSpace, typename TypeChar, typename TypeNumber>
+STR_STAT _i_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsigned char Radix);
+
+template<bool IsScaleEps, typename TypeChar>
+STR_STAT _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsigned char Radix, long double Eps1);
+
+template
+<
+	bool		IsSkipSpace, 
+	bool		InfInd, 
+	typename	TypeNumber, 
+	typename	TypeChar, 
+	typename	StreamType, 
+	TypeChar	(*GetChar)(StreamType), 
+	void		(*UngetChar)(StreamType, TypeChar)
+>
+STR_STAT _d_StreamToNumber(TypeNumber * Dest, StreamType InStream, unsigned char Radix);
+
+template<bool IsSkipSpace, bool InfInd, typename TypeNumber, typename TypeChar>
+STR_STAT _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsigned char Radix);
+
+
+template<typename TypeChar, typename StreamType, TypeChar (*GetChar)(StreamType), void (*UngetChar)(StreamType, TypeChar)>
+inline size_t _SkipSpace(StreamType Stream);
+
+
+/*
+  Decl templates
+*/
+
 
 template<typename TypeChar>
 inline STR_STAT NumberToString(int Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
@@ -478,7 +529,7 @@ STR_STAT _i_NumberToString(TypeNumber Number, TypeChar * Str, size_t Len, unsign
 {
 	TypeChar *s = Str, *b = s + Len;
 
-	std::make_unsigned<TypeNumber>::type AbsNum;
+	typename std::make_unsigned<TypeNumber>::type AbsNum;
     if(std::is_signed<TypeNumber>::value && (Number < 0) && (s < b))
 	{
 		*(s++) = CHAR_TYPE(TypeChar,'-');
@@ -512,8 +563,6 @@ STR_STAT _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsig
 	long double uNumber = (Number < 0)? -Number: Number;
 	short Exp = 0;
 	size_t CountWrited = 0;
-
-	//TypeChar * pCur = Str, *MaxIndex = Str + Len;
 
 	if(CountWrited < Len)
 	{
@@ -1101,7 +1150,7 @@ inline STR_STAT NumberToStream(TypeNumber Number, FILE * Stream = stdout, unsign
 template<typename TypeNumber, typename TypeChar>
 inline STR_STAT NumberToStream(TypeNumber Number, std::basic_ostream<TypeChar> & Stream, unsigned char Radix, long double Eps)
 {
-	TypeChar Buf[70]
+	TypeChar Buf[70];
 	size_t CountWrited = NumberToString((long double)Number, Buf, 70, Radix, Eps).Result;
 	return STR_STAT(CountWrited, __stream_io::Write(Stream, Buf, CountWrited));
 }
@@ -1159,22 +1208,38 @@ inline int StringCompare(const wchar_t * Str1, const wchar_t * Str2)
 
 inline int StringICompare(const char * Str1, const char * Str2, size_t MaxCount)
 {
-  return strnicmp(Str1, Str2, MaxCount);
+#if _POSIX_VERSION >= 200112L //If posix standart >= POSIX.1-2001
+	return strncasecmp(Str1, Str2, MaxCount);
+#else
+	return strnicmp(Str1, Str2, MaxCount);
+#endif
 }
 
 inline int StringICompare(const wchar_t * Str1, const wchar_t * Str2, size_t MaxCount)
 {
-  return wcsnicmp(Str1, Str2, MaxCount);
+#if _POSIX_VERSION >= 200112L  //If posix standart >= POSIX.1-2001
+	return wcsncasecmp(Str1, Str2, MaxCount);
+#else
+	return wcsnicmp(Str1, Str2, MaxCount);
+#endif
 }
 
 inline int StringICompare(const char * Str1, const char * Str2)
 {
-  return stricmp(Str1, Str2);
+#if _POSIX_VERSION >= 200112L //If posix standart >= POSIX.1-2001
+	return strcasecmp(Str1, Str2);
+#else
+	return stricmp(Str1, Str2);
+#endif
 }
 
 inline int StringICompare(const wchar_t * Str1, const wchar_t * Str2)
 {
-  return wcsicmp(Str1, Str2);
+#if _POSIX_VERSION >= 200112L  //If posix standart >= POSIX.1-2001
+	return wcscasecmp(Str1, Str2);
+#else
+	return wcsicmp(Str1, Str2);
+#endif
 }
 
 inline char * StringCopy(char * Dest, const char * Source, size_t MaxCount)
