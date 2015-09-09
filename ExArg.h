@@ -306,7 +306,7 @@ public:
 	*/
 	inline INTERATOR operator[](unsigned Index)
 	{
-		if(Index >= _Count)
+		if(Index >= Count._Count)
 			throw "Index out of bound";
 
 		TypeChar *Name = STR_TYPE(TypeChar, ""), *Value = STR_TYPE(TypeChar, "");
