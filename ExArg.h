@@ -35,30 +35,51 @@
 template<typename TypeChar = char>
 class EX_ARG
 {
-	TypeChar  **arg; 
-	unsigned	Count;
-	unsigned	SeparatorLen;
-	unsigned	PrefixLen;
-	TypeChar	Prefix[100];
-	TypeChar	Separator[100];
 
+#define _EX_ARG_FIELDS	\
+	struct{\
+	TypeChar  **arg;\
+	unsigned	_Count;\
+	unsigned	SeparatorLen;\
+	unsigned	PrefixLen;\
+	TypeChar	Prefix[100];\
+	TypeChar	Separator[100];\
+	bool i;\
+	}
+public:
+	union
+	{
+		class
+		{
+			friend EX_ARG;
+			_EX_ARG_FIELDS;
+		public:
+			inline operator unsigned()
+			{
+				return _Count;
+			}
+		} Count;
+
+	};
+
+private:
 
 	bool CmpNameValues(const TypeChar * BaseStr, const TypeChar * SubStr, size_t Len)
 	{
-		if(i)
+		if(Count.i)
 			if(StringICompare(BaseStr, SubStr, Len) != 0)
 				return false;
 		if(StringCompare(BaseStr, SubStr, Len) != 0)
 			return false;
-		return StringCompare(BaseStr + Len, Prefix, PrefixLen) != 0;
+		return StringCompare(BaseStr + Len, Count.Prefix, Count.PrefixLen) != 0;
 	}
 
 	int Search(const TypeChar * _Name, unsigned _NameLen,TypeChar *& NameArg, TypeChar *& Value)
 	{
-		for(int i = 0;i < Count; i++)
+		for(unsigned i = 0;i < Count._Count; i++)
 		{
 			TypeChar *Name, *Val;
-			if(!Get(arg[i], StringLength(arg[i]), Name, Val))
+			if(!Get(Count.arg[i], StringLength(Count.arg[i]), Name, Val))
 				continue;
 
 			if(CmpNameValues(Name, _Name, _NameLen))
@@ -73,10 +94,10 @@ class EX_ARG
 
 	int SearchVal(const TypeChar * SrchValue, unsigned SrchValueLen, TypeChar *& NameArg, TypeChar *& Value)
 	{
-		for(int i = 0;i < Count; i++)
+		for(int i = 0;i < Count._Count; i++)
 		{
 			TypeChar *Name, *Val;
-			if(!Get(arg[i], StringLength(arg[i]), Name, Val))
+			if(!Get(Count.arg[i], StringLength(Count.arg[i]), Name, Val))
 				continue;
 
 			if(StringCompare(Val, SrchValue, SrchValueLen) == 0)
@@ -91,14 +112,14 @@ class EX_ARG
 
 	bool Get(TypeChar * Arg, unsigned Len, TypeChar *& Name, TypeChar *& Value)
 	{
-		if(Len <= PrefixLen)
+		if(Len <= Count.PrefixLen)
 			return false;
-		if(StringCompare(Arg, Prefix, PrefixLen) != 0)
+		if(StringCompare(Arg, Count.Prefix, Count.PrefixLen) != 0)
 			return false;
-		Name = Arg + PrefixLen;
-		const TypeChar * Sep = StringSearch(Name, Separator);
+		Name = Arg + Count.PrefixLen;
+		const TypeChar * Sep = StringSearch(Name, Count.Separator);
 		if(Sep != NULL)
-			Value = (TypeChar*)Sep + SeparatorLen;
+			Value = (TypeChar*)Sep + Count.SeparatorLen;
 		else 
 			Value = Arg + Len;
 		return true;
@@ -106,7 +127,7 @@ class EX_ARG
 
 public:
 
-	bool i;
+
 
 	class INTERATOR
 	{
@@ -234,24 +255,24 @@ public:
 		const TypeChar * nSeparator = STR_TYPE(TypeChar,"=")
 	)
 	{
-		arg = argv;
-		Count = nCount;
-		PrefixLen = StringLength(nPrefix);
-		SeparatorLen = StringLength(nSeparator);
-		StringCopy(Prefix, nPrefix);
-		StringCopy(Separator, nSeparator);
-		i = false;
+		Count.arg = argv;
+		Count._Count = nCount;
+		Count.PrefixLen = StringLength(nPrefix);
+		Count.SeparatorLen = StringLength(nSeparator);
+		StringCopy(Count.Prefix, nPrefix);
+		StringCopy(Count.Separator, nSeparator);
+		Count.i = false;
 	}
 
 	EX_ARG()
 	{
-		arg = NULL;
-		Count = NULL;
-		PrefixLen = 0;
-		SeparatorLen = 0;
-		Prefix[0] = 0;
-		Separator[0] = 0;
-		i = false;
+		Count.arg = NULL;
+		Count._Count = NULL;
+		Count.PrefixLen = 0;
+		Count.SeparatorLen = 0;
+		Count.Prefix[0] = 0;
+		Count.Separator[0] = 0;
+		Count.i = false;
 	}
 
 	void Set
@@ -262,12 +283,12 @@ public:
 		const TypeChar * nSeparator = STR_TYPE(TypeChar,"=")
 	)
 	{
-		arg = argv;
-		Count = nCount;
-		PrefixLen = StringLength(nPrefix);
-		SeparatorLen = StringLength(nSeparator);
-		StringCopy(Prefix, nPrefix);
-		StringCopy(Separator, nSeparator);
+		Count.arg = argv;
+		Count._Count = nCount;
+		Count.PrefixLen = StringLength(nPrefix);
+		Count.SeparatorLen = StringLength(nSeparator);
+		StringCopy(Count.Prefix, nPrefix);
+		StringCopy(Count.Separator, nSeparator);
 	}
 
 	/*
@@ -277,7 +298,7 @@ public:
 	{
 		TypeChar * Value = STR_TYPE(TypeChar, ""), *Name = STR_TYPE(TypeChar, "");
 		int Index = Search(_Name, StringLength(_Name), Name, Value);
-		return INTERATOR(((Index == -1)?STR_TYPE(TypeChar, ""): arg[Index]), Name, Value);
+		return INTERATOR(((Index == -1)?STR_TYPE(TypeChar, ""): Count.arg[Index]), Name, Value);
 	}
 
 	/*
@@ -285,12 +306,12 @@ public:
 	*/
 	inline INTERATOR operator[](unsigned Index)
 	{
-		if(Index >= Count)
+		if(Index >= _Count)
 			throw "Index out of bound";
 
 		TypeChar *Name = STR_TYPE(TypeChar, ""), *Value = STR_TYPE(TypeChar, "");
-		Get(arg[Index], StringLength(arg[Index]), Name, Value);
-		return INTERATOR(arg[Index], Name, Value);
+		Get(Count.arg[Index], StringLength(Count.arg[Index]), Name, Value);
+		return INTERATOR(Count.arg[Index], Name, Value);
 	}
 
 	/*
@@ -300,7 +321,7 @@ public:
 	{
 		TypeChar *Name = STR_TYPE(TypeChar, ""), *Value = STR_TYPE(TypeChar, "");
 		int Index = SearchVal(SrchValue, StringLength(SrchValue), Name, Value);
-		return INTERATOR(((Index == -1)? STR_TYPE(TypeChar, ""): arg[Index]), Name, Value);
+		return INTERATOR(((Index == -1)? STR_TYPE(TypeChar, ""): Count.arg[Index]), Name, Value);
 	}
 
 
@@ -309,13 +330,13 @@ public:
 	*/
 	inline INTERATOR GetAnother(unsigned Index = 0)
 	{
-		for(int i = 0, j = 0;i < Count; i++)
+		for(int i = 0, j = 0;i < Count._Count; i++)
 		{
 			TypeChar *Name = NULL, *Value = NULL;
-			if(!Get(arg[i], StringLength(arg[i]), Name, Value))
+			if(!Get(Count.arg[i], StringLength(Count.arg[i]), Name, Value))
 			{
 				if(j == Index)
-					return INTERATOR(arg[i], STR_TYPE(TypeChar, ""), arg[i]);
+					return INTERATOR(Count.arg[i], STR_TYPE(TypeChar, ""), Count.arg[i]);
 				j++;
 			}
 		}
