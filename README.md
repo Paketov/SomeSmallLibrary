@@ -13,7 +13,7 @@ class EX_WND for simplification work with windows descriptors.
 
 Example using:
   EX_WND MainWindow = hWnd;                   //takes from standart HWND
-  
+
   MainWindow[IDC_EDIT1].Text = 23;  
   
   MainWindow[IDC_EDIT2].Text = "Hello world"; //Stand. analog:
