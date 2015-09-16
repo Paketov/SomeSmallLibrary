@@ -8,13 +8,13 @@
 
   Example working:
 
-    double A[2][2] = 
+	double A[2][2] = 
 	{
 		1,2,
 		3,4
 	};
 
-  	MATRIX<double, 2, 2> j(A);      //Static version
+	MATRIX<double, 2, 2> j(A);      //Static version
 	auto SizeMatrix = sizeof(j);	//SizeMatrix eq. 32
 	MATRIX<double> b(A);			//Dynamic version
 	SizeMatrix = sizeof(b);			//SizeMatrix eq. 12 on 32bit machine (CountColumn + CountRow + pointer).
@@ -28,11 +28,11 @@
 
 	if(sec_j == j)
 	{
-	    //This block is executed
+		//This block is executed
 	}
 	if(j.IsSingular)
 	{
-	    //This block is not executed
+		//This block is not executed
 	}
 	auto InverseMatrix = j.ToInverse();
 
@@ -63,7 +63,10 @@
 
 template<class T, unsigned cj = 0>
 class ROW
-{
+{	
+	template<class, unsigned, unsigned> 
+	friend class MATRIX;
+
 	static const bool IsStaticArr = (cj != 0) && (cj != unsigned(-1));
 
 	//Static version
@@ -119,7 +122,7 @@ class ROW
 
 		inline void Init()
 		{
-		    v = NULL;
+			v = NULL;
 			_Count = 0;
 		}
 
@@ -175,7 +178,7 @@ class ROW
 
 		inline void Init()
 		{
-		    v = NULL;
+			v = NULL;
 			_Count = 0;
 		}
 
@@ -236,7 +239,7 @@ class ROW
 
 #define	__ROW_FIELDS TFIELDS _Fields;
 
-	template<class, unsigned, unsigned> friend class MATRIX;
+
 
 	class _REMOVE_ELEMENT
 	{
@@ -349,8 +352,6 @@ private:
 			this->r = r;
 		}
 	public:
-
-
 		inline TSETTER<0, Index + 1> operator <<(T Val)
 		{
 			if(Index >= r->Count)
@@ -544,7 +545,8 @@ public:
 		return *this;
 	}
 
-    inline void Resize(unsigned NewCount)
+
+	inline void Resize(unsigned NewCount)
 	{
 		_Fields.Allocate(NewCount);
 	}
@@ -596,7 +598,7 @@ private:
 
 		inline MATRIX & GetM() const
 		{
-		    return *(MATRIX*)this;
+			return *(MATRIX*)this;
 		}
 
 		inline T & at(unsigned i = 0, unsigned j = 0) const
@@ -648,7 +650,7 @@ private:
 
 		inline MATRIX & GetM() const
 		{
-		    return *(MATRIX*)this;
+			return *(MATRIX*)this;
 		}
 
 		inline T & at(unsigned i = 0, unsigned j = 0) const
@@ -1298,7 +1300,7 @@ private:
 	< 
 		!IsStaticArr,
 		_SOLVE_LIN_EQ_WITHOUT_ARG_,
-    	typename std::not_empty_if
+		typename std::not_empty_if
 		<
 			((ci == cj) || ((ci + 1) == cj)), 
 			typename std::conditional
@@ -1316,7 +1318,6 @@ private:
 	public:
 		inline void operator()()
 		{
-			MATRIX & This = *(MATRIX*)this;
 			_Fields.GetM() = _Fields.GetM().GetAllMinors();
 		}
 	};
@@ -1409,7 +1410,7 @@ private:
 
 				if(_j >= m)
 					return;
-			    _Fields.v[j++] = _Fields.v[_j++];
+				_Fields.v[j++] = _Fields.v[_j++];
 			}
 		}
 
@@ -1476,7 +1477,7 @@ private:
 			   Pos = _Fields.nj;
 			}
 			_Fields.Allocate(_Fields.ni, _Fields.nj + Count);
-		    InsertCol(Pos, Count);
+			InsertCol(Pos, Count);
 		}
 
 		void operator()(unsigned Pos, unsigned Count, T InitVal)
@@ -1487,9 +1488,19 @@ private:
 			   Pos = _Fields.nj;
 			}
 			_Fields.Allocate(_Fields.ni, _Fields.nj + Count);
-		    InsertCol(Pos, Count);
+			InsertCol(Pos, Count);
 			for(unsigned i = 0;i < Count;i++)
 				_Fields.GetM().SetColumnVal(Pos + i, InitVal);
+		}
+
+		template <typename ArrType>
+		typename std::enable_if<std::is_convertible<ArrType, T>::value>::type
+		operator()(unsigned Pos, unsigned Count, ArrType * PasteCol)
+		{
+			operator()(Pos, Count);
+			for(unsigned j = Pos, m = j + Count, r = 0; j < m; j++)
+				for(unsigned i = 0; i < _Fields.ci; i++, r++)
+				   _Fields.at(i, j) = PasteCol[r];
 		}
 	};
 
@@ -1529,6 +1540,16 @@ private:
 			InsertRow(Pos, Count);
 			for(unsigned i = 0;i < Count;i++)
 				_Fields.GetM().SetRowVal(Pos + i, InitVal);
+		}
+
+		template <typename ArrType>
+		typename std::enable_if<std::is_convertible<ArrType, T>::value>::type
+		operator()(unsigned Pos, unsigned Count, ArrType * PasteRow)
+		{
+			operator()(Pos, Count);
+			for(unsigned i = Pos, m = i + Count, r = 0; i < m;i++)
+				for(unsigned j = 0;j < _Fields.cj; j++, r++)
+				   _Fields.at(i, j) = PasteRow[r];
 		}
 	};
 
@@ -1621,7 +1642,7 @@ public:
 						   return false;
 				return true;
 			}
-		} IsAntySymmetric;
+		} IsAntiSymmetric;
 
 		class 
 		{
@@ -1634,11 +1655,11 @@ public:
 				   {
 					   if(i == j)
 					   {
-					      if(_Fields.at(i, j) == T(0))
+						  if(_Fields.at(i, j) == T(0))
 							  return false;
 					   }else
 					   {
-					       if(_Fields.at(i, j) != T(0))
+						   if(_Fields.at(i, j) != T(0))
 							  return false;
 					   }
 				   }
@@ -1658,11 +1679,11 @@ public:
 				   {
 					   if(i == j)
 					   {
-					      if(_Fields.at(i, j) != T(1))
+						  if(_Fields.at(i, j) != T(1))
 							  return false;
 					   }else
 					   {
-					       if(_Fields.at(i, j) != T(0))
+						   if(_Fields.at(i, j) != T(0))
 							  return false;
 					   }
 				   }
@@ -1719,6 +1740,7 @@ public:
 		typename std::not_empty_if<!IsStaticArr, _REMOVE_COLUMN>::type		RemoveCol;
 		typename std::not_empty_if<!IsStaticArr, _INSERT_COLUMN>::type		InsertCol;
 		typename std::not_empty_if<!IsStaticArr, _INSERT_ROW>::type			InsertRow;
+		
 
 		typename std::conditional<ci == cj, _IS_SINGULAR_SQUARE, _IS_SINGULAR_RECT >::type IsSingular;
 		_SOLVE_LIN_EQ														SolveLinEq;
@@ -1734,9 +1756,9 @@ public:
 
 			MATRIX<double, 4, 7> matr(tab); 
 			bool IsSuccess; 
-			                                             //              F           a           b       c  d        e         f
+														 //              F           a           b       c  d        e         f
 			auto Result = hdh.GetSimplexMax(IsSuccess); // Result Eq. {25.636363, 0.545454, 8.18181818, 0, 0, 23.09090909090, 0}
-			                                            // IsSuccess Eq. true
+														// IsSuccess Eq. true
 		
 		*/
 		_GET_SIMPLEX_MAX													GetSimplexMax; //Maximization via simplex method
@@ -1831,7 +1853,7 @@ public:
 			if(!ReadSize(Stream)(CountReaded))
 				return CountReaded;
 		}
-	    for(unsigned i = 0; i <  _Fields.ni; i++)
+		for(unsigned i = 0; i <  _Fields.ni; i++)
 		{
 			bool r;
 			CountReaded += This[i].FromText(Stream)(r);
@@ -1850,7 +1872,7 @@ public:
 			if(!ReadSize(Stream)(CountReaded))
 				return CountReaded;
 		}
-	    for(unsigned i = 0; i <  _Fields.ni; i++)
+		for(unsigned i = 0; i <  _Fields.ni; i++)
 		{
 			bool r;
 			CountReaded += This[i].FromText(Stream)(r);
@@ -1930,7 +1952,7 @@ public:
 	{
 		struct R1
 		{
-		    static inline ROW<T, unsigned(-1)> Ret(T * pRow, unsigned Cout)
+			static inline ROW<T, unsigned(-1)> Ret(T * pRow, unsigned Cout)
 			{
 			   return ROW<T, unsigned(-1)>(pRow, Cout);
 			}
@@ -1938,7 +1960,7 @@ public:
 
 		struct R2
 		{
-		    static inline ROW<T, cj>& Ret(T * pRow, unsigned Cout)
+			static inline ROW<T, cj>& Ret(T * pRow, unsigned Cout)
 			{
 			   return *(ROW<T, cj>*)pRow;
 			}
@@ -2430,7 +2452,30 @@ public:
 		for(unsigned i = StartRow, ie = 0; (i < _Fields.ni) && (ie < Dest._Fields.ni);i++, ie++)
 			for(unsigned j = StartColumn, je = 0;(j < _Fields.nj) && (je < Dest._Fields.nj);j++, je++)
 				Dest.at(ie, je) = at(i, j);
-	}	
+	}
+
+	template<typename _T, unsigned _i, unsigned _j>
+	typename std::enable_if<std::is_convertible<T, _T>::value>::type
+	GetMiniMap(_T (&Dest)[_i][_j], unsigned StartRow = 0, unsigned StartColumn = 0)
+	{
+		GetMiniMap((MATRIX<_T, _i, _j>&)Dest, StartRow, StartColumn);
+	}
+
+	template<typename _T, unsigned _i, unsigned _j>
+	typename std::enable_if<std::is_convertible<_T, T>::value>::type
+	SetMiniMap(MATRIX<_T, _i, _j> & Source, unsigned StartRow = 0, unsigned StartColumn = 0)
+	{
+		for(unsigned i = StartRow, ie = 0; (i < _Fields.ni) && (ie < Source._Fields.ni);i++, ie++)
+			for(unsigned j = StartColumn, je = 0;(j < _Fields.nj) && (je < Source._Fields.nj);j++, je++)
+				at(i, j) = Source.at(ie, je);
+	}
+
+	template<typename _T, unsigned _i, unsigned _j>
+	typename std::enable_if<std::is_convertible<_T, T>::value>::type
+	SetMiniMap(_T (&Source)[_i][_j], unsigned StartRow = 0, unsigned StartColumn = 0)
+	{
+		SetMiniMap((MATRIX<_T, _i, _j>&)Source, StartRow, StartColumn);
+	}
 
 	MATRIX<T, cj, ci> GetTranspose()
 	{
