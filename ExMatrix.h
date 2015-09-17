@@ -95,7 +95,7 @@ class ROW
 		}
 
 		template<typename _T>
-		inline void Copy(_T * Arr, unsigned count)
+		inline void Copy(const _T * Arr, unsigned count)
 		{
 			matrix_check(count == _Count, "Count columns not equal.");
 			std::arr_copy_cast(v, Arr);
@@ -588,6 +588,8 @@ private:
 	class TFIELDS_STATIC
 	{
 	public:
+		typedef ROW<T, cj> &TROW; 
+
 		static const unsigned ni= ci;
 		static const unsigned nj = cj;
 		union
@@ -599,6 +601,11 @@ private:
 		inline MATRIX & GetM() const
 		{
 			return *(MATRIX*)this;
+		}
+
+		static inline TROW GetRow(T * pRow)
+		{
+			return *(ROW<T, cj>*)pRow;
 		}
 
 		inline T & at(unsigned i = 0, unsigned j = 0) const
@@ -613,7 +620,7 @@ private:
 		inline void Allocate(const unsigned, const unsigned) const {}
 
 		template<typename _T, unsigned _i, unsigned _j>
-		inline void Copy(MATRIX<_T, _i, _j> & Another)
+		inline void Copy(const MATRIX<_T, _i, _j> & Another)
 		{
 			matrix_check((nj == Another.CountColumns) && (ni == Another.CountRows), "Count column and row not equal.");
 			std::arr_copy_cast(v, Another._Fields.v);
@@ -648,10 +655,19 @@ private:
 		unsigned nj;
 		T * v;
 
+		typedef ROW<T, unsigned(-1)> TROW;
+
 		inline MATRIX & GetM() const
 		{
 			return *(MATRIX*)this;
 		}
+
+
+		inline TROW GetRow(T * pRow)
+		{
+			return TROW(pRow, nj);
+		}
+
 
 		inline T & at(unsigned i = 0, unsigned j = 0) const
 		{
@@ -1942,32 +1958,10 @@ public:
 		return STR_STAT(CountWrited, true);
 	}
 
-	inline typename std::conditional
-	<
-		IsStaticArr,
-		ROW<T, cj> &, 
-		ROW<T, unsigned(-1)>
-	>::type 
-	operator[](const unsigned Index)
+	inline typename TFIELDS::TROW operator[](const unsigned Index)
 	{
-		struct R1
-		{
-			static inline ROW<T, unsigned(-1)> Ret(T * pRow, unsigned Cout)
-			{
-			   return ROW<T, unsigned(-1)>(pRow, Cout);
-			}
-		};
-
-		struct R2
-		{
-			static inline ROW<T, cj>& Ret(T * pRow, unsigned Cout)
-			{
-			   return *(ROW<T, cj>*)pRow;
-			}
-		};
 		matrix_check_index(Index < _Fields.ni, "Row out of bound");
-		typedef typename std::conditional<IsStaticArr,R2, R1>::type RET;
-		return RET::Ret((T*)_Fields.v + _Fields.nj * Index, _Fields.nj);
+		return _Fields.GetRow((T*)_Fields.v + _Fields.nj * Index);
 	}
 
 	void SetAllVal(T NewVal)
@@ -2014,22 +2008,6 @@ public:
 		<
 			std::is_convertible<_T, T>::value &&
 			(!IsStaticArr || !MATRIX<_T, _i, _j>::IsStaticArr || ((ci == _i) && (cj == _j))), 
-			std::empty_type
-		>::type = std::empty_type()
-	)
-	{ 
-		_Fields.Init();
-		_Fields.Copy(New);
-	}
-
-
-	template <unsigned _i, unsigned _j> 
-	MATRIX
-	(
-		T (&New)[_i][_j], 
-		typename std::enable_if
-		<
-			!IsStaticArr || ((ci == _i) && (cj == _j)), 
 			std::empty_type
 		>::type = std::empty_type()
 	)
