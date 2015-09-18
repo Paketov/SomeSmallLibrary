@@ -26,6 +26,40 @@
 	val_copy(var_dest, var_source)
 */
 
+
+
+/*
+* For define local function.
+* Example:
+
+	int CallLocalFunc(int(*jj)(int))
+	{
+	   return jj(5);
+	}
+	void main()
+	{
+		DEF_FUNC
+		(
+				int,LocalFunction,(int Arg),
+				{
+					return Arg + 1;
+				}
+		);
+		printf("%i\n", LocalFunction(45));				//out on screen: 46
+		printf("%i\n", CallLocalFunc(LocalFunction));	//out on screen: 6
+		return 0;
+	}
+*/
+#define DEF_FUNC(RetType, Name, ArgS, Body)				\
+	struct												\
+	{													\
+		static RetType Func ArgS Body					\
+		typedef decltype(&Func) TFUNC;					\
+		inline operator TFUNC() const {return &Func;}	\
+	} Name
+
+
+
 namespace std
 {		
 
@@ -217,7 +251,7 @@ namespace std
 	template<typename SourceType, unsigned Count>
 	struct add_count_pointers
 	{
-	    typedef typename add_count_pointers<SourceType*, Count - 1>::type type;
+		typedef typename add_count_pointers<SourceType*, Count - 1>::type type;
 	};
 
 	template<typename SourceType>
@@ -273,7 +307,7 @@ namespace std
 	template<typename SourceType, unsigned Param>
 	struct remove_modifiers<SourceType &, Param>
 	{
-	    typedef typename conditional
+		typedef typename conditional
 		<
 			Param & rem_mod::REF, 
 			typename remove_modifiers<SourceType, Param>::type, 
@@ -284,7 +318,7 @@ namespace std
 	template<typename SourceType, unsigned Param>
 	struct remove_modifiers<SourceType &&, Param>
 	{
-	    typedef typename conditional
+		typedef typename conditional
 		<
 			Param & rem_mod::RVREF, 
 			typename remove_modifiers<SourceType, Param>::type, 
@@ -322,7 +356,7 @@ namespace std
 	template<typename SourceType, unsigned Param>
 	struct remove_modifiers<volatile SourceType , Param>
 	{
-	    typedef typename conditional
+		typedef typename conditional
 		<
 			Param & rem_mod::VOLATILE, 
 			typename remove_modifiers<SourceType, Param>::type, 
@@ -339,43 +373,43 @@ namespace std
 	template<typename DestType, typename>
 	struct move_pointers_ref_arr
 	{
-	    typedef DestType type;
+		typedef DestType type;
 	};
 
 	template<typename DestType, typename SourceType>
 	struct move_pointers_ref_arr<DestType, SourceType&>
 	{
-	    typedef typename move_pointers_ref_arr<DestType, SourceType>::type  &type;
+		typedef typename move_pointers_ref_arr<DestType, SourceType>::type  &type;
 	};
 
 	template<typename DestType, typename SourceType>
 	struct move_pointers_ref_arr<DestType, SourceType&&>
 	{
-	    typedef typename move_pointers_ref_arr<DestType, SourceType>::type  &&type;
+		typedef typename move_pointers_ref_arr<DestType, SourceType>::type  &&type;
 	};
 
 	template<typename DestType, typename SourceType>
 	struct move_pointers_ref_arr<DestType, SourceType*>
 	{
-	    typedef typename move_pointers_ref_arr<DestType, SourceType>::type  *type;
+		typedef typename move_pointers_ref_arr<DestType, SourceType>::type  *type;
 	};
 
 	template<typename DestType, typename SourceType>
 	struct move_pointers_ref_arr<DestType, SourceType * const>
 	{
-	    typedef typename move_pointers_ref_arr<DestType, SourceType>::type  * const type;
+		typedef typename move_pointers_ref_arr<DestType, SourceType>::type  * const type;
 	};
 
 	template<typename DestType, typename SourceType>
 	struct move_pointers_ref_arr<DestType, SourceType const *>
 	{
-	    typedef typename move_pointers_ref_arr<DestType, SourceType>::type  const * type;
+		typedef typename move_pointers_ref_arr<DestType, SourceType>::type  const * type;
 	};
 
 	template<typename DestType, typename SourceType, size_t Len>
 	struct move_pointers_ref_arr<DestType, SourceType[Len]>
 	{
-	    typedef typename move_pointers_ref_arr<DestType, SourceType>::type  type[Len];
+		typedef typename move_pointers_ref_arr<DestType, SourceType>::type  type[Len];
 	};
 
 	/*
@@ -383,13 +417,13 @@ namespace std
 		int (& arr)[12];
 		std::remove_ref_pointers_arr<decltype(arr)>::type eq. int
 
-	    int ***& v;
+		int ***& v;
 		std::remove_ref_pointers_arr<decltype(v)>::type eq. int
 	*/
 	template<typename Type>
 	struct sizeof_value
 	{
-	    static const size_t value = sizeof(typename remove_modifiers<Type, rem_mod::POI_POICONST_VOLA_REF_RVREF>::type);
+		static const size_t value = sizeof(typename remove_modifiers<Type, rem_mod::POI_POICONST_VOLA_REF_RVREF>::type);
 	};
 
 
@@ -432,19 +466,19 @@ namespace std
 	template<typename TypeArr, bool IsConvertPointer = false, size_t Count = 1>
 	struct arr_to_single_dimension
 	{
-	      typedef TypeArr type[Count];
+		  typedef TypeArr type[Count];
 	};
 
 	template<typename TypeArr>
 	struct arr_to_single_dimension<TypeArr*, true>
 	{
-	      typedef typename arr_to_single_dimension<TypeArr, true, 1>::type type;
+		  typedef typename arr_to_single_dimension<TypeArr, true, 1>::type type;
 	};
 
 	template<typename TypeArr,  bool IsConvertPointer ,size_t Count, size_t Len>
 	struct arr_to_single_dimension<TypeArr[Len], IsConvertPointer, Count>
 	{
-	      typedef typename arr_to_single_dimension<TypeArr, IsConvertPointer, Count * Len>::type type;
+		  typedef typename arr_to_single_dimension<TypeArr, IsConvertPointer, Count * Len>::type type;
 	};
 
 	/*
@@ -574,7 +608,7 @@ namespace std
 	*/
 
 	template<typename DestType, typename SourceType>
-    inline typename enable_if
+	inline typename enable_if
 	<
 		 (sizeof_value<DestType>::value == sizeof_value<SourceType>::value) &&
 		 (!is_scalar<SourceType>::value || !is_scalar<DestType>::value) &&
@@ -593,7 +627,7 @@ namespace std
 	}
 
 	template<typename DestType, typename SourceType>
-    inline typename enable_if
+	inline typename enable_if
 	<
 		 (sizeof_value<DestType>::value != sizeof_value<SourceType>::value) &&
 		 (!is_scalar<SourceType>::value || !is_scalar<DestType>::value) &&
@@ -614,7 +648,7 @@ namespace std
 	}
 
 	template<typename DestType, typename SourceType>
-    inline typename enable_if
+	inline typename enable_if
 	<
 		 is_scalar<SourceType>::value &&
 		 is_scalar<DestType>::value &&
@@ -630,7 +664,7 @@ namespace std
 	*arr_copy_cast
 	*/
 	template<typename DestType, typename SourceType>
-    inline typename enable_if
+	inline typename enable_if
 	<
 		 is_equal
 		 <
@@ -655,12 +689,12 @@ namespace std
 	}
 
 	template<typename DestType, typename SourceType>
-    inline typename enable_if
+	inline typename enable_if
 	<
 		 !is_equal
 		 <
 			typename arr_value_element<DestType>::type,
-		    typename remove_const<typename arr_value_element<SourceType>::type>::type
+			typename remove_const<typename arr_value_element<SourceType>::type>::type
 		 >::value &&
 		 is_convertible
 		 <
@@ -691,7 +725,7 @@ namespace std
 	}
 
 	template<typename DestType, typename SourceType>
-    inline typename enable_if
+	inline typename enable_if
 	<
 		 is_equal
 		 <
@@ -706,7 +740,7 @@ namespace std
 	}
 
 	template<typename DestType, typename SourceType>
-    inline typename enable_if
+	inline typename enable_if
 	<
 		 !is_equal
 		 <
@@ -744,7 +778,7 @@ namespace std
 	* arr_set_elements
 	*/
 	template<typename DestType, typename SourceType>
-    inline typename enable_if
+	inline typename enable_if
 	<
 		 is_convertible
 		 <
@@ -761,7 +795,7 @@ namespace std
 	}
 
 	template<typename DestType, typename SourceType>
-    inline typename enable_if
+	inline typename enable_if
 	<
 		 is_convertible
 		 <
