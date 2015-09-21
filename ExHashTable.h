@@ -7,38 +7,48 @@
 #include "ExTypeTraits.h"
 
 /*
-typedef struct _HASH_ELEMENT
-{
-	ID_OBJMEMBER vKey;
-	INSIDE_DATA Val;
+Example:
 
-	//Get key value
-	ID_STRING Key()    
+	typedef struct HASH_ELEMENT
 	{
-		return vKey->Key;
-	}
+		unsigned vKey;
+		double   Val;
 
-	//Get index in hash by key value
-	static unsigned IndexByKey(ID_OBJMEMBER Key, unsigned MaxCount)
-	{
-		return (unsigned)Key % MaxCount;
-	}	
+		//Get key value
+		unsigned Key()    
+		{
+			return vKey;
+		}
 
-	//Get key by value
-	inline static ID_STRING GenKey(const char * Str)	
-	{
-		ID_STRING h = 0;
-		for (LPINTERNAL_CHAR s = (LPINTERNAL_CHAR)Str; *s; s++) 
-			h = 31 * h + (unsigned)*s;
-		return h;
-	}
+		//Get index in hash array by key value
+		static unsigned char IndexByKey(unsigned Key, unsigned char MaxCount)
+		{
+			return (unsigned)Key % MaxCount;
+		}	
 
-	//Compare values
-	inline bool Cmp(const char * Str)
-	{
-		return strcmp(Str, El->NameOpcode) == 0;
-	}
-}  _HASH_ELEMENT;
+		//Get key by value
+		inline static unsigned GenKey(double ValForKey)	
+		{
+			unsigned h = 0;
+			for (unsigned s = 0; s < sizeof(ValForKey); s++) 
+				h = 31 * h + ((char*)&ValForKey)[s];
+			return h;
+		}
+
+		//Compare values
+		inline bool Cmp(double EnotherVal)
+		{
+			return EnotherVal == Val;
+		}
+	}  HASH_ELEMENT;
+
+	EXHASH_TABLE<HASH_ELEMENT> HashArray;
+	EXHASH_TABLE<HASH_ELEMENT>::New(HashArray, 12);
+	HashArray.Init(12);
+
+	HashArray.Insert(0.000012)->Val = 0.000012;
+	printf("%lf", HashArray.Search(0.000012)->Val); 
+
 */
 
 
@@ -155,8 +165,8 @@ public:
 
 	typedef struct
 	{
-		THEADCELL	h; 
-		TVAL		v;
+		THEADCELL				h; 
+		TPROPERTY_STRUCT		v;
 	} TSTATIC_VAL, *LPTSTATIC_VAL;
 
 
@@ -195,7 +205,7 @@ public:
 
 	inline LPCELL AddElement(LPCELL HashCell)
 	{
-		CountUsed++;
+		CountUsed.CountUsed++;
 		TINDEX iRetElem;
 		LPCELL lpRetElem = GetTable() + (iRetElem = IsFull.LastEmpty);
 		IsFull.LastEmpty = lpRetElem->iNext;
@@ -281,7 +291,7 @@ public:
 		if(IsFull)
 		{
 			TINDEX NewSize = (TINDEX)(MaxCount * 1.61803398875f);
-			if(!Realloc(this, NewSize))
+			if(!Realloc(*this, NewSize))
 				return NULL;
 			IncreaseTable(NewSize);
 			lpStart = ElementByHash(Hash);
@@ -408,7 +418,7 @@ public:
 			return false;
 	}
 
-	static bool Realloc(EXHASH_TABLE &* Val, TINDEX NewCount)
+	static bool Realloc(EXHASH_TABLE *& Val, TINDEX NewCount)
 	{
 		if(!Type)
 		{
