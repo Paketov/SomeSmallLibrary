@@ -42,8 +42,8 @@ Example:
 		}
 	}  HASH_ELEMENT;
 
-	EXHASH_TABLE<HASH_ELEMENT> HashArray;
-	EXHASH_TABLE<HASH_ELEMENT>::New(HashArray, 12);
+	HASH_TABLE<HASH_ELEMENT> HashArray;
+	HASH_TABLE<HASH_ELEMENT>::New(HashArray, 12);
 	HashArray.Init(12);
 
 	HashArray.Insert(0.000012)->Val = 0.000012;
@@ -59,7 +59,7 @@ template
 	typename TIndex = decltype(TElementStruct::IndexByKey(std::variant_arg, std::variant_arg)),
 	TIndex NothingIndex = TIndex(-1)
 >
-class EXHASH_TABLE
+class HASH_TABLE
 {	
 public:
 	typedef TIndex											TINDEX,		      *LPTINDEX;
@@ -97,7 +97,7 @@ public:
 	{
 		class
 		{
-			friend EXHASH_TABLE;
+			friend HASH_TABLE;
 			EXHASH_TABLE_FIELDS;
 			inline unsigned operator =(unsigned NewVal)
 			{
@@ -113,7 +113,7 @@ public:
 
 		class
 		{
-			friend EXHASH_TABLE;
+			friend HASH_TABLE;
 			EXHASH_TABLE_FIELDS;
 
 			inline unsigned operator =(unsigned NewVal)
@@ -135,14 +135,14 @@ public:
 			inline operator unsigned() const
 			{
 				if(Type)
-					return MaxCount * sizeof(CELL) + sizeof(EXHASH_TABLE) - sizeof(LPCELL);
+					return MaxCount * sizeof(CELL) + sizeof(HASH_TABLE) - sizeof(LPCELL);
 				return MaxCount * sizeof(CELL);
 			}
 
 			inline static unsigned ByCount(unsigned CountElement)
 			{
 				if(Type)
-					return CountElement * sizeof(CELL) + sizeof(EXHASH_TABLE) - sizeof(LPCELL);
+					return CountElement * sizeof(CELL) + sizeof(HASH_TABLE) - sizeof(LPCELL);
 				return CountElement * sizeof(CELL);
 			}
 		} MaxSize;
@@ -150,7 +150,7 @@ public:
 
 		class
 		{
-			friend EXHASH_TABLE;
+			friend HASH_TABLE;
 			EXHASH_TABLE_FIELDS;
 		public:
 
@@ -410,7 +410,7 @@ public:
 			free(this);
 	}
 
-	static bool Realloc(EXHASH_TABLE & Val, TINDEX NewSize)
+	static bool Realloc(HASH_TABLE & Val, TINDEX NewSize)
 	{
 		if(!Type)
 			return (Val.Table = (LPCELL)realloc(Val.Table, NewSize * sizeof(CELL))) != NULL;
@@ -418,7 +418,7 @@ public:
 			return false;
 	}
 
-	static bool Realloc(EXHASH_TABLE *& Val, TINDEX NewCount)
+	static bool Realloc(HASH_TABLE *& Val, TINDEX NewCount)
 	{
 		if(!Type)
 		{
@@ -428,15 +428,15 @@ public:
 			Val->Table = Table;
 		}else
 		{
-			EXHASH_TABLE * NewTable;
-			if(!(NewTable = (EXHASH_TABLE*)realloc(*Val, MaxSize.ByCount(NewCount))))
+			HASH_TABLE * NewTable;
+			if(!(NewTable = (HASH_TABLE*)realloc(*Val, MaxSize.ByCount(NewCount))))
 				return false;
 			Val = NewTable;
 		}
 		return true;
 	}
 
-	static bool New(EXHASH_TABLE & Val, TINDEX NewCount)
+	static bool New(HASH_TABLE & Val, TINDEX NewCount)
 	{
 		if(!Type)
 			return (Val.Table = (LPCELL)malloc(NewCount * sizeof(CELL))) != NULL;
@@ -445,12 +445,12 @@ public:
 	}
 
 
-	static bool New(EXHASH_TABLE *& Val, TINDEX NewCount)
+	static bool New(HASH_TABLE *& Val, TINDEX NewCount)
 	{
-		EXHASH_TABLE * NewTable;
+		HASH_TABLE * NewTable;
 		if(!Type)
 		{
-			NewTable = (EXHASH_TABLE*)malloc(sizeof(EXHASH_TABLE));
+			NewTable = (HASH_TABLE*)malloc(sizeof(HASH_TABLE));
 			if(!NewTable)
 				return false;
 			NewTable->Table = (LPCELL)malloc(NewCount * sizeof(CELL));
@@ -458,7 +458,7 @@ public:
 				return false;
 		}else
 		{	
-			if(!(NewTable = (EXHASH_TABLE*)malloc(MaxSize.ByCount(NewCount))))
+			if(!(NewTable = (HASH_TABLE*)malloc(MaxSize.ByCount(NewCount))))
 				return false;
 		}
 		Val = NewTable;
