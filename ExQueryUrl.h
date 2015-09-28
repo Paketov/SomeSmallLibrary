@@ -1,9 +1,12 @@
 #ifndef __QUERYURL_H_HAS_INCLUDED__
 #define __QUERYURL_H_HAS_INCLUDED__
 
+#include "ExString.h"
+
 #ifdef WIN32
 
 #	include <winsock.h>
+
 
 #	undef IPPROTO_ICMP
 #	undef IPPROTO_IGMP
@@ -20,13 +23,86 @@ namespace winsock
 {
 #	include <ws2tcpip.h>
 #	include <winsock2.h>
-};
 
+	struct ::netent * readnetnetworklist()
+	{
+
+		char Name[BUFSIZ+1], c, NetworksPath[MAX_PATH];
+		::netent * NewNet = (::netent*)malloc(sizeof(::netent));
+		unsigned CurNnet = 0;
+		char * WinDirPath = getenv("windir");
+		if(WinDirPath == NULL)
+			goto lblOut;
+		StringCopy(NetworksPath, WinDirPath);
+		StringAppend(NetworksPath, "\\System32\\drivers\\etc\\networks");
+		FILE * FNetworks = fopen(NetworksPath, "rt");
+		if(FNetworks != NULL)
+		{
+			for(;!feof(FNetworks);)
+			{
+				SkipSpace(FNetworks);
+				if((c = fgetc(FNetworks)) == '#')
+				{
+					fscanf(FNetworks, "%*[^\n]");
+					continue;
+				}
+				ungetc(c, FNetworks);
+				unsigned short IpAddr[4] = {0};
+				int CountReaded = fscanf(FNetworks, "%[^ #\n\t\v\f\r] %hu.%hu.%hu.%hu", Name, IpAddr,IpAddr+1,IpAddr+2, IpAddr+3);
+				if(CountReaded < 2)
+					continue;
+				NewNet[CurNnet].n_name = StringDuplicate(Name);
+				unsigned NumberAliases = 0;
+				NewNet[CurNnet].n_aliases = (char**)malloc(sizeof(char*));
+				while(true)
+				{
+					CountReaded = fscanf(FNetworks, "%*[ \t\v\f\r]%[^ #\n\t\v\f\r]", Name);
+					if(CountReaded <= 0)
+						break;
+					NewNet[CurNnet].n_aliases[NumberAliases] = StringDuplicate(Name);
+					NumberAliases++;
+					NewNet[CurNnet].n_aliases = (char**)realloc(NewNet[CurNnet].n_aliases, (NumberAliases + 1) * sizeof(char*));
+				}
+				NewNet[CurNnet].n_aliases[NumberAliases] = NULL;
+				NewNet[CurNnet].n_addrtype = AF_INET;
+				NewNet[CurNnet].n_net = ((unsigned char)IpAddr[3] << 24)|((unsigned char)IpAddr[2] << 16)|((unsigned char)IpAddr[1]<<8)|((unsigned char)IpAddr[0]<<0);
+				CurNnet++;
+				NewNet = (decltype(NewNet))realloc(NewNet, (CurNnet + 1) * sizeof(::netent));
+			}
+			fclose(FNetworks);
+		}
+lblOut:
+		memset(NewNet + CurNnet, 0, sizeof(NewNet[CurNnet]));
+		return NewNet;
+	}
+
+	struct ::netent * GetNetworksInfo(){ static struct ::netent * gn = readnetnetworklist(); return gn;}
+
+	struct ::netent * getnetbyname(const char *name)
+	{
+		for(::netent * gn = GetNetworksInfo();gn->n_name;gn++)
+		    if(StringCompare(name, gn->n_name) == 0)
+				return gn;
+		return NULL;
+	}
+
+	struct ::netent * getnetbyaddr(long net, int type)
+	{
+		for(::netent * gn = GetNetworksInfo();gn->n_name;gn++)
+		    if((gn->n_net == net) && (gn->n_addrtype == type))
+				return gn;
+		return NULL;
+	} 
+
+
+};
 
 using winsock::addrinfo; 
 using winsock::sockaddr_in6;
 using winsock::getaddrinfo;
 using winsock::inet_ntop;
+using winsock::getnetbyname;
+using winsock::getnetbyaddr;
 
 #	define IPPROTO_ICMP winsock::IPPROTO_ICMP
 #	define IPPROTO_IGMP winsock::IPPROTO_IGMP 
@@ -43,7 +119,12 @@ using winsock::inet_ntop;
 #	endif
 #	pragma comment(lib, "Ws2_32.lib")
 
+
+
+
 #else
+
+//For unix like operation sistem
 #   include <sys/types.h>
 #   include <sys/socket.h>
 #   include <netinet/in.h>
@@ -53,7 +134,7 @@ using winsock::inet_ntop;
 #	define closesocket(socket)  close(socket)
 #endif
 
-#include "ExString.h"
+
 
 #ifdef USE_OPEN_SSL
 #	include <openssl/crypto.h>
@@ -85,9 +166,9 @@ class QUERY_URL_CLIENT
 {
 
 	typedef std::basic_string<char> String;
+
 	unsigned			PortionSize;
 
-public:
 	struct ADDR_INFO : addrinfo
 	{
 		inline int ProtocolFamily()
@@ -142,7 +223,256 @@ public:
 		}
 
 	};
-private:
+
+	struct PROTOCOL_INTERATOR
+	{
+#define PROTOCOL_INTERATOR_FIELDS struct{struct protoent * Cur; int CountAliases;}
+		PROTOCOL_INTERATOR(struct protoent * New)
+		{
+			Name.Cur = New;
+			Name.CountAliases = 0;
+			if(New != NULL)
+					for(;New->p_aliases[Name.CountAliases];Name.CountAliases++);
+		}
+
+		union
+		{
+			class
+			{
+				friend PROTOCOL_INTERATOR;
+				PROTOCOL_INTERATOR_FIELDS;
+			public:
+				operator char*()
+				{
+					if(Cur == NULL)
+						return "";
+					return Cur->p_name;
+				}
+			} Name;
+
+			/*
+				Property represent protocol index.
+				PPROTO_
+			*/
+			class
+			{
+				PROTOCOL_INTERATOR_FIELDS;
+			public:
+				operator short()
+				{
+					if(Cur == NULL)
+						return -1;
+					return Cur->p_proto;
+				}
+			} Index;
+
+			class
+			{
+				PROTOCOL_INTERATOR_FIELDS;
+			public:
+				operator bool()
+				{
+					return Cur == NULL;
+				}
+			} NotHave;
+
+			class
+			{
+				PROTOCOL_INTERATOR_FIELDS;
+			public:
+				char * operator[](unsigned Index)
+				{
+					if(Index < CountAliases)
+						return Cur->p_aliases[Index];
+					return "";
+				}
+			} PsevdoName;
+
+			class
+			{
+				PROTOCOL_INTERATOR_FIELDS;
+			public:
+				operator int()
+				{
+					return CountAliases;
+				}
+			} CountPsevdoNames;
+		};
+	};
+
+	struct PORT_SERVICE_INTERATOR
+	{
+#define PORT_SERVICE_INTERATOR_FIELDS struct{struct servent * Cur; int CountAliases;}
+		PORT_SERVICE_INTERATOR(struct servent * New)
+		{
+			Name.Cur = New;
+			Name.CountAliases = 0;
+			if(New != NULL)
+					for(;New->s_aliases[Name.CountAliases];Name.CountAliases++);
+		}
+
+		union
+		{
+			class
+			{
+				friend PORT_SERVICE_INTERATOR;
+				PORT_SERVICE_INTERATOR_FIELDS;
+			public:
+				operator char*()
+				{
+					if(Cur == NULL)
+						return "";
+					return Cur->s_name;
+				}
+			} Name;
+
+			class
+			{
+				PORT_SERVICE_INTERATOR_FIELDS;
+			public:
+				operator unsigned short()
+				{
+					if(Cur == NULL)
+						return 0;
+					return htons(Cur->s_port);
+				}
+			} Port;
+
+			class 
+			{
+				PORT_SERVICE_INTERATOR_FIELDS;
+			public:
+				operator char*()
+				{
+					if(Cur == NULL)
+						return "";
+					return Cur->s_proto;
+				}
+			} UseProtocolName;
+
+			class
+			{
+				PORT_SERVICE_INTERATOR_FIELDS;
+			public:
+				operator bool()
+				{
+					return Cur == NULL;
+				}
+			} NotHave;
+
+			class
+			{
+				PORT_SERVICE_INTERATOR_FIELDS;
+			public:
+				char * operator[](unsigned Index)
+				{
+					if(Index < CountAliases)
+						return Cur->s_aliases[Index];
+					return "";
+				}
+			} PsevdoName;
+
+			class
+			{
+				PORT_SERVICE_INTERATOR_FIELDS;
+			public:
+				operator int()
+				{
+					return CountAliases;
+				}
+			} CountPsevdoNames;
+		};
+	};
+
+	struct NET_INTERATOR
+	{
+#define PROTOCOL_INTERATOR_FIELDS struct{struct netent * Cur; int CountAliases;}
+		NET_INTERATOR(struct netent * New)
+		{
+			Name.Cur = New;
+			Name.CountAliases = 0;
+			if(New != NULL)
+					for(;New->n_aliases[Name.CountAliases];Name.CountAliases++);
+		}
+
+		union
+		{
+			class
+			{
+				friend NET_INTERATOR;
+				PROTOCOL_INTERATOR_FIELDS;
+			public:
+				operator char*()
+				{
+					if(Cur == NULL)
+						return "";
+					return Cur->n_name;
+				}
+			} Name;
+
+			/*
+				Type net address.
+				Usually AF_INET
+			*/
+			class
+			{
+				PROTOCOL_INTERATOR_FIELDS;
+			public:
+				operator short()
+				{
+					if(Cur == NULL)
+						return -1;
+					return Cur->n_addrtype;
+				}
+			} AddrType;
+
+			class
+			{
+				PROTOCOL_INTERATOR_FIELDS;
+			public:
+				operator short()
+				{
+					if(Cur == NULL)
+						return -1;
+					return Cur->n_net;
+				}
+			} NumberNet;
+
+			class
+			{
+				PROTOCOL_INTERATOR_FIELDS;
+			public:
+				operator bool()
+				{
+					return Cur == NULL;
+				}
+			} NotHave;
+
+			class
+			{
+				PROTOCOL_INTERATOR_FIELDS;
+			public:
+				char * operator[](unsigned Index)
+				{
+					if(Index < CountAliases)
+						return Cur->n_aliases[Index];
+					return "";
+				}
+			} PsevdoName;
+
+			class
+			{
+				PROTOCOL_INTERATOR_FIELDS;
+			public:
+				operator int()
+				{
+					return CountAliases;
+				}
+			} CountPsevdoNames;
+		};
+	};
+
+
 
 #ifdef IS_HAVE_OPEN_SSL
 	SSL_CTX				*ctx; //For ssl connection
@@ -305,7 +635,8 @@ SSLErrOut:
 public:
 
 	union
-	{	
+	{
+
 		class URL_ERROR
 		{		
 			friend QUERY_URL_CLIENT;
@@ -423,6 +754,7 @@ public:
 						NumberToString((unsigned short)*this, Dest, Len);
 					return Dest;
 				}
+
 
 				operator std::basic_string<char>()
 				{
@@ -704,7 +1036,8 @@ public:
 			operator timeval()
 			{
 				timeval v;
-				if(getsockopt(hSocket,SOL_SOCKET, SO_RCVTIMEO, (char*)&v, sizeof(timeval)) != 0)
+				int l = sizeof(v);
+				if(getsockopt(hSocket,SOL_SOCKET, SO_RCVTIMEO, (char*)&v, &l) != 0)
 					((URL_ERROR*)this)->SetError(ERR_ARG("Not get time interval"), 39);
 				return v;
 			}
@@ -725,7 +1058,8 @@ public:
 			operator timeval()
 			{
 				timeval v;
-				if(getsockopt(hSocket,SOL_SOCKET, SO_SNDTIMEO, (char*)&v, sizeof(timeval)) != 0)
+				int l = sizeof(v);
+				if(getsockopt(hSocket,SOL_SOCKET, SO_SNDTIMEO, (char*)&v, &l) != 0)
 					((URL_ERROR*)this)->SetError(ERR_ARG("Not get time interval"), 41);
 				return v;
 			}
@@ -746,7 +1080,8 @@ public:
 			operator int()
 			{
 				int v;
-				if(getsockopt(hSocket,SOL_SOCKET, SO_SNDBUF, (char*)&v, sizeof(v)) != 0)
+				int l = sizeof(v);
+				if(getsockopt(hSocket,SOL_SOCKET, SO_SNDBUF, (char*)&v, &l) != 0)
 					((URL_ERROR*)this)->SetError(ERR_ARG("Not get size buffer"), 43);
 				return v;
 			}
@@ -767,7 +1102,8 @@ public:
 			operator int()
 			{
 				int v;
-				if(getsockopt(hSocket,SOL_SOCKET, SO_RCVBUF, (char*)&v, sizeof(v)) != 0)
+				int l = sizeof(v);
+				if(getsockopt(hSocket,SOL_SOCKET, SO_RCVBUF, (char*)&v, &l) != 0)
 					((URL_ERROR*)this)->SetError(ERR_ARG("Not get size buffer"), 45);
 				return v;
 			}
@@ -789,7 +1125,8 @@ public:
 			operator bool()
 			{
 				int v;
-				if(getsockopt(hSocket,SOL_SOCKET, SO_KEEPALIVE, (char*)&v, sizeof(v)) != 0)
+				int l = sizeof(v);
+				if(getsockopt(hSocket,SOL_SOCKET, SO_KEEPALIVE, (char*)&v, &l) != 0)
 					((URL_ERROR*)this)->SetError(ERR_ARG("Not get keep alive state"), 47);
 				return v;
 			}
@@ -811,12 +1148,12 @@ public:
 			operator bool()
 			{
 				int v;
-				if(getsockopt(hSocket,SOL_SOCKET, SO_BROADCAST, (char*)&v, sizeof(v)) != 0)
+				int l = sizeof(v);
+				if(getsockopt(hSocket,SOL_SOCKET, SO_BROADCAST, (char*)&v, &l) != 0)
 					((URL_ERROR*)this)->SetError(ERR_ARG("Not get keep alive state"), 47);
 				return v;
 			}
 		} IsBroadcast;
-
 
 		class
 		{			
@@ -832,7 +1169,8 @@ public:
 			operator bool()
 			{
 				int v;
-				if(getsockopt(hSocket,SOL_SOCKET, SO_DEBUG, (char*)&v, sizeof(v)) != 0)
+				int l = sizeof(v);
+				if(getsockopt(hSocket,SOL_SOCKET, SO_DEBUG, (char*)&v, &l) != 0)
 					((URL_ERROR*)this)->SetError(ERR_ARG("Not get keep alive state"), 47);
 				return v;
 			}
@@ -852,7 +1190,8 @@ public:
 			operator bool()
 			{
 				int v;
-				if(getsockopt(hSocket,SOL_SOCKET, SO_DONTROUTE , (char*)&v, sizeof(v)) != 0)
+				int l = sizeof(v);
+				if(getsockopt(hSocket,SOL_SOCKET, SO_DONTROUTE , (char*)&v, &l) != 0)
 					((URL_ERROR*)this)->SetError(ERR_ARG("Not get keep alive state"), 47);
 				return v;
 			}
@@ -860,6 +1199,69 @@ public:
 
 
 	};
+ 
+	/*
+		Get info about protocol by index number
+		IPPROTO_
+		example:
+		char * ProtocolName = GetSystemProtocol(IPPROTO_TCP).Name; //ProtocolName eq. "tcp"
+	*/
+	static PROTOCOL_INTERATOR GetSystemProtocol(int Index)
+	{
+		return PROTOCOL_INTERATOR(getprotobynumber(Index));
+	}
+	
+	/*
+		Get info about protocol by name string
+		example:
+		int ProtocolIndex = GetSystemProtocol("ip").Index; //ProtocolIndex eq. 0
+	*/
+	static PROTOCOL_INTERATOR GetSystemProtocol(const char * Name)
+	{
+		return PROTOCOL_INTERATOR(getprotobyname(Name));
+	}
+
+
+	/*
+		Get info about service by port number
+		example:
+		char * PortServiceName = GetSystemService(80).Name; //ProtocolName eq. "http"
+	*/
+	static PORT_SERVICE_INTERATOR GetSystemService(int PortNumber, const char * Prot = NULL)
+	{
+		return PORT_SERVICE_INTERATOR(getservbyport(htons(PortNumber), Prot));
+	}
+	
+	/*
+		Get info about service by name
+		example:
+		int Port = GetSystemProtocol("http").Port; //ProtocolIndex eq. 80
+	*/
+	static PORT_SERVICE_INTERATOR GetSystemService(const char * Name, const char * Prot = NULL)
+	{
+		return PORT_SERVICE_INTERATOR(getservbyname(Name, Prot));
+	}
+
+
+	/*
+		Get info about service by port number
+		example:
+		char * PortServiceName = GetSystemService(80).Name; //ProtocolName eq. "http"
+	*/
+	static NET_INTERATOR GetSystemNetwork(long net, int type)
+	{
+		return NET_INTERATOR(getnetbyaddr(net, type));
+	}
+	
+	/*
+		Get info about service by name
+		example:
+		int Port = GetSystemProtocol("http").Port; //ProtocolIndex eq. 80
+	*/
+	static NET_INTERATOR GetSystemNetwork(const char * Name)
+	{
+		return NET_INTERATOR(getnetbyname(Name));
+	}
 
 	bool Connect(int iSocktype = SOCK_STREAM, int iProtocol = IPPROTO_TCP, int iFamily = AF_UNSPEC)
 	{	
