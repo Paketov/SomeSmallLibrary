@@ -1,0 +1,1104 @@
+#ifndef __QUERYURL_H_HAS_INCLUDED__
+#define __QUERYURL_H_HAS_INCLUDED__
+
+#ifdef WIN32
+
+#	include <winsock.h>
+
+#	undef IPPROTO_ICMP
+#	undef IPPROTO_IGMP
+#	undef IPPROTO_GGP
+#	undef IPPROTO_TCP
+#	undef IPPROTO_PUP
+#	undef IPPROTO_UDP
+#	undef IPPROTO_IDP
+#	undef IPPROTO_ND 
+#	undef IPPROTO_RAW
+#	undef IPPROTO_MAX
+
+namespace winsock
+{
+#	include <ws2tcpip.h>
+#	include <winsock2.h>
+};
+
+
+using winsock::addrinfo; 
+using winsock::sockaddr_in6;
+using winsock::getaddrinfo;
+using winsock::inet_ntop;
+
+#	define IPPROTO_ICMP winsock::IPPROTO_ICMP
+#	define IPPROTO_IGMP winsock::IPPROTO_IGMP 
+#	define IPPROTO_GGP  winsock::IPPROTO_GGP
+#	define IPPROTO_TCP  winsock::IPPROTO_TCP
+#	define IPPROTO_PUP  winsock::IPPROTO_PUP
+#	define IPPROTO_UDP  winsock::IPPROTO_UDP
+#	define IPPROTO_IDP  winsock::IPPROTO_IDP
+#	define IPPROTO_ND   winsock::IPPROTO_ND
+#	define IPPROTO_RAW  winsock::IPPROTO_RAW
+#	define IPPROTO_MAX  winsock::IPPROTO_MAX
+#	ifndef WSA_VERSION
+#		define WSA_VERSION MAKEWORD(2, 2)
+#	endif
+#	pragma comment(lib, "Ws2_32.lib")
+
+#else
+#   include <sys/types.h>
+#   include <sys/socket.h>
+#   include <netinet/in.h>
+#   include <arpa/inet.h>
+#   include <netdb.h>
+#   include <unistd.h>
+#	define closesocket(socket)  close(socket)
+#endif
+
+#include "ExString.h"
+
+#ifdef USE_OPEN_SSL
+#	include <openssl/crypto.h>
+#	include <openssl/x509.h>
+#	include <openssl/pem.h>
+#	include <openssl/ssl.h>
+#	include <openssl/err.h>
+#endif
+
+
+#ifdef OPENSSL_GLOBAL
+#define IS_HAVE_OPEN_SSL
+#endif
+
+#if defined(IS_HAVE_OPEN_SSL)
+#define IS_HAVE_SSL 1
+#else
+#define IS_HAVE_SSL 0
+#endif
+
+
+#define ERR_ARG(Str) Str, L ## Str
+
+
+
+
+
+class QUERY_URL_CLIENT
+{
+
+	typedef std::basic_string<char> String;
+	unsigned			PortionSize;
+
+public:
+	struct ADDR_INFO : addrinfo
+	{
+		inline int ProtocolFamily()
+		{
+			return ai_family;
+		}
+
+
+		unsigned short Port()
+		{
+			switch(ProtocolFamily())
+			{
+			case AF_INET:
+				if(ai_addrlen == sizeof(sockaddr_in))
+					return ((sockaddr_in*)ai_addr)->sin_port;
+				return 0;
+			case AF_INET6:
+				if(ai_addrlen == sizeof(sockaddr_in6))
+					return ((sockaddr_in6*)ai_addr)->sin6_port;   
+			}
+			return 0;
+		}
+
+		unsigned short ReadeblePort()
+		{
+		   return htons(Port());
+		}
+
+		void * AddressData()
+		{
+			switch(ProtocolFamily())
+			{
+			case AF_INET:
+				if(ai_addrlen == sizeof(sockaddr_in))
+					return &((sockaddr_in*)ai_addr)->sin_addr;
+				else if(ai_addrlen == sizeof(sockaddr))
+					return ((sockaddr*)ai_addr)->sa_data;
+				break;
+			case AF_INET6:
+				if(ai_addrlen == sizeof(sockaddr_in6))
+					return &((sockaddr_in6*)ai_addr)->sin6_addr;
+				else if(ai_addrlen == sizeof(sockaddr))
+					return ((sockaddr*)ai_addr)->sa_data;
+				break;
+			}
+			return NULL;
+		}
+
+		inline ADDR_INFO * Next()
+		{
+			return (ADDR_INFO*)ai_next;
+		}
+
+	};
+private:
+
+#ifdef IS_HAVE_OPEN_SSL
+	SSL_CTX				*ctx; //For ssl connection
+	SSL					*ssl; //For ssl connection
+#endif
+
+#ifdef WIN32
+	void * lpWSAData;
+#endif
+
+	int StartWsa()
+	{
+#ifdef WIN32
+		if(lpWSAData == NULL)
+		{
+			lpWSAData = malloc(sizeof(WSADATA));
+			return WSAStartup(WSA_VERSION, (LPWSADATA)lpWSAData);
+		}
+#endif
+		return 0;
+	}
+
+	void EndWsa()
+	{
+#ifdef WIN32
+		if(lpWSAData != NULL)
+		{
+			free(lpWSAData);
+			WSACleanup();
+		}
+#endif
+	}
+
+	void InitFields()
+	{
+
+#ifdef IS_HAVE_OPEN_SSL
+		ctx = NULL;
+		ssl = NULL;
+#endif
+		Ip.HostName = NULL;
+		Ip.AllAddressHost = NULL;
+		Ip.CurUseAddress = NULL;
+		Ip.Port = 0;
+		Ip.hSocket = -1;
+		Ip.IsEnableSSLLayer = false;
+#ifdef WIN32
+		Ip.IsNonBlocket = false;
+#endif
+		LastError.Clear();
+	}
+
+	bool InitSSL()
+	{
+#ifdef IS_HAVE_OPEN_SSL			
+		ctx = NULL;
+		ssl = NULL;
+		SSL_load_error_strings();
+		SSL_library_init();
+
+		ctx = SSL_CTX_new(SSLv23_client_method());
+		ssl = SSL_new(ctx);
+
+		if(SSL_set_fd(ssl, Ip.hSocket) == 0)
+		{
+			LastError.SetError(ERR_ARG("SSL not connect with socket"), 14);
+			goto SSLErrOut;
+		}
+		if(SSL_connect(ssl) < 0)
+		{
+			LastError.SetError(ERR_ARG("SSL not connect with socket"), 5);
+SSLErrOut:
+			SSL_shutdown(ssl);
+			SSL_free(ssl);
+			ssl = NULL;
+			SSL_CTX_free(ctx);
+			ctx = NULL;
+			closesocket(hSocket);
+			hSocket = -1;
+			return false;
+		}
+#endif
+
+		return true;
+	}
+
+	void UninitSSL()
+	{
+#ifdef IS_HAVE_OPEN_SSL	
+		if(ssl)
+		{
+			SSL_shutdown(ssl);
+			SSL_free(ssl);
+		}
+		if(ctx)
+			SSL_CTX_free(ctx);
+#endif
+	}
+
+	bool InitInfo(unsigned char * IPAddress, unsigned short Port = 80, bool IsHaveSSL = false)
+	{
+		IsEnableSSL = IsHaveSSL;
+	}
+
+	bool InitInfo(char * lpAddress)
+	{
+
+		lpWSAData = NULL;
+		char * _Pos;
+		int Pos;
+		unsigned short _Port;
+		PortionSize = 500;
+
+		if((_Pos = strstr(lpAddress, "://")) != NULL)
+		{
+			_Port = (strncmp(lpAddress, "https",5) == 0)?443:80;
+			_Pos += 3;
+		}else 
+		{
+			_Port = 80;
+			_Pos = lpAddress;
+		}
+
+		sscanf(_Pos,"%*[^/:]%n%*c%hu", &Pos, &_Port);
+
+		Host.Append(_Pos, Pos);
+		Port = _Port;
+		if(_Port == 443)
+			IsEnableSSL = IS_HAVE_SSL;
+		if(*Host.HostName == '\0')
+		{
+			LastError.SetError(ERR_ARG("Invalid host name"), 1);
+			return false;
+		}
+
+		return true;
+	}
+
+
+#ifdef WIN32
+#define NON_BLOCKET_FIELD bool IsNonBlocket;
+#else
+#define NON_BLOCKET_FIELD
+#endif
+
+#define _QUERY_URL_FIELDS1_  \
+	struct{\
+		int				hSocket;\
+		unsigned short  Port;\
+		ADDR_INFO		*AllAddressHost;\
+		ADDR_INFO		*CurUseAddress;\
+		char			*HostName;\
+		bool			IsEnableSSLLayer;\
+		char			*lpError;\
+		wchar_t			*lpwError;\
+		unsigned		uError;\
+		NON_BLOCKET_FIELD\
+	}
+
+public:
+
+	union
+	{	
+		class URL_ERROR
+		{		
+			friend QUERY_URL_CLIENT;
+			_QUERY_URL_FIELDS1_;
+
+			void SetError(char * ErrorMessage, wchar_t * WErrorMessage, unsigned Number)
+			{
+				lpError = ErrorMessage;
+				lpwError = WErrorMessage;
+				uError = Number;
+			}
+
+		public:
+			operator const char *()
+			{
+				return lpError;
+			}
+
+			operator const wchar_t *()
+			{
+				return lpwError;
+			}
+
+			unsigned GetNumber()
+			{
+				return uError;
+			}
+
+			void Clear()
+			{
+				SetError(ERR_ARG("OK"), 0);
+			}
+		} LastError;
+
+		class 
+		{
+			friend QUERY_URL_CLIENT;
+			_QUERY_URL_FIELDS1_;
+
+			void SetByData()
+			{
+				struct hostent * Res = gethostbyaddr((const char*)CurUseAddress->ai_addr, CurUseAddress->ai_addrlen, CurUseAddress->ProtocolFamily());
+				Set(Res->h_name);
+			}
+
+			void Set(char *NewStr)
+			{
+				realloc(HostName, StringLength(NewStr) + 1);
+				StringCopy(HostName, NewStr);
+			}
+
+			void Append(char * StrAppend, size_t Len)
+			{
+				size_t FirstSize = (HostName == NULL)?0:StringLength(HostName);
+				HostName = (char*)realloc(HostName, FirstSize + Len + 1);
+				if(FirstSize == 0)
+					*HostName = '\0';
+				StringAppend(HostName, StrAppend, Len);
+			}
+			void Clear()
+			{
+				if(HostName)
+				{
+					free(HostName);
+					HostName = NULL;
+				}
+			}
+
+		public:
+
+			operator char*()
+			{
+				return HostName;
+			}
+
+			bool IsEmpty()
+			{
+				return (HostName)?(*HostName == '\0'):true;
+			}
+		} Host;
+
+		class
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+			operator int()
+			{
+				return CurUseAddress->ai_socktype;
+			}
+		} TypeSocket;
+
+		class
+		{
+			friend QUERY_URL_CLIENT;
+			_QUERY_URL_FIELDS1_;
+
+			class AS_INTERATOR
+			{
+				ADDR_INFO * Cur;
+			public:
+
+				AS_INTERATOR(ADDR_INFO * New)
+				{
+					Cur = New;
+				}
+
+				operator unsigned short()
+				{
+					return (Cur != NULL)?Cur->ReadeblePort():0;
+				} 
+
+				char* operator()(char * Dest, size_t Len = 6)
+				{
+					if(Cur != NULL)
+						NumberToString((unsigned short)*this, Dest, Len);
+					return Dest;
+				}
+
+				operator std::basic_string<char>()
+				{
+					std::basic_string<char> Buf("", 6);
+					NumberToString((unsigned short)*this, (char*)Buf.c_str(), 6);
+					return Buf;
+				}
+
+			};
+
+			unsigned short operator =(unsigned short New)
+			{
+				return Port = New;
+			}
+
+		public:
+			operator unsigned short()
+			{
+				return Port;
+			}
+
+			char* operator()(char * Dest, size_t Len = 0xffff)
+			{
+				NumberToString((unsigned short)*this, Dest, Len);
+				return Dest;
+			}
+
+			operator std::basic_string<char>()
+			{
+				std::basic_string<char> Buf("", 6);
+				NumberToString((unsigned short)*this, (char*)Buf.c_str(), 6);
+				return Buf;
+			}
+
+			AS_INTERATOR operator[](size_t Index)
+			{
+				ADDR_INFO * ai = AllAddressHost;
+				for(unsigned i = 0;ai != NULL;ai = ai->Next(), i++)
+				      if(i == Index)
+						  break;
+				return AS_INTERATOR(ai);
+			}
+
+		} Port;
+
+		class
+		{
+			friend QUERY_URL_CLIENT;
+			_QUERY_URL_FIELDS1_;
+			class AS_INTERATOR
+			{
+				ADDR_INFO * Cur;
+			public:
+				AS_INTERATOR(ADDR_INFO * New)
+				{
+					Cur = New;
+				}
+
+				void* GetData()
+				{
+					if(Cur != NULL)
+						return Cur->AddressData();
+					return NULL;
+				}
+
+				char* operator()(char * Dest, size_t Len = 6)
+				{
+					if(Cur != NULL)
+						inet_ntop(Cur->ProtocolFamily(), Cur->AddressData(), Dest, Len);
+					return Dest;
+				}
+
+				operator std::basic_string<char>()
+				{
+					std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
+					operator()((char*)Buf.c_str(), INET6_ADDRSTRLEN + 1);
+					return Buf;
+				}
+			};
+		public:
+
+			void* GetData()
+			{
+				return CurUseAddress->AddressData();
+			}
+
+			char* operator()(char * Dest, size_t Len = 0xffff)
+			{
+				inet_ntop(CurUseAddress->ProtocolFamily(), CurUseAddress->AddressData(), Dest, Len);
+				return Dest;
+			}
+
+			operator std::basic_string<char>()
+			{
+			   std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
+			   operator()((char*)Buf.c_str(), INET6_ADDRSTRLEN + 1);
+			   return Buf;
+			}
+
+			AS_INTERATOR operator[](size_t Index)
+			{
+				ADDR_INFO * ai = AllAddressHost;
+				for(unsigned i = 0;ai != NULL;ai = ai->Next(), i++)
+					if(i == Index)
+						break;
+				return AS_INTERATOR(ai);
+			}
+		} Ip;
+
+		class
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+
+			operator unsigned short()
+			{
+				struct sockaddr_in6 sin;
+				int addrlen = sizeof(sin);
+				if(getsockname(hSocket, (struct sockaddr*)&sin, &addrlen) == 0)
+					return ntohs(sin.sin6_port);
+				return 0;
+			}
+
+			char* operator()(char * Dest, size_t Len = 6)
+			{
+				NumberToString((unsigned short)*this, Dest, Len);
+				return Dest;
+			}
+
+			operator std::basic_string<char>()
+			{
+				std::basic_string<char> Buf("", 6);
+				NumberToString((unsigned short)*this, (char*)Buf.c_str(), 6);
+				return Buf;
+			}
+		} LocalPort;
+
+		class 
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+
+			char* operator()(char * Dest, size_t Len = 0xffff)
+			{
+				struct sockaddr_in6 sin;
+				int addrlen = sizeof(sin);
+				void * p;
+				if(getsockname(hSocket, (struct sockaddr*)&sin, &addrlen) == 0)
+				{
+					switch(sin.sin6_family)
+					{
+					case AF_INET:
+						if(addrlen == sizeof(sockaddr_in))
+							p = &((sockaddr_in*)&sin)->sin_addr;
+						else if(addrlen == sizeof(sockaddr))
+							p = ((sockaddr*)&sin)->sa_data;
+						else
+							return NULL;
+						break;
+					case AF_INET6:
+						if(addrlen == sizeof(sockaddr_in6))
+							p = &((sockaddr_in6*)&sin)->sin6_addr;
+						else if(addrlen == sizeof(sockaddr))
+							p = ((sockaddr*)&sin)->sa_data;
+						else
+							return NULL;
+						break;
+					}
+				}
+				inet_ntop(sin.sin6_family, p, Dest, Len);
+				return Dest;
+			}
+
+			operator std::basic_string<char>()
+			{
+			   std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
+			   operator()((char*)Buf.c_str(), INET6_ADDRSTRLEN + 1);
+			   return Buf;
+			}
+
+		} LocalIp;
+
+		class
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+			operator unsigned short()
+			{
+				return CurUseAddress->ProtocolFamily();
+			}
+
+			operator char*()
+			{
+				switch(CurUseAddress->ProtocolFamily())
+				{
+				case AF_UNSPEC:
+					return "UNSPEC";
+				case AF_INET:
+					return "IPv4";
+				case AF_INET6:
+					return "IPv6";
+				case AF_NETBIOS:
+					return "NETBIOS";
+				}
+				return "";
+			}
+		} Protocol;
+
+		class 
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+
+			operator int()
+			{
+				return CurUseAddress->ai_protocol;
+			}
+		} FirstLayerProtocol;
+
+		class
+		{
+			friend QUERY_URL_CLIENT;
+			_QUERY_URL_FIELDS1_;
+			bool operator =(bool NewValue)
+			{
+				return IsEnableSSLLayer = NewValue;
+			}
+		public:
+			operator bool() const
+			{
+				return IsEnableSSLLayer;
+			}
+		} IsEnableSSL;
+
+		class 
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+			bool operator=(bool NewVal)
+			{
+#ifdef WIN32
+				DWORD nonBlocking = NewVal;
+				if (ioctlsocket(hSocket, FIONBIO, &nonBlocking) != NO_ERROR)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Failed to set non-blocking socket"), 34);
+				else
+					IsNonBlocket = NewVal;
+#else
+				int nonBlocking = NewVal;
+				if (fcntl(hSocket, F_SETFL, O_NONBLOCK, nonBlocking) == -1)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Failed to set non-blocking socket"), 34);
+#endif
+				return NewVal;
+			}
+
+			operator bool()
+			{
+#ifdef WIN32
+				return IsNonBlocket;
+#else
+				return fcntl(hSocket, F_GETFL, 0) & O_NONBLOCK;
+#endif
+			}
+		} IsNonBlocket;
+
+		//Params
+
+		class 
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+
+			timeval & operator=(timeval & New)
+			{
+				if(setsockopt(hSocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&New, sizeof(timeval)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not set time interval"), 38);
+				return New;
+			}
+
+			operator timeval()
+			{
+				timeval v;
+				if(getsockopt(hSocket,SOL_SOCKET, SO_RCVTIMEO, (char*)&v, sizeof(timeval)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not get time interval"), 39);
+				return v;
+			}
+		} ReceiveTimeout;
+
+		class 
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+
+			timeval & operator=(timeval & New)
+			{
+				if(setsockopt(hSocket, SOL_SOCKET, SO_SNDTIMEO, (char*)&New, sizeof(timeval)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not set time interval"), 40);
+				return New;
+			}
+
+			operator timeval()
+			{
+				timeval v;
+				if(getsockopt(hSocket,SOL_SOCKET, SO_SNDTIMEO, (char*)&v, sizeof(timeval)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not get time interval"), 41);
+				return v;
+			}
+		} SendTimeout;
+
+		class 
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+
+			int operator=(int New)
+			{
+				if(setsockopt(hSocket, SOL_SOCKET, SO_SNDBUF, (char*)&New, sizeof(New)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not set size buffer"), 42);
+				return New;
+			}
+
+			operator int()
+			{
+				int v;
+				if(getsockopt(hSocket,SOL_SOCKET, SO_SNDBUF, (char*)&v, sizeof(v)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not get size buffer"), 43);
+				return v;
+			}
+		} SendSizeBuffer;
+
+		class 
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+
+			int operator=(int New)
+			{
+				if(setsockopt(hSocket, SOL_SOCKET, SO_RCVBUF, (char*)&New, sizeof(New)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not set size buffer"), 44);
+				return New;
+			}
+
+			operator int()
+			{
+				int v;
+				if(getsockopt(hSocket,SOL_SOCKET, SO_RCVBUF, (char*)&v, sizeof(v)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not get size buffer"), 45);
+				return v;
+			}
+		} ReceiveSizeBuffer;
+
+		class
+		{			
+			_QUERY_URL_FIELDS1_;
+		public:
+
+			bool operator=(bool New)
+			{
+				int v = New;
+				if(setsockopt(hSocket, SOL_SOCKET, SO_KEEPALIVE, (char*)&v, sizeof(v)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not set keep alive state"), 46);
+				return New;
+			}
+
+			operator bool()
+			{
+				int v;
+				if(getsockopt(hSocket,SOL_SOCKET, SO_KEEPALIVE, (char*)&v, sizeof(v)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not get keep alive state"), 47);
+				return v;
+			}
+		
+		} IsKeepAlive;
+
+		class
+		{			
+			_QUERY_URL_FIELDS1_;
+		public:
+
+			bool operator=(bool New)
+			{
+				int v = New;
+				if(setsockopt(hSocket, SOL_SOCKET, SO_BROADCAST, (char*)&v, sizeof(v)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not set keep alive state"), 46);
+				return New;
+			}
+			operator bool()
+			{
+				int v;
+				if(getsockopt(hSocket,SOL_SOCKET, SO_BROADCAST, (char*)&v, sizeof(v)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not get keep alive state"), 47);
+				return v;
+			}
+		} IsBroadcast;
+
+
+		class
+		{			
+			_QUERY_URL_FIELDS1_;
+		public:
+			bool operator=(bool New)
+			{
+				int v = New;
+				if(setsockopt(hSocket, SOL_SOCKET, SO_DEBUG, (char*)&v, sizeof(v)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not set keep alive state"), 46);
+				return New;
+			}
+			operator bool()
+			{
+				int v;
+				if(getsockopt(hSocket,SOL_SOCKET, SO_DEBUG, (char*)&v, sizeof(v)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not get keep alive state"), 47);
+				return v;
+			}
+		} IsDebug;
+
+		class
+		{			
+			_QUERY_URL_FIELDS1_;
+		public:
+			bool operator=(bool New)
+			{
+				int v = New;
+				if(setsockopt(hSocket, SOL_SOCKET, SO_DONTROUTE , (char*)&v, sizeof(v)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not set keep alive state"), 46);
+				return New;
+			}
+			operator bool()
+			{
+				int v;
+				if(getsockopt(hSocket,SOL_SOCKET, SO_DONTROUTE , (char*)&v, sizeof(v)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not get keep alive state"), 47);
+				return v;
+			}
+		} IsDontRoute;
+
+
+	};
+
+	bool Connect(int iSocktype = SOCK_STREAM, int iProtocol = IPPROTO_TCP, int iFamily = AF_UNSPEC)
+	{	
+		if(StartWsa() != 0) 
+		{
+			LastError.SetError(ERR_ARG("Dont start wsa"), 15);
+			return false;
+		}
+
+		{	
+			if(Ip.AllAddressHost == NULL)
+			{
+				if(!InitAddressHost(iSocktype, iProtocol, iFamily))
+					return false;
+			}
+			ADDR_INFO *i;
+			for (i = Ip.AllAddressHost; i != NULL; i = i->Next()) 
+			{
+				Ip.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol);
+				if(Ip.hSocket == -1)
+					continue;
+				if (connect(Ip.hSocket, i->ai_addr, i->ai_addrlen) != -1)
+					break;
+				closesocket(Ip.hSocket);
+			}
+
+			if(i == NULL)
+			{
+				LastError.SetError(ERR_ARG("Could not connect"), 3);
+				Ip.hSocket = -1;
+				return false;
+			}
+			Ip.CurUseAddress = i;
+
+			if(Host.IsEmpty())
+				Host.SetByData();
+		}
+
+		if(IsEnableSSL)
+			if(!InitSSL())
+				return false;
+		return true; 
+	}
+
+	bool InitAddressHost(int iSocktype = SOCK_STREAM, int iProtocol = IPPROTO_TCP, int iFamily = AF_UNSPEC)
+	{
+		if(Host.IsEmpty())
+		{
+			LastError.SetError(ERR_ARG("Host name is empty"), 23);
+			return false;
+		}
+		if((unsigned short)Port == 0)
+		{
+			LastError.SetError(ERR_ARG("Port is empty"), 24);
+			return false;
+		}
+
+		struct addrinfo host_info = {0};
+		host_info.ai_socktype = iSocktype;
+		host_info.ai_family = iFamily;
+		host_info.ai_protocol = iProtocol;
+
+		char PortBuf[6];
+		Port(PortBuf);
+		if(getaddrinfo(Host, PortBuf, &host_info, (addrinfo**)&Ip.AllAddressHost) != 0)
+		{
+			LastError.SetError(ERR_ARG("Dont get server info"), 2);
+			return false;
+		}
+		return true;
+	}
+
+	QUERY_URL_CLIENT(String & Host)
+	{
+		InitFields();
+		InitInfo((char*)Host.c_str());
+	}
+
+	QUERY_URL_CLIENT(char * Host)
+	{
+		InitFields();
+		InitInfo(Host);
+	}
+
+	~QUERY_URL_CLIENT()
+	{
+		if(IsEnableSSL)
+			UninitSSL();
+		if(Ip.hSocket != -1)
+			closesocket(Ip.hSocket);
+		if(Ip.AllAddressHost)
+			freeaddrinfo(Ip.AllAddressHost);
+		Host.Clear();
+	}
+
+	inline bool SendQuery(const String & InQuery)
+	{
+		return SendQuery((void*)InQuery.c_str(), InQuery.length());
+	}
+
+	bool SendQuery(const void * QueryBuf, unsigned SizeBuf)
+	{
+		if(IsEnableSSL)
+		{
+#ifdef	IS_HAVE_OPEN_SSL
+			if(SSL_write(ssl, QueryBuf,SizeBuf) < 0)
+			{
+				LastError.SetError(ERR_ARG("Not send ssl query"), 7);
+				return false;
+			}
+#endif
+		}else if(send(Ip.hSocket, (char*)QueryBuf, SizeBuf, 0) < 0)
+		{
+			LastError.SetError(ERR_ARG("Not send query"), 8);
+			return false;
+		}
+		return true;
+	}
+
+
+	bool TakeResponse(void * Buf, unsigned SizeBuf, unsigned * SizeReaded = NULL)
+	{
+		int ReadedSize;
+		if(IsEnableSSL)
+		{
+#ifdef	IS_HAVE_OPEN_SSL
+			if((ReadedSize = SSL_read(ssl, Buf, SizeBuf)) < 0)
+			{
+				LastError.SetError(ERR_ARG("Not get data from sll server"), 9);
+				return false;
+			}
+#endif
+		}else if((ReadedSize = recv(Ip.hSocket, (char*)Buf, SizeBuf, 0)) == -1)
+		{
+			LastError.SetError(ERR_ARG("Not get data from server"), 10);
+			return false;
+		}
+		if(SizeReaded != NULL)
+			*SizeReaded = ReadedSize;
+		return true;
+	}
+
+	bool TakeResponse(std::basic_string<char> & StrBuf)
+	{
+		if(StrBuf.capacity() < PortionSize)
+			StrBuf.resize(PortionSize);
+
+		char * Buf = (char*)StrBuf.c_str();
+		unsigned CurSize = 0;
+
+		if(IsEnableSSL)
+		{
+#ifdef	IS_HAVE_OPEN_SSL
+			while(true)
+			{
+				int ReadedSize = SSL_read(ssl, Buf, PortionSize);
+				if(ReadedSize < 0)
+				{
+					LastError.SetError(ERR_ARG("Not get data from sll server"), 9);
+					return false;
+				}else if(ReadedSize == 0)
+					break;
+				else
+				{
+					CurSize += ReadedSize;
+					StrBuf.resize(CurSize + PortionSize);
+					Buf = (char*)StrBuf.c_str() + CurSize;  
+				}
+			}
+#endif
+		}else
+		{
+			while(true)
+			{
+				int ReadedSize = recv(Ip.hSocket, Buf, PortionSize, 0);
+				if(ReadedSize == -1)
+				{
+					LastError.SetError(ERR_ARG("Not get data from server"), 10);
+					return false;
+				}else if(ReadedSize == 0)
+					break;
+				else
+				{
+					CurSize += ReadedSize;
+					StrBuf.resize(CurSize + PortionSize);
+					Buf = (char*)StrBuf.c_str() + CurSize;  
+				}
+			}
+		}
+		*Buf = '\0';
+		return true;
+	}
+
+
+	inline bool SendAndTakeQuery(void * SendBuf, unsigned SizeSendBuf, void * Buf, unsigned SizeBuf, unsigned * SizeReaded = NULL)
+	{
+		if(!SendQuery(SendBuf,SizeSendBuf))
+			return false;
+		return TakeResponse(Buf,SizeBuf,SizeReaded);
+	}
+
+	inline bool SendAndTakeQuery(String & strQuery, void * Buf, unsigned SizeBuf, unsigned * SizeReaded = NULL)
+	{
+		if(!SendQuery((void*)strQuery.c_str(), strQuery.length()))
+			return false;
+		return TakeResponse(Buf, SizeBuf, SizeReaded);
+	}
+
+	inline bool SendAndTakeQuery(void * SendBuf, unsigned SizeSendBuf, String & Result)
+	{
+		if(!SendQuery(SendBuf,SizeSendBuf))
+			return false;
+		return TakeResponse(Result);
+	}
+
+	inline bool SendAndTakeQuery(char * SendStr, String & Result)
+	{
+		if(!SendQuery(SendStr,strlen(SendStr)))
+			return false;
+		return TakeResponse(Result);
+	}
+
+	inline bool SendAndTakeQuery(char * SendStr, void * Buf, unsigned SizeBuf, unsigned * SizeReaded = NULL)
+	{
+		if(!SendQuery(SendStr,strlen(SendStr)))
+			return false;
+		return TakeResponse(Buf,SizeBuf,SizeReaded);
+	}
+
+
+	inline bool SendAndTakeQuery(String & strQuery, String & Result)
+	{
+		if(!SendQuery((void*)strQuery.c_str(), strQuery.length()))
+			return false;
+		return TakeResponse(Result);
+	}
+
+};
+
+
+
+#endif // QUERYURL_H_INCLUDED
