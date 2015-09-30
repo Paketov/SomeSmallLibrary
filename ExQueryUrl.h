@@ -26,7 +26,6 @@ namespace winsock
 
 	struct ::netent * readnetnetworklist()
 	{
-
 		char Name[BUFSIZ+1], c, NetworksPath[MAX_PATH];
 		::netent * NewNet = (::netent*)malloc(sizeof(::netent));
 		unsigned CurNnet = 0;
@@ -38,7 +37,7 @@ namespace winsock
 		FILE * FNetworks = fopen(NetworksPath, "rt");
 		if(FNetworks != NULL)
 		{
-			for(;!feof(FNetworks);)
+			while(!feof(FNetworks))
 			{
 				SkipSpace(FNetworks);
 				if((c = fgetc(FNetworks)) == '#')
@@ -78,31 +77,129 @@ lblOut:
 
 	struct ::netent * GetNetworksInfo(){ static struct ::netent * gn = readnetnetworklist(); return gn;}
 
-	struct ::netent * getnetbyname(const char *name)
+	struct ::netent * getnetbyname__(const char *name)
 	{
 		for(::netent * gn = GetNetworksInfo();gn->n_name;gn++)
-		    if(StringCompare(name, gn->n_name) == 0)
+			if(StringCompare(name, gn->n_name) == 0)
 				return gn;
 		return NULL;
 	}
 
-	struct ::netent * getnetbyaddr(long net, int type)
+#define getnetbyname winsock::getnetbyname__
+
+	struct ::netent * getnetbyaddr__(long net, int type)
 	{
 		for(::netent * gn = GetNetworksInfo();gn->n_name;gn++)
-		    if((gn->n_net == net) && (gn->n_addrtype == type))
+			if((gn->n_net == net) && (gn->n_addrtype == type))
 				return gn;
 		return NULL;
 	} 
+#define getnetbyaddr winsock::getnetbyaddr__
 
+	struct ::servent * readservicelist()
+	{
+		char Name[BUFSIZ+1], ProtocolName[BUFSIZ+1], c, NetworksPath[MAX_PATH];
+		::servent * NewServEnt = (::servent*)malloc(sizeof(::servent));
+		unsigned CurNnet = 0;
+		char * WinDirPath = getenv("windir");
+		if(WinDirPath == NULL)
+			goto lblOut;
+		StringCopy(NetworksPath, WinDirPath);
+		StringAppend(NetworksPath, "\\System32\\drivers\\etc\\services");
+		FILE * FServices = fopen(NetworksPath, "rt");
+		if(FServices != NULL)
+		{
+			while(!feof(FServices))
+			{
+				SkipSpace(FServices);
+				if((c = fgetc(FServices)) == '#')
+				{
+					fscanf(FServices, "%*[^\n]");
+					continue;
+				}
+				ungetc(c, FServices);
+				unsigned short Port;
+				int CountReaded = fscanf(FServices, "%[^ #\n\t\v\f\r] %hu/%s", Name, &Port, ProtocolName);
+				NewServEnt[CurNnet].s_port = htons(Port);
+				if(CountReaded < 3)
+					continue;
+				NewServEnt[CurNnet].s_name = NULL;
+				NewServEnt[CurNnet].s_proto = NULL;
+				for(unsigned i = 0;(i < CurNnet) && (!NewServEnt[CurNnet].s_proto || !NewServEnt[CurNnet].s_name);i++)
+				{
+				    if(StringICompare(Name, NewServEnt[i].s_name) == 0)
+						NewServEnt[CurNnet].s_name = NewServEnt[i].s_name;//For economy memory :)
+					if(StringICompare(ProtocolName, NewServEnt[i].s_proto) == 0)
+						NewServEnt[CurNnet].s_proto = NewServEnt[i].s_proto;//For economy memory :)
+				}
+				if(NewServEnt[CurNnet].s_name == NULL) 
+					NewServEnt[CurNnet].s_name = StringDuplicate(Name);
+				if(NewServEnt[CurNnet].s_proto == NULL) 
+					NewServEnt[CurNnet].s_proto = StringDuplicate(ProtocolName);
+				unsigned NumberAliases = 0;
+				NewServEnt[CurNnet].s_aliases = (char**)malloc(sizeof(char*));
+				while(true)
+				{
+					CountReaded = fscanf(FServices, "%*[ \t\v\f\r]%[^ #\n\t\v\f\r]", Name);
+					if(CountReaded <= 0)
+						break;
+					NewServEnt[CurNnet].s_aliases[NumberAliases] = StringDuplicate(Name);
+					NumberAliases++;
+					NewServEnt[CurNnet].s_aliases = (char**)realloc(NewServEnt[CurNnet].s_aliases, (NumberAliases + 1) * sizeof(char*));
+				}
+				NewServEnt[CurNnet].s_aliases[NumberAliases] = NULL;
+				CurNnet++;
+				NewServEnt = (decltype(NewServEnt))realloc(NewServEnt, (CurNnet + 1) * sizeof(::servent));
+			}
+			fclose(FServices);
+		}
+lblOut:
+		memset(NewServEnt + CurNnet, 0, sizeof(NewServEnt[CurNnet]));
+		return NewServEnt;
+	}
 
+	struct ::servent * GetServiceInfo(){ static struct ::servent * gn = readservicelist(); return gn;}
+
+	struct ::servent * getservbyport__(int port, const char * proto)
+	{
+		
+		for(::servent * gn = GetServiceInfo();gn->s_name;gn++)
+		{
+			if(gn->s_port == port)
+			{
+			   if(proto == NULL)
+				   return gn;
+			   if(StringICompare(proto, gn->s_proto) == 0)
+				   return gn;
+			}
+		}
+		return NULL;
+	}
+
+#define getservbyport winsock::getservbyport__
+	struct ::servent * getservbyname__(const char * Name, const char * proto)
+	{
+		for(::servent * gn = GetServiceInfo();gn->s_name;gn++)
+		{
+			if(StringICompare(Name, gn->s_name) == 0)
+			{
+			   if(proto == NULL)
+				   return gn;
+			   if(StringICompare(proto, gn->s_proto) == 0)
+				   return gn;
+			}
+		}
+		return NULL;
+	} 
+
+#define getservbyname winsock::getservbyname__
 };
 
 using winsock::addrinfo; 
 using winsock::sockaddr_in6;
 using winsock::getaddrinfo;
 using winsock::inet_ntop;
-using winsock::getnetbyname;
-using winsock::getnetbyaddr;
+
 
 #	define IPPROTO_ICMP winsock::IPPROTO_ICMP
 #	define IPPROTO_IGMP winsock::IPPROTO_IGMP 
@@ -118,9 +215,6 @@ using winsock::getnetbyaddr;
 #		define WSA_VERSION MAKEWORD(2, 2)
 #	endif
 #	pragma comment(lib, "Ws2_32.lib")
-
-
-
 
 #else
 
@@ -161,19 +255,18 @@ using winsock::getnetbyaddr;
 
 
 
-
 class QUERY_URL_CLIENT
 {
 
 	typedef std::basic_string<char> String;
 
-	unsigned			PortionSize;
+	unsigned				PortionSize;
 
 	struct ADDR_INFO : addrinfo
 	{
 		inline int ProtocolFamily()
-		{
-			return ai_family;
+		{ 
+			return ai_family; 
 		}
 
 
@@ -192,12 +285,12 @@ class QUERY_URL_CLIENT
 			return 0;
 		}
 
-		unsigned short ReadeblePort()
-		{
-		   return htons(Port());
+		unsigned short ReadeblePort() 
+		{ 
+			return htons(Port());
 		}
 
-		void * AddressData()
+		void* AddressData()
 		{
 			switch(ProtocolFamily())
 			{
@@ -217,8 +310,8 @@ class QUERY_URL_CLIENT
 			return NULL;
 		}
 
-		inline ADDR_INFO * Next()
-		{
+		inline ADDR_INFO * Next() 
+		{ 
 			return (ADDR_INFO*)ai_next;
 		}
 
@@ -226,13 +319,11 @@ class QUERY_URL_CLIENT
 
 	struct PROTOCOL_INTERATOR
 	{
-#define PROTOCOL_INTERATOR_FIELDS struct{struct protoent * Cur; int CountAliases;}
-		PROTOCOL_INTERATOR(struct protoent * New)
+#define PROTOCOL_INTERATOR_FIELDS struct protoent * Cur;
+
+		inline PROTOCOL_INTERATOR(struct protoent * New)
 		{
 			Name.Cur = New;
-			Name.CountAliases = 0;
-			if(New != NULL)
-					for(;New->p_aliases[Name.CountAliases];Name.CountAliases++);
 		}
 
 		union
@@ -251,8 +342,8 @@ class QUERY_URL_CLIENT
 			} Name;
 
 			/*
-				Property represent protocol index.
-				PPROTO_
+			Property represent protocol index.
+			PPROTO_
 			*/
 			class
 			{
@@ -270,45 +361,40 @@ class QUERY_URL_CLIENT
 			{
 				PROTOCOL_INTERATOR_FIELDS;
 			public:
-				operator bool()
-				{
-					return Cur == NULL;
-				}
+				operator bool() { return Cur == NULL;}
 			} NotHave;
 
-			class
+			struct P_NAME
 			{
-				PROTOCOL_INTERATOR_FIELDS;
-			public:
+				class
+				{
+					friend P_NAME;
+					PROTOCOL_INTERATOR_FIELDS;
+				public:
+					inline operator int() 
+					{ 
+						int Count = 0;
+						for(;Cur->p_aliases[Count]; Count++);
+						return Count;
+					}
+				} Count;
+
 				char * operator[](unsigned Index)
 				{
-					if(Index < CountAliases)
-						return Cur->p_aliases[Index];
+					if(Index < Count)
+						return Count.Cur->p_aliases[Index];
 					return "";
 				}
-			} PsevdoName;
-
-			class
-			{
-				PROTOCOL_INTERATOR_FIELDS;
-			public:
-				operator int()
-				{
-					return CountAliases;
-				}
-			} CountPsevdoNames;
+			} Aliases;
 		};
 	};
 
 	struct PORT_SERVICE_INTERATOR
 	{
-#define PORT_SERVICE_INTERATOR_FIELDS struct{struct servent * Cur; int CountAliases;}
-		PORT_SERVICE_INTERATOR(struct servent * New)
+#define PORT_SERVICE_INTERATOR_FIELDS struct servent * Cur;
+		inline PORT_SERVICE_INTERATOR(struct servent * New)
 		{
 			Name.Cur = New;
-			Name.CountAliases = 0;
-			if(New != NULL)
-					for(;New->s_aliases[Name.CountAliases];Name.CountAliases++);
 		}
 
 		union
@@ -338,6 +424,18 @@ class QUERY_URL_CLIENT
 				}
 			} Port;
 
+			class
+			{
+				PORT_SERVICE_INTERATOR_FIELDS;
+			public:
+				operator unsigned short()
+				{
+					if(Cur == NULL)
+						return 0;
+					return Cur->s_port;
+				}
+			} PortInPacketForm;
+
 			class 
 			{
 				PORT_SERVICE_INTERATOR_FIELDS;
@@ -348,51 +446,58 @@ class QUERY_URL_CLIENT
 						return "";
 					return Cur->s_proto;
 				}
-			} UseProtocolName;
+
+				PROTOCOL_INTERATOR GetInfo()
+				{
+					if(Cur == NULL)
+						return PROTOCOL_INTERATOR(NULL);
+					return GetSystemProtocol(Cur->s_proto);
+				}
+			} UsedProtocol;
 
 			class
 			{
 				PORT_SERVICE_INTERATOR_FIELDS;
 			public:
 				operator bool()
-				{
+				{ 
 					return Cur == NULL;
 				}
 			} NotHave;
 
-			class
+			struct P_NAME
 			{
-				PORT_SERVICE_INTERATOR_FIELDS;
-			public:
+				class
+				{
+					friend P_NAME;
+					PORT_SERVICE_INTERATOR_FIELDS;
+				public:
+					inline operator int() 
+					{ 
+						int Count = 0;
+						if(Cur == NULL)
+							return Count;
+						for(;Cur->s_aliases[Count]; Count++);
+						return Count;
+					}
+				} Count;
+
 				char * operator[](unsigned Index)
 				{
-					if(Index < CountAliases)
-						return Cur->s_aliases[Index];
+					if(Index < Count)
+						return Count.Cur->s_aliases[Index];
 					return "";
 				}
-			} PsevdoName;
-
-			class
-			{
-				PORT_SERVICE_INTERATOR_FIELDS;
-			public:
-				operator int()
-				{
-					return CountAliases;
-				}
-			} CountPsevdoNames;
+			} Aliases;
 		};
 	};
 
 	struct NET_INTERATOR
 	{
-#define PROTOCOL_INTERATOR_FIELDS struct{struct netent * Cur; int CountAliases;}
-		NET_INTERATOR(struct netent * New)
+#define PROTOCOL_INTERATOR_FIELDS struct netent * Cur;
+		inline NET_INTERATOR(struct netent * New)
 		{
 			Name.Cur = New;
-			Name.CountAliases = 0;
-			if(New != NULL)
-					for(;New->n_aliases[Name.CountAliases];Name.CountAliases++);
 		}
 
 		union
@@ -402,7 +507,7 @@ class QUERY_URL_CLIENT
 				friend NET_INTERATOR;
 				PROTOCOL_INTERATOR_FIELDS;
 			public:
-				operator char*()
+				inline operator char*()
 				{
 					if(Cur == NULL)
 						return "";
@@ -411,14 +516,14 @@ class QUERY_URL_CLIENT
 			} Name;
 
 			/*
-				Type net address.
-				Usually AF_INET
+			Type net address.
+			Usually AF_INET
 			*/
 			class
 			{
 				PROTOCOL_INTERATOR_FIELDS;
 			public:
-				operator short()
+				inline operator short()
 				{
 					if(Cur == NULL)
 						return -1;
@@ -442,37 +547,179 @@ class QUERY_URL_CLIENT
 			{
 				PROTOCOL_INTERATOR_FIELDS;
 			public:
-				operator bool()
-				{
+				inline operator bool()
+				{ 
 					return Cur == NULL;
 				}
 			} NotHave;
 
-			class
+			struct P_NAME
 			{
-				PROTOCOL_INTERATOR_FIELDS;
-			public:
-				char * operator[](unsigned Index)
+				class
 				{
-					if(Index < CountAliases)
-						return Cur->n_aliases[Index];
+					friend P_NAME;
+					PROTOCOL_INTERATOR_FIELDS;
+				public:
+					inline operator int() 
+					{ 
+						int Count = 0;
+						for(;Cur->n_aliases[Count]; Count++);
+						return Count;
+					}
+				} Count;
+
+				inline char * operator[](unsigned Index)
+				{
+					if(Index < Count)
+						return Count.Cur->n_aliases[Index];
 					return "";
 				}
-			} PsevdoName;
-
-			class
-			{
-				PROTOCOL_INTERATOR_FIELDS;
-			public:
-				operator int()
-				{
-					return CountAliases;
-				}
-			} CountPsevdoNames;
+			} Aliases;
 		};
 	};
 
+	struct INFO_HOST_INTERATOR
+	{
+#define INFO_HOST_INTERATOR_FIELDS struct hostent * Cur;
+		inline INFO_HOST_INTERATOR(struct hostent *New)
+		{
+			Name.Cur = New;
+		}
 
+		union
+		{
+			class
+			{
+				friend INFO_HOST_INTERATOR;
+				INFO_HOST_INTERATOR_FIELDS;
+			public:
+				inline operator char*()
+				{
+					if(Cur == NULL)
+						return "";
+					return Cur->h_name;
+				}
+			} Name;
+
+			/*
+			Type net address.
+			AF_INET or another AF_ - like
+			*/
+			class
+			{
+				INFO_HOST_INTERATOR_FIELDS;
+			public:
+				inline operator short()
+				{
+					if(Cur == NULL)
+						return -1;
+					return Cur->h_addrtype;
+				}
+			} AddrType;
+
+			class
+			{
+				INFO_HOST_INTERATOR_FIELDS;
+			public:
+				inline operator short()
+				{
+					if(Cur == NULL)
+						return -1;
+					return Cur->h_length;
+				}
+			} LengthAddress;
+
+			class
+			{
+				INFO_HOST_INTERATOR_FIELDS;
+			public:
+				inline operator bool()
+				{ 
+					return Cur == NULL;
+				}
+			} NotHave;
+
+			struct P_NAME
+			{
+				class
+				{
+					friend P_NAME;
+					INFO_HOST_INTERATOR_FIELDS;
+				public:
+					inline operator int() 
+					{ 
+						int Count = 0;
+						for(;Cur->h_aliases[Count]; Count++);
+						return Count;
+					}
+				} Count;
+
+				char * operator[](unsigned Index)
+				{
+					if(Index < Count)
+						return Count.Cur->h_aliases[Index];
+					return "";
+				}
+			} Aliases;
+
+
+			class P_ADDRESES
+			{
+				class ADDRESS_INTERATOR
+				{
+					void * Cur;
+					short AddrType;
+				public:
+					ADDRESS_INTERATOR(void * nCur, short nAddrType)
+					{
+						Cur	  = nCur;
+						AddrType = nAddrType;
+					}
+
+					inline operator void*()
+					{
+						return Cur;
+					}
+
+					char* operator()(char * Dest, size_t Len = 0xffff)
+					{
+						if(Cur == NULL)
+							return NULL;
+						inet_ntop(AddrType, Cur, Dest, Len);
+						return Dest;
+					}
+
+					operator std::basic_string<char>()
+					{
+						std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
+						operator()((char*)Buf.c_str(), INET6_ADDRSTRLEN + 1);
+						return Buf;
+					}
+				};
+
+			public:
+				class
+				{
+					friend P_ADDRESES;
+					INFO_HOST_INTERATOR_FIELDS;
+				public:
+					inline operator int()
+					{
+						int Count = 0;
+						for(;Cur->h_addr_list[Count]; Count++);
+						return Count;
+					}
+				} Count;
+
+				inline ADDRESS_INTERATOR operator[](int Index)
+				{
+					if(Index >= Count)
+						return ADDRESS_INTERATOR(NULL, 0);
+					return ADDRESS_INTERATOR(Count.Cur->h_addr_list[Index], Count.Cur->h_addrtype);
+				}
+			} Addresses;
+		};
+	};
 
 #ifdef IS_HAVE_OPEN_SSL
 	SSL_CTX				*ctx; //For ssl connection
@@ -620,16 +867,16 @@ SSLErrOut:
 
 #define _QUERY_URL_FIELDS1_  \
 	struct{\
-		int				hSocket;\
-		unsigned short  Port;\
-		ADDR_INFO		*AllAddressHost;\
-		ADDR_INFO		*CurUseAddress;\
-		char			*HostName;\
-		bool			IsEnableSSLLayer;\
-		char			*lpError;\
-		wchar_t			*lpwError;\
-		unsigned		uError;\
-		NON_BLOCKET_FIELD\
+	int				hSocket;\
+	unsigned short  Port;\
+	ADDR_INFO		*AllAddressHost;\
+	ADDR_INFO		*CurUseAddress;\
+	char			*HostName;\
+	bool			IsEnableSSLLayer;\
+	char			*lpError;\
+	wchar_t			*lpwError;\
+	unsigned		uError;\
+	NON_BLOCKET_FIELD\
 	}
 
 public:
@@ -755,6 +1002,10 @@ public:
 					return Dest;
 				}
 
+				inline PORT_SERVICE_INTERATOR GetInfo()
+				{
+					return GetSystemService((unsigned short)*this);
+				}
 
 				operator std::basic_string<char>()
 				{
@@ -771,6 +1022,8 @@ public:
 			}
 
 		public:
+
+
 			operator unsigned short()
 			{
 				return Port;
@@ -789,12 +1042,19 @@ public:
 				return Buf;
 			}
 
+
+			inline PORT_SERVICE_INTERATOR GetInfo()
+			{
+				return GetSystemService(Port);
+			}
+
+
 			AS_INTERATOR operator[](size_t Index)
 			{
 				ADDR_INFO * ai = AllAddressHost;
 				for(unsigned i = 0;ai != NULL;ai = ai->Next(), i++)
-				      if(i == Index)
-						  break;
+					if(i == Index)
+						break;
 				return AS_INTERATOR(ai);
 			}
 
@@ -827,6 +1087,11 @@ public:
 					return Dest;
 				}
 
+				inline INFO_HOST_INTERATOR GetInfo()
+				{
+					return GetInfoAboutHost(Cur->AddressData(), Cur->ai_addrlen, Cur->ProtocolFamily());
+				}
+
 				operator std::basic_string<char>()
 				{
 					std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
@@ -849,9 +1114,14 @@ public:
 
 			operator std::basic_string<char>()
 			{
-			   std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
-			   operator()((char*)Buf.c_str(), INET6_ADDRSTRLEN + 1);
-			   return Buf;
+				std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
+				operator()((char*)Buf.c_str(), INET6_ADDRSTRLEN + 1);
+				return Buf;
+			}
+
+			inline INFO_HOST_INTERATOR GetInfo()
+			{
+				return GetInfoAboutHost(CurUseAddress->AddressData(), CurUseAddress->ai_addrlen, CurUseAddress->ProtocolFamily());
 			}
 
 			AS_INTERATOR operator[](size_t Index)
@@ -863,6 +1133,18 @@ public:
 				return AS_INTERATOR(ai);
 			}
 		} Ip;
+
+		class
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+			operator int()
+			{
+				int Count = 0;
+				for(auto Ai = AllAddressHost; Ai;Ai = Ai->Next(), Count++);
+				return Count;
+			}
+		} CountAddresses;
 
 		class
 		{
@@ -882,6 +1164,11 @@ public:
 			{
 				NumberToString((unsigned short)*this, Dest, Len);
 				return Dest;
+			}
+
+			inline PORT_SERVICE_INTERATOR GetInfo()
+			{
+				return GetSystemService((unsigned short)*this);
 			}
 
 			operator std::basic_string<char>()
@@ -928,11 +1215,41 @@ public:
 				return Dest;
 			}
 
+			inline INFO_HOST_INTERATOR GetInfo()
+			{
+				struct sockaddr_in6 sin;
+				int addrlen = sizeof(sin);
+				void * p;
+				if(getsockname(hSocket, (struct sockaddr*)&sin, &addrlen) == 0)
+				{
+					switch(sin.sin6_family)
+					{
+					case AF_INET:
+						if(addrlen == sizeof(sockaddr_in))
+							p = &((sockaddr_in*)&sin)->sin_addr;
+						else if(addrlen == sizeof(sockaddr))
+							p = ((sockaddr*)&sin)->sa_data;
+						else
+							return NULL;
+						break;
+					case AF_INET6:
+						if(addrlen == sizeof(sockaddr_in6))
+							p = &((sockaddr_in6*)&sin)->sin6_addr;
+						else if(addrlen == sizeof(sockaddr))
+							p = ((sockaddr*)&sin)->sa_data;
+						else
+							return NULL;
+						break;
+					}
+				}
+				return GetInfoAboutHost(p, addrlen, sin.sin6_family);
+			}
+
 			operator std::basic_string<char>()
 			{
-			   std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
-			   operator()((char*)Buf.c_str(), INET6_ADDRSTRLEN + 1);
-			   return Buf;
+				std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
+				operator()((char*)Buf.c_str(), INET6_ADDRSTRLEN + 1);
+				return Buf;
 			}
 
 		} LocalIp;
@@ -941,26 +1258,21 @@ public:
 		{
 			_QUERY_URL_FIELDS1_;
 		public:
-			operator unsigned short()
+			operator decltype(std::declval<addrinfo>().ai_protocol)()
 			{
 				return CurUseAddress->ProtocolFamily();
 			}
 
 			operator char*()
 			{
-				switch(CurUseAddress->ProtocolFamily())
-				{
-				case AF_UNSPEC:
-					return "UNSPEC";
-				case AF_INET:
-					return "IPv4";
-				case AF_INET6:
-					return "IPv6";
-				case AF_NETBIOS:
-					return "NETBIOS";
-				}
-				return "";
+				return GetInfo().Name;
 			}
+						
+			inline PROTOCOL_INTERATOR GetInfo()
+			{
+				return GetSystemProtocol((int)*this);
+			}
+
 		} Protocol;
 
 		class 
@@ -972,7 +1284,7 @@ public:
 			{
 				return CurUseAddress->ai_protocol;
 			}
-		} FirstLayerProtocol;
+		} IpProtocol;
 
 		class
 		{
@@ -1130,7 +1442,7 @@ public:
 					((URL_ERROR*)this)->SetError(ERR_ARG("Not get keep alive state"), 47);
 				return v;
 			}
-		
+
 		} IsKeepAlive;
 
 		class
@@ -1199,22 +1511,22 @@ public:
 
 
 	};
- 
+
 	/*
-		Get info about protocol by index number
-		IPPROTO_
-		example:
-		char * ProtocolName = GetSystemProtocol(IPPROTO_TCP).Name; //ProtocolName eq. "tcp"
+	Get info about protocol by index number
+	IPPROTO_
+	example:
+	char * ProtocolName = GetSystemProtocol(IPPROTO_TCP).Name; //ProtocolName eq. "tcp"
 	*/
 	static PROTOCOL_INTERATOR GetSystemProtocol(int Index)
 	{
 		return PROTOCOL_INTERATOR(getprotobynumber(Index));
 	}
-	
+
 	/*
-		Get info about protocol by name string
-		example:
-		int ProtocolIndex = GetSystemProtocol("ip").Index; //ProtocolIndex eq. 0
+	Get info about protocol by name string
+	example:
+	int ProtocolIndex = GetSystemProtocol("ip").Index; //ProtocolIndex eq. 0
 	*/
 	static PROTOCOL_INTERATOR GetSystemProtocol(const char * Name)
 	{
@@ -1223,19 +1535,19 @@ public:
 
 
 	/*
-		Get info about service by port number
-		example:
-		char * PortServiceName = GetSystemService(80).Name; //ProtocolName eq. "http"
+	Get info about service by port number
+	example:
+	char * PortServiceName = GetSystemService(80).Name; //ProtocolName eq. "http"
 	*/
 	static PORT_SERVICE_INTERATOR GetSystemService(int PortNumber, const char * Prot = NULL)
 	{
 		return PORT_SERVICE_INTERATOR(getservbyport(htons(PortNumber), Prot));
 	}
-	
+
 	/*
-		Get info about service by name
-		example:
-		int Port = GetSystemProtocol("http").Port; //ProtocolIndex eq. 80
+	Get info about service by name
+	example:
+	int Port = GetSystemProtocol("http").Port; //ProtocolIndex eq. 80
 	*/
 	static PORT_SERVICE_INTERATOR GetSystemService(const char * Name, const char * Prot = NULL)
 	{
@@ -1244,24 +1556,49 @@ public:
 
 
 	/*
-		Get info about service by port number
-		example:
-		char * PortServiceName = GetSystemService(80).Name; //ProtocolName eq. "http"
+	Get info about network by number
+	example:
+	int NumNet = GetSystemNetwork("loop").NumberNet; //ProtocolIndex eq. 127.0.0.0
 	*/
 	static NET_INTERATOR GetSystemNetwork(long net, int type)
 	{
 		return NET_INTERATOR(getnetbyaddr(net, type));
 	}
-	
+
 	/*
-		Get info about service by name
-		example:
-		int Port = GetSystemProtocol("http").Port; //ProtocolIndex eq. 80
+	Get info about network by Name
+	example:
+	int NumNet = GetSystemNetwork("loop").NumberNet; //ProtocolIndex eq. 127.0.0.0
 	*/
 	static NET_INTERATOR GetSystemNetwork(const char * Name)
 	{
 		return NET_INTERATOR(getnetbyname(Name));
 	}
+
+	/*
+	Get info about host by address
+	Addr - Pointer on address
+	Len  - Length of address
+	Type - Type as AF_INET or AF_INET6 and another AF_
+
+	example:
+	std::string strAddr = Url.GetInfoAboutHost("google.com").Addresses[0]; //strAddr eq. "173.194.122.197"
+	*/
+	static INFO_HOST_INTERATOR GetInfoAboutHost(const void * Addr, int Len, int Type)
+	{
+		return INFO_HOST_INTERATOR(gethostbyaddr((const char*)Addr, Len, Type));
+	}
+
+	/*
+	Get info about host by name or address in string
+	example:
+	std::string strAddr = Url.GetInfoAboutHost("google.com").Addresses[0]; //strAddr eq. "173.194.122.197"
+	*/
+	static INFO_HOST_INTERATOR GetInfoAboutHost(const char * NameOrTextAddress)
+	{
+		return INFO_HOST_INTERATOR(gethostbyname(NameOrTextAddress));
+	}
+
 
 	bool Connect(int iSocktype = SOCK_STREAM, int iProtocol = IPPROTO_TCP, int iFamily = AF_UNSPEC)
 	{	
