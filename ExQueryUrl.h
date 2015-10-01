@@ -3,7 +3,7 @@
 
 #include "ExString.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 
 #	include <winsock.h>
 
@@ -127,7 +127,7 @@ lblOut:
 				NewServEnt[CurNnet].s_proto = NULL;
 				for(unsigned i = 0;(i < CurNnet) && (!NewServEnt[CurNnet].s_proto || !NewServEnt[CurNnet].s_name);i++)
 				{
-				    if(StringICompare(Name, NewServEnt[i].s_name) == 0)
+					if(StringICompare(Name, NewServEnt[i].s_name) == 0)
 						NewServEnt[CurNnet].s_name = NewServEnt[i].s_name;//For economy memory :)
 					if(StringICompare(ProtocolName, NewServEnt[i].s_proto) == 0)
 						NewServEnt[CurNnet].s_proto = NewServEnt[i].s_proto;//For economy memory :)
@@ -162,17 +162,15 @@ lblOut:
 
 	struct ::servent * getservbyport__(int port, const char * proto)
 	{
-		
+
 		for(::servent * gn = GetServiceInfo();gn->s_name;gn++)
-		{
 			if(gn->s_port == port)
 			{
-			   if(proto == NULL)
-				   return gn;
-			   if(StringICompare(proto, gn->s_proto) == 0)
-				   return gn;
+				if(proto == NULL)
+					return gn;
+				if(StringICompare(proto, gn->s_proto) == 0)
+					return gn;
 			}
-		}
 		return NULL;
 	}
 
@@ -180,15 +178,13 @@ lblOut:
 	struct ::servent * getservbyname__(const char * Name, const char * proto)
 	{
 		for(::servent * gn = GetServiceInfo();gn->s_name;gn++)
-		{
 			if(StringICompare(Name, gn->s_name) == 0)
 			{
-			   if(proto == NULL)
-				   return gn;
-			   if(StringICompare(proto, gn->s_proto) == 0)
-				   return gn;
+				if(proto == NULL)
+					return gn;
+				if(StringICompare(proto, gn->s_proto) == 0)
+					return gn;
 			}
-		}
 		return NULL;
 	} 
 
@@ -225,6 +221,7 @@ using winsock::inet_ntop;
 #   include <arpa/inet.h>
 #   include <netdb.h>
 #   include <unistd.h>
+#   include <fcntl.h>
 #	define closesocket(socket)  close(socket)
 #endif
 
@@ -726,13 +723,13 @@ class QUERY_URL_CLIENT
 	SSL					*ssl; //For ssl connection
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
 	void * lpWSAData;
 #endif
 
 	int StartWsa()
 	{
-#ifdef WIN32
+#ifdef _WIN32
 		if(lpWSAData == NULL)
 		{
 			lpWSAData = malloc(sizeof(WSADATA));
@@ -744,7 +741,7 @@ class QUERY_URL_CLIENT
 
 	void EndWsa()
 	{
-#ifdef WIN32
+#ifdef _WIN32
 		if(lpWSAData != NULL)
 		{
 			free(lpWSAData);
@@ -766,7 +763,8 @@ class QUERY_URL_CLIENT
 		Ip.Port = 0;
 		Ip.hSocket = -1;
 		Ip.IsEnableSSLLayer = false;
-#ifdef WIN32
+#ifdef _WIN32
+		lpWSAData = NULL;
 		Ip.IsNonBlocket = false;
 #endif
 		LastError.Clear();
@@ -826,8 +824,6 @@ SSLErrOut:
 
 	bool InitInfo(char * lpAddress)
 	{
-
-		lpWSAData = NULL;
 		char * _Pos;
 		int Pos;
 		unsigned short _Port;
@@ -859,7 +855,7 @@ SSLErrOut:
 	}
 
 
-#ifdef WIN32
+#ifdef _WIN32
 #define NON_BLOCKET_FIELD bool IsNonBlocket;
 #else
 #define NON_BLOCKET_FIELD
@@ -969,7 +965,7 @@ public:
 		{
 			_QUERY_URL_FIELDS1_;
 		public:
-			operator int()
+			inline operator int()
 			{
 				return CurUseAddress->ai_socktype;
 			}
@@ -1023,8 +1019,7 @@ public:
 
 		public:
 
-
-			operator unsigned short()
+			inline operator unsigned short()
 			{
 				return Port;
 			}
@@ -1078,6 +1073,14 @@ public:
 					if(Cur != NULL)
 						return Cur->AddressData();
 					return NULL;
+				}	
+
+
+				operator std::basic_string<char>()
+				{
+					std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
+					operator()((char*)Buf.c_str(), INET6_ADDRSTRLEN + 1);
+					return Buf;
 				}
 
 				char* operator()(char * Dest, size_t Len = 6)
@@ -1090,13 +1093,6 @@ public:
 				inline INFO_HOST_INTERATOR GetInfo()
 				{
 					return GetInfoAboutHost(Cur->AddressData(), Cur->ai_addrlen, Cur->ProtocolFamily());
-				}
-
-				operator std::basic_string<char>()
-				{
-					std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
-					operator()((char*)Buf.c_str(), INET6_ADDRSTRLEN + 1);
-					return Buf;
 				}
 			};
 		public:
@@ -1265,15 +1261,23 @@ public:
 
 			operator char*()
 			{
-				return GetInfo().Name;
-			}
-						
-			inline PROTOCOL_INTERATOR GetInfo()
-			{
-				return GetSystemProtocol((int)*this);
-			}
+				switch(CurUseAddress->ProtocolFamily()) 
+				{ 
+				case AF_UNSPEC: 
+					return "UNSPEC"; 
+				case AF_UNIX:
+					return "UNIX";
+				case AF_INET: 
+					return "IPv4"; 
+				case AF_INET6: 
+					return "IPv6"; 
+				case AF_NETBIOS: 
+					return "NETBIOS"; 
+				} 
+				return ""; 
+			} 
 
-		} Protocol;
+		} ProtocolFamily;
 
 		class 
 		{
@@ -1284,7 +1288,17 @@ public:
 			{
 				return CurUseAddress->ai_protocol;
 			}
-		} IpProtocol;
+
+			operator char*()
+			{
+				return GetSystemProtocol(CurUseAddress->ai_protocol).Name;
+			}
+
+			inline PROTOCOL_INTERATOR GetInfo()
+			{
+				return GetSystemProtocol(CurUseAddress->ai_protocol);
+			}
+		} Protocol;
 
 		class
 		{
@@ -1301,13 +1315,20 @@ public:
 			}
 		} IsEnableSSL;
 
+
+		//Params
+
+
+		/*
+		Set socket to non blocket mode.
+		*/
 		class 
 		{
 			_QUERY_URL_FIELDS1_;
 		public:
 			bool operator=(bool NewVal)
 			{
-#ifdef WIN32
+#ifdef _WIN32
 				DWORD nonBlocking = NewVal;
 				if (ioctlsocket(hSocket, FIONBIO, &nonBlocking) != NO_ERROR)
 					((URL_ERROR*)this)->SetError(ERR_ARG("Failed to set non-blocking socket"), 34);
@@ -1323,7 +1344,7 @@ public:
 
 			operator bool()
 			{
-#ifdef WIN32
+#ifdef _WIN32
 				return IsNonBlocket;
 #else
 				return fcntl(hSocket, F_GETFL, 0) & O_NONBLOCK;
@@ -1331,8 +1352,14 @@ public:
 			}
 		} IsNonBlocket;
 
-		//Params
 
+
+		/*
+		The timeout, in milliseconds, for blocking send calls. 
+		The default for this option is zero, 
+		which indicates that a send operation will not time out. 
+		If a blocking send call times out, the connection is in an indeterminate state and should be closed.
+		*/
 		class 
 		{
 			_QUERY_URL_FIELDS1_;
@@ -1355,6 +1382,11 @@ public:
 			}
 		} ReceiveTimeout;
 
+		/*
+		The timeout, in milliseconds, for blocking send calls. 
+		The default for this option is zero, which indicates that a send operation will not time out. 
+		If a blocking send call times out, the connection is in an indeterminate state and should be closed.
+		*/
 		class 
 		{
 			_QUERY_URL_FIELDS1_;
@@ -1377,13 +1409,17 @@ public:
 			}
 		} SendTimeout;
 
+		/*
+		The total per-socket buffer space reserved for sends. 
+		This is unrelated to SO_MAX_MSG_SIZE and does not necessarily correspond to the size of a TCP send window.
+		*/
 		class 
 		{
 			_QUERY_URL_FIELDS1_;
 		public:
 
 			int operator=(int New)
-			{
+			{ 
 				if(setsockopt(hSocket, SOL_SOCKET, SO_SNDBUF, (char*)&New, sizeof(New)) != 0)
 					((URL_ERROR*)this)->SetError(ERR_ARG("Not set size buffer"), 42);
 				return New;
@@ -1399,6 +1435,10 @@ public:
 			}
 		} SendSizeBuffer;
 
+		/*
+		The total per-socket buffer space reserved for receives. 
+		This is unrelated to SO_MAX_MSG_SIZE and does not necessarily correspond to the size of the TCP receive window.
+		*/
 		class 
 		{
 			_QUERY_URL_FIELDS1_;
@@ -1421,6 +1461,12 @@ public:
 			}
 		} ReceiveSizeBuffer;
 
+		/*
+		Enables keep-alive for a socket connection. 
+		Valid only for protocols that support the notion of keep-alive (connection-oriented protocols). 
+		For TCP, the default keep-alive timeout is 2 hours and the keep-alive interval is 1 second. 
+		The default number of keep-alive probes varies based on the version of Windows.
+		*/
 		class
 		{			
 			_QUERY_URL_FIELDS1_;
@@ -1445,6 +1491,10 @@ public:
 
 		} IsKeepAlive;
 
+		/*
+		Configure a socket for sending broadcast data. 
+		This option is only Valid for protocols that support broadcasting (IPX and UDP, for example).
+		*/
 		class
 		{			
 			_QUERY_URL_FIELDS1_;
@@ -1467,6 +1517,11 @@ public:
 			}
 		} IsBroadcast;
 
+		/*
+		Enable socket debugging.  Only allowed for processes with the
+		CAP_NET_ADMIN capability or an effective user ID of 0.
+
+		*/
 		class
 		{			
 			_QUERY_URL_FIELDS1_;
@@ -1488,6 +1543,13 @@ public:
 			}
 		} IsDebug;
 
+		/*
+		Don't send via a gateway, send only to directly connected
+		hosts.  The same effect can be achieved by setting the
+		MSG_DONTROUTE flag on a socket send(2) operation.  Expects an
+		integer boolean flag.
+
+		*/
 		class
 		{			
 			_QUERY_URL_FIELDS1_;
@@ -1509,8 +1571,282 @@ public:
 			}
 		} IsDontRoute;
 
+		/*
+		Returns whether a socket is in listening mode. 
+		This option is only Valid for connection-oriented protocols.
+		*/
+		class
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+			operator bool()
+			{
+				int v;
+				int l = sizeof(v);
+				if(getsockopt(hSocket,SOL_SOCKET, SO_ACCEPTCONN , (char*)&v, &l) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not get keep alive state"), 47);
+				return v;
+			}
+		} IsAcceptConnection;
+
+		/*
+		Use the local loopback address when sending data from this socket. 
+		This option should only be used when all data sent will also be received locally. 
+		This option is not supported by the Windows TCP/IP provider. 
+		If this option is used on Windows Vista and later, the getsockopt and setsockopt functions fail with WSAEINVAL. 
+		On earlier versions of Windows, these functions fail with WSAENOPROTOOPT.
+		*/
+		class
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+			bool operator=(bool New)
+			{
+				int v = New;
+				if(setsockopt(hSocket, SOL_SOCKET, SO_USELOOPBACK, (char*)&v, sizeof(v)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not set keep alive state"), 46);
+				return New;
+			}
+			operator bool()
+			{
+				int v;
+				int l = sizeof(v);
+				if(getsockopt(hSocket,SOL_SOCKET, SO_USELOOPBACK, (char*)&v, &l) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not get keep alive state"), 47);
+				return v;
+			}
+		} IsUsedLoopBack;
+
+
+		/*
+		The socket can be bound to an address which is already in use. 
+		Not applicable for ATM sockets.
+		*/
+		class
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+			bool operator=(bool New)
+			{
+				int v = New;
+				if(setsockopt(hSocket, SOL_SOCKET, SO_REUSEADDR, (char*)&v, sizeof(v)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not set keep alive state"), 46);
+				return New;
+			}
+			operator bool()
+			{
+				int v;
+				int l = sizeof(v);
+				if(getsockopt(hSocket,SOL_SOCKET, SO_REUSEADDR, (char*)&v, &l) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not get keep alive state"), 47);
+				return v;
+			}
+		} IsReuseAddr;
+
+		/*
+		If true, the Linger option is disabled.
+		*/
+		class
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+			bool operator=(bool New)
+			{
+				int v = New;
+				if(setsockopt(hSocket, SOL_SOCKET, SO_DONTLINGER, (char*)&v, sizeof(v)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not set keep alive state"), 46);
+				return New;
+			}
+			operator bool()
+			{
+				int v;
+				int l = sizeof(v);
+				if(getsockopt(hSocket,SOL_SOCKET, SO_DONTLINGER, (char*)&v, &l) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not get keep alive state"), 47);
+				return v;
+			}
+		} IsDontLinger;
+
+		/*
+		When enabled, a close(2) or shutdown(2) will not return until
+		all queued messages for the socket have been successfully sent
+		or the linger timeout has been reached.  Otherwise, the call
+		returns immediately and the closing is done in the background.
+		When the socket is closed as part of exit(2), it always
+		lingers in the background.
+
+		*/
+		class
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+			linger & operator=(linger & New)
+			{
+				if(setsockopt(hSocket, SOL_SOCKET, SO_LINGER, (char*)&New, sizeof(linger)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not set keep alive state"), 46);
+				return New;
+			}
+			operator linger()
+			{
+				linger v;
+				int l = sizeof(v);
+				if(getsockopt(hSocket,SOL_SOCKET, SO_LINGER, (char*)&v, &l) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not get keep alive state"), 47);
+				return v;
+			}
+		} Linger;
+
+		/*
+		Specify the minimum number of bytes in the buffer until the
+		socket layer will pass the data to the protocol (SO_SNDLOWAT)
+		or the user on receiving (SO_RCVLOWAT).
+		*/
+		class
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+			int operator=(int New)
+			{
+				if(setsockopt(hSocket, SOL_SOCKET, SO_SNDLOWAT, (char*)&New, sizeof(New)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not set keep alive state"), 46);
+				return New;
+			}
+			operator int()
+			{
+				int v;
+				int l = sizeof(v);
+				if(getsockopt(hSocket,SOL_SOCKET, SO_SNDLOWAT, (char*)&v, &l) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not get keep alive state"), 47);
+				return v;
+			}
+		} SendLowWaterMark;
+
+		class
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+			int operator=(int New)
+			{
+				if(setsockopt(hSocket, SOL_SOCKET, SO_RCVLOWAT, (char*)&New, sizeof(New)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not set keep alive state"), 46);
+				return New;
+			}
+			operator int()
+			{
+				int v;
+				int l = sizeof(v);
+				if(getsockopt(hSocket,SOL_SOCKET, SO_RCVLOWAT, (char*)&v, &l) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not get keep alive state"), 47);
+				return v;
+			}
+		} ReceiveLowWaterMark;
+
+		/*
+		Returns the last error code on this socket. 
+		This per-socket error code is not always immediately set.
+		*/
+		class
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+			operator int()
+			{
+				int v;
+				int l = sizeof(v);
+				if(getsockopt(hSocket,SOL_SOCKET, SO_ERROR, (char*)&v, &l) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not get keep alive state"), 47);
+				return v;
+			}
+		} LastSocketError;
+
+		/*
+		Indicates that out-of-bound data should be returned in-line with regular data. 
+		This option is only valid for connection-oriented protocols that support out-of-band data.
+		*/
+		class
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+			bool operator=(bool New)
+			{
+				int v = New;
+				if(setsockopt(hSocket, SOL_SOCKET, SO_OOBINLINE, (char*)&v, sizeof(v)) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not set keep alive state"), 46);
+				return New;
+			}
+			operator bool()
+			{
+				int v;
+				int l = sizeof(v);
+				if(getsockopt(hSocket,SOL_SOCKET, SO_OOBINLINE, (char*)&v, &l) != 0)
+					((URL_ERROR*)this)->SetError(ERR_ARG("Not get keep alive state"), 47);
+				return v;
+			}
+		} IsReceivedOOBDataInLine;
+
+		/*
+		Get or set option on various system.
+		Example:
+		Url.Options[SO_SNDTIMEO] = 123;
+		int GetI = Url.Options[SO_SNDTIMEO]; //Eq. 123
+		*/
+		class
+		{
+			_QUERY_URL_FIELDS1_;
+
+			class OPTION_INTERATOR
+			{
+				int hSocket;
+				int OptIndex;
+			public:
+				OPTION_INTERATOR(int nSocket, int nOptIndex)
+				{
+					hSocket = nSocket;
+					OptIndex = nOptIndex;
+				}
+
+				template<typename RetType>
+				operator RetType()
+				{
+					union
+					{
+						RetType Val; int i;
+					} v;
+					v.i = 0;
+					int l = sizeof(v);
+					if(getsockopt(hSocket, SOL_SOCKET, OptIndex, (char*)&v, &l) != 0)
+						((URL_ERROR*)this)->SetError(ERR_ARG("Not get option"), 70);
+					return v.Val;
+				}
+
+				template<typename SetType>
+				SetType operator=(SetType New)
+				{
+					union
+					{
+						SetType Val; int i;
+					} v;
+					v.i   = 0;
+					v.Val = New;
+					if(setsockopt(hSocket, SOL_SOCKET, OptIndex, (char*)&v, sizeof(v)) != 0)
+						((URL_ERROR*)this)->SetError(ERR_ARG("Not set option"), 71);
+					return New;
+				}
+			};
+		public:
+			/*
+			Index as SO_ ...
+			*/
+			OPTION_INTERATOR operator[](int OptIndex)
+			{
+				return OPTION_INTERATOR(hSocket, OptIndex);
+			}
+		} Options;
 
 	};
+
+
+
 
 	/*
 	Get info about protocol by index number
