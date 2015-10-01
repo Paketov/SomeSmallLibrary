@@ -1003,7 +1003,7 @@ public:
 					return GetSystemService((unsigned short)*this);
 				}
 
-				operator std::basic_string<char>()
+				std::basic_string<char> operator()()
 				{
 					std::basic_string<char> Buf("", 6);
 					NumberToString((unsigned short)*this, (char*)Buf.c_str(), 6);
@@ -1030,7 +1030,7 @@ public:
 				return Dest;
 			}
 
-			operator std::basic_string<char>()
+			std::basic_string<char> operator()()
 			{
 				std::basic_string<char> Buf("", 6);
 				NumberToString((unsigned short)*this, (char*)Buf.c_str(), 6);
@@ -1167,7 +1167,7 @@ public:
 				return GetSystemService((unsigned short)*this);
 			}
 
-			operator std::basic_string<char>()
+			std::basic_string<char> operator()()
 			{
 				std::basic_string<char> Buf("", 6);
 				NumberToString((unsigned short)*this, (char*)Buf.c_str(), 6);
@@ -1520,7 +1520,6 @@ public:
 		/*
 		Enable socket debugging.  Only allowed for processes with the
 		CAP_NET_ADMIN capability or an effective user ID of 0.
-
 		*/
 		class
 		{			
@@ -1548,7 +1547,6 @@ public:
 		hosts.  The same effect can be achieved by setting the
 		MSG_DONTROUTE flag on a socket send(2) operation.  Expects an
 		integer boolean flag.
-
 		*/
 		class
 		{			
@@ -1674,7 +1672,6 @@ public:
 		returns immediately and the closing is done in the background.
 		When the socket is closed as part of exit(2), it always
 		lingers in the background.
-
 		*/
 		class
 		{
