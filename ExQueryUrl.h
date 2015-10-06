@@ -212,6 +212,11 @@ using winsock::ip_mreq_source;
 #	define IPPROTO_ND   winsock::IPPROTO_ND
 #	define IPPROTO_RAW  winsock::IPPROTO_RAW
 #	define IPPROTO_MAX  winsock::IPPROTO_MAX
+
+#	define SHUT_RDWR    SD_BOTH
+#	define SHUT_RD		SD_RECEIVE
+#	define SHUT_WR      SD_SEND
+
 #	ifndef WSA_VERSION
 #		define WSA_VERSION MAKEWORD(2, 2)
 #	endif
@@ -227,6 +232,7 @@ using winsock::ip_mreq_source;
 #   include <netdb.h>
 #   include <unistd.h>
 #   include <fcntl.h>
+#	include <errno.h>
 #	define closesocket(socket)  close(socket)
 #endif
 
@@ -815,7 +821,7 @@ SSLErrOut:
 			ssl = NULL;
 			SSL_CTX_free(ctx);
 			ctx = NULL;
-			closesocket(hSocket);
+			Close();
 			hSocket = -1;
 			return false;
 		}
@@ -1065,7 +1071,7 @@ SSLErrOut:
 #	define ADDITIONAL_FIELDS			\
 		   bool			IsNonBlocket;
 #else
-#	define NON_BLOCKET_FIELD
+#	define ADDITIONAL_FIELDS  
 #endif
 
 #ifdef IS_HAVE_OPEN_SSL
@@ -1736,11 +1742,6 @@ public:
 				*/
 				DEF_SOCKET_OPTION_PROPERTY(PacketInfo, int, int, IPPROTO_IP, IP_PKTINFO);
 
-				/*
-				Allows or blocks broadcast reception.
-				*/
-				DEF_SOCKET_OPTION_PROPERTY(IsReceiveBroadcast, bool, bool, IPPROTO_IP, IP_RECEIVE_BROADCAST);
-
 
 			};
 		} IpOptions;
@@ -2137,8 +2138,8 @@ public:
 		{
 			if(RemoteIp.hSocket != -1)
 			{
-				shutdown(RemoteIp.hSocket, SD_BOTH);
-				closesocket(RemoteIp.hSocket);
+				ShutdownSendRecive();
+				Close();
 			}
 			addrinfo *i = Address;
 			if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == -1)
@@ -2148,8 +2149,7 @@ public:
 			}else if (connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) == -1)
 			{
 				URL_SET_LAST_ERR
-				closesocket(RemoteIp.hSocket);
-				RemoteIp.hSocket = -1;
+				Close();
 				return false;
 			}		
 			RemoteIp.ProtocolType = i->ai_protocol;
@@ -2173,8 +2173,8 @@ public:
 		{
 			if(RemoteIp.hSocket != -1)
 			{
-				shutdown(RemoteIp.hSocket, SD_BOTH);
-				closesocket(RemoteIp.hSocket);
+				ShutdownSendRecive();
+				Close();
 			}
 			addrinfo *i = AddrInfo;
 			for (; i != NULL; i = i->ai_next) 
@@ -2183,7 +2183,7 @@ public:
 					continue;
 				if (connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) != -1)
 					break;
-				closesocket(RemoteIp.hSocket);
+				Close();
 			}
 			if(i == NULL)
 			{
@@ -2220,8 +2220,8 @@ public:
 		{
 			if(RemoteIp.hSocket != -1)
 			{
-				shutdown(RemoteIp.hSocket, SD_BOTH);
-				closesocket(RemoteIp.hSocket);
+				ShutdownSendRecive();
+				Close();
 			}
 			addrinfo host_info = {0}, *ah = NULL, *i;
 			host_info.ai_socktype = iSocktype;
@@ -2241,7 +2241,7 @@ public:
 					continue;
 				if (connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) != -1)
 					break;
-				closesocket(RemoteIp.hSocket);
+				Close();
 			}
 
 			if(i == NULL)
@@ -2276,8 +2276,8 @@ public:
 		}
 		if(RemoteIp.hSocket != -1)
 		{
-			shutdown(RemoteIp.hSocket, SD_BOTH);
-			closesocket(RemoteIp.hSocket);
+			ShutdownSendRecive();
+			Close();
 		}
 		addrinfo *i = Address;
 		if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == -1)
@@ -2286,13 +2286,13 @@ public:
 			return false;
 		}else if(bind(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) == -1)
 		{
-			closesocket(RemoteIp.hSocket);
+			Close();
 			RemoteIp.hSocket = -1;
 			URL_SET_LAST_ERR
 			return false;
 		}else if(listen(RemoteIp.hSocket, MaxConnection) == -1)
 		{
-			closesocket(RemoteIp.hSocket);
+			Close();
 			RemoteIp.hSocket = -1;
 			URL_SET_LAST_ERR
 			return false;
@@ -2316,8 +2316,8 @@ public:
 		}
 		if(RemoteIp.hSocket != -1)
 		{
-			shutdown(RemoteIp.hSocket, SD_BOTH);
-			closesocket(RemoteIp.hSocket);
+			ShutdownSendRecive();
+			Close();
 		}
 		addrinfo *i = AddrInfo;
 		for (;i != NULL; i = i->ai_next) 
@@ -2326,13 +2326,13 @@ public:
 				continue;
 			if(bind(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) == -1)
 			{
-				closesocket(RemoteIp.hSocket);
+				Close();
 				RemoteIp.hSocket = -1;
 				continue;
 			}
 			if(listen(RemoteIp.hSocket, MaxConnection) == -1)
 			{
-				closesocket(RemoteIp.hSocket);
+				Close();
 				RemoteIp.hSocket = -1;
 				continue;
 			}
@@ -2365,8 +2365,8 @@ public:
 		}
 		if(RemoteIp.hSocket != -1)
 		{
-			shutdown(RemoteIp.hSocket, SD_BOTH);
-			closesocket(RemoteIp.hSocket);
+			ShutdownSendRecive();
+			Close();
 		}
 		addrinfo host_info = {0},*ah = NULL, *i;
 		host_info.ai_socktype = iSocktype;
@@ -2385,13 +2385,13 @@ public:
 				continue;
 			if(bind(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) == -1)
 			{
-				closesocket(RemoteIp.hSocket);
+				Close();
 				RemoteIp.hSocket = -1;
 				continue;
 			}
 			if(listen(RemoteIp.hSocket, MaxConnection) == -1)
 			{
-				closesocket(RemoteIp.hSocket);
+				Close();
 				RemoteIp.hSocket = -1;
 				continue;
 			}
@@ -2419,10 +2419,14 @@ public:
 		}
 		DestCoonection.RemoteIp.hSocket = ConnectedSocket;
 		DestCoonection.RemoteIp.ProtocolType = RemoteIp.ProtocolType;
+#ifdef _WIN32
 		DestCoonection.RemoteIp.IsNonBlocket = false;
+#endif
 		DestCoonection.RemoteIp.IsEnableSSLLayer = RemoteIp.IsEnableSSLLayer;
+		DestCoonection.LastError.Clear();
 		return true;
 	}
+
 
 
 	QUERY_URL()
@@ -2442,14 +2446,44 @@ public:
 			UninitSSL();
 		if(RemoteIp.hSocket != -1)
 		{
-			shutdown(RemoteIp.hSocket, SD_BOTH);
-			closesocket(RemoteIp.hSocket);
+			ShutdownSendRecive();
+			Close();
 		}
+	}
+
+	/*
+	Shutdown sesion.
+	*/
+	inline bool ShutdownSend()
+	{
+	   return shutdown(RemoteIp.hSocket, SHUT_WR) == 0; 
+	}
+
+	inline bool ShutdownRecive()
+	{
+	   return shutdown(RemoteIp.hSocket, SHUT_RD) == 0; 
+	}
+	inline bool ShutdownSendRecive()
+	{
+	   return shutdown(RemoteIp.hSocket, SHUT_RDWR) == 0; 
 	}
 
 	inline bool SendQuery(const std::basic_string<char> & InQuery)
 	{
 		return SendQuery((void*)InQuery.c_str(), InQuery.length());
+	}
+
+
+	bool Close()
+	{
+		if(RemoteIp.hSocket == -1)
+			return true;
+		if(closesocket(RemoteIp.hSocket) == 0)
+		{
+			RemoteIp.hSocket = -1;
+			return true;
+		}
+		return false;
 	}
 
 	bool SendQuery(const void * QueryBuf, unsigned SizeBuf)
@@ -2537,7 +2571,9 @@ public:
 				{
 					CurSize += ReadedSize;
 					StrBuf.resize(CurSize + RemoteIp.PortionSize);
-					Buf = (char*)StrBuf.c_str() + CurSize;  
+					Buf = (char*)StrBuf.c_str() + CurSize;
+					if(ReadedSize < RemoteIp.PortionSize)
+						break;
 				}
 			}
 		}
