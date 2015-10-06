@@ -1068,21 +1068,21 @@ SSLErrOut:
 
 
 #ifdef _WIN32
-#	define ADDITIONAL_FIELDS			\
+#	define ADDITIONAL_FIELDS														\
 	bool			IsNonBlocket;
 #else
 #	define ADDITIONAL_FIELDS  
 #endif
 
 #ifdef IS_HAVE_OPEN_SSL
-#	define ADDITIONAL_FIELDS			\
-	ADDITIONAL_FIELDS			\
-	SSL_CTX*		ctx;			\
+#	define ADDITIONAL_FIELDS														\
+	ADDITIONAL_FIELDS																\
+	SSL_CTX*		ctx;															\
 	SSL*			ssl;
 #endif
 
-#define _QUERY_URL_FIELDS1_																\
-	struct{																				\
+#define _QUERY_URL_FIELDS1_															\
+	struct{																			\
 	int				hSocket;														\
 	unsigned		PortionSize;													\
 	int				ProtocolType;													\
@@ -1091,30 +1091,34 @@ SSLErrOut:
 	ADDITIONAL_FIELDS																\
 	}
 
-#define DEF_GET_OPTION_PROPERTY(RetType, SoketNum, Level, Option)						\
-	operator RetType()																	\
-	{																					\
+#define DEF_GET_OPTION_PROPERTY(RetType, SoketNum, Level, Option)					\
+	operator RetType()																\
+	{																				\
 	std::conditional<sizeof(RetType) < sizeof(int), int, RetType>::type v;	        \
 	int l = sizeof(v);																\
 	if(getsockopt(SoketNum, Level, Option, (char*)&v, &l) != 0)						\
-	URL_SET_LAST_ERR															\
+	URL_SET_LAST_ERR																\
 	return v;																		\
 	}
 
-#define DEF_SET_OPTION_PROPERTY(SetType, SoketNum, Level, Option)						\
-	SetType operator=(SetType New){if(SetOption(SoketNum, Level, Option, New) != 0) URL_SET_LAST_ERR return New;}
+#define DEF_SET_OPTION_PROPERTY(SetType, SoketNum, Level, Option)					\
+	SetType operator=(SetType New){													\
+	if(SetOption(SoketNum, Level, Option, New) != 0) URL_SET_LAST_ERR return New;}
 
-#define DEF_SOCKET_OPTION_PROPERTY(Name, SetType, GetType, Level, Option)				\
+#define DEF_SOCKET_OPTION_PROPERTY(Name, SetType, GetType, Level, Option)			\
 	class{_QUERY_URL_FIELDS1_;public:												\
-	DEF_SET_OPTION_PROPERTY(SetType, hSocket, Level, Option)					\
-	DEF_GET_OPTION_PROPERTY(GetType, hSocket, Level, Option)					\
+	DEF_SET_OPTION_PROPERTY(SetType, hSocket, Level, Option)						\
+	DEF_GET_OPTION_PROPERTY(GetType, hSocket, Level, Option)						\
 	} Name
 
-#define DEF_SOCKET_OPTION_PROPERTY_GET(Name, GetType, Level, Option)					\
-	class{_QUERY_URL_FIELDS1_; public: DEF_GET_OPTION_PROPERTY(GetType, hSocket, Level, Option)} Name
+#define DEF_SOCKET_OPTION_PROPERTY_GET(Name, GetType, Level, Option)				\
+	class{_QUERY_URL_FIELDS1_; public:												\
+	DEF_GET_OPTION_PROPERTY(GetType, hSocket, Level, Option)} Name
 
-#define DEF_SOCKET_OPTION_PROPERTY_SET(Name, SetType, Level, Option)					\
-	class{ _QUERY_URL_FIELDS1_; public:	DEF_SET_OPTION_PROPERTY(SetType, hSocket, Level, Option)} Name
+#define DEF_SOCKET_OPTION_PROPERTY_SET(Name, SetType, Level, Option)				\
+	class{ _QUERY_URL_FIELDS1_; public:												\
+	DEF_SET_OPTION_PROPERTY(SetType, hSocket, Level, Option)} Name
+
 public:
 
 	union
