@@ -197,10 +197,14 @@ using winsock::getaddrinfo;
 using winsock::inet_ntop;
 using winsock::ip_mreq_source;
 
+typedef UINT32 socklen_t;
 #	define gai_strerror gai_strerrorA
 #	define sockaddr  winsock::sockaddr
 #	define sockaddr_in  winsock::sockaddr_in
 #	define sockaddr_in6  winsock::sockaddr_in6
+#	define sockaddr_storage winsock::sockaddr_storage
+#	define sockaddr_dl winsock::sockaddr_dl
+#	define inet_pton winsock::inet_pton
 
 #	define IPPROTO_ICMP winsock::IPPROTO_ICMP
 #	define IPPROTO_IGMP winsock::IPPROTO_IGMP 
@@ -267,12 +271,14 @@ public:
 
 	struct SOCKET_ADDR
 	{
-		union
-		{
-			struct sockaddr		Addr;
-			struct sockaddr_in  AddrInet;
-			struct sockaddr_in6 AddrInet6;
-		};
+#define SOCKET_ADDR_FIELDS \
+		union\
+		{\
+		sockaddr			Addr;\
+		sockaddr_in			AddrInet;\
+		sockaddr_in6		AddrInet6;\
+		sockaddr_storage	AddrStorage;\
+		}
 
 		template<typename RetType>
 		inline operator RetType*()
@@ -282,74 +288,442 @@ public:
 
 		inline sockaddr& operator =(const sockaddr& New)
 		{
-			Addr = New;
-			return Addr;
+			Len.Addr = New;
+			return Len.Addr;
 		}
 
 		inline sockaddr_in& operator =(const sockaddr_in& New)
 		{
-			AddrInet = New;
-			return AddrInet;
+			Len.AddrInet = New;
+			return Len.AddrInet;
 		}
 
 		inline sockaddr_in6& operator =(const sockaddr_in6& New)
 		{
-			AddrInet6 = New;
-			return AddrInet6;
+			Len.AddrInet6 = New;
+			return Len.AddrInet6;
 		}
 
-		inline int ProtocolFamily() const
-		{ 
-			return Addr.sa_family; 
-		}
 
-		TPORT & Port()
+		union
 		{
-			switch(ProtocolFamily())
-			{
-			case AF_INET:
-				return AddrInet.sin_port;
-			case AF_INET6:
-				return AddrInet6.sin6_port;
-			}
-			static TPORT i = 0;
-			return i;
-		}
 
-		unsigned Len() const
+			class 
+			{
+				SOCKET_ADDR_FIELDS;
+			public:
+				inline operator int() const
+				{ 
+					return Addr.sa_family; 
+				}
+
+				inline int operator =(int Fam)
+				{ 
+					return Addr.sa_family = Fam; 
+				}
+			} ProtocolFamily;
+
+			class ___PORT
+			{
+				
+			public:
+
+				class
+				{
+					friend ___PORT;
+					SOCKET_ADDR_FIELDS;
+				public:
+					inline operator TPORT()
+					{
+						switch(Addr.sa_family)
+						{
+						case AF_INET:
+							return  htons(AddrInet.sin_port);
+						case AF_INET6:
+							return  htons(AddrInet6.sin6_port);
+						}
+						return 0;
+					}
+				} Readeble;
+
+				inline operator TPORT() const
+				{ 
+					switch(Readeble.Addr.sa_family)
+					{
+					case AF_INET:
+						return Readeble.AddrInet.sin_port;
+					case AF_INET6:
+						return Readeble.AddrInet6.sin6_port;
+					}
+					return 0;
+				}
+
+				inline TPORT operator =(TPORT Prt)
+				{ 
+					switch(Readeble.Addr.sa_family)
+					{
+					case AF_INET:
+						return Readeble.AddrInet.sin_port = Prt;
+					case AF_INET6:
+						return Readeble.AddrInet6.sin6_port = Prt;
+					}
+					return 0; 
+				}
+			} Port;
+
+			class
+			{
+
+				friend SOCKET_ADDR;
+				SOCKET_ADDR_FIELDS;
+			public:	
+				inline operator socklen_t() const
+				{
+					switch(Addr.sa_family)
+					{
+					case AF_INET:
+						return sizeof(AddrInet);
+					case AF_INET6:
+						return sizeof(AddrInet6);
+					}
+					return sizeof(Addr);
+				}
+			} Len;
+
+			class
+			{
+				friend QUERY_URL;
+				SOCKET_ADDR_FIELDS;
+			public:
+				const char * operator=(const char* AddrStr)
+				{
+					inet_pton(Addr.sa_family, AddrStr, GetData());
+					return AddrStr;
+				}
+
+				void* GetData() const
+				{
+					switch(Addr.sa_family)
+					{
+					case AF_INET:
+						return (void*)&AddrInet.sin_addr;
+					case AF_INET6:
+						return (void*)&AddrInet6.sin6_addr;
+					}
+					return nullptr;
+				}
+
+				char* operator()(char * Dest, size_t Len = 0xffff) const
+				{
+					inet_ntop(Addr.sa_family, GetData(), Dest, Len);
+					return Dest;
+				}
+
+				operator std::basic_string<char>() const
+				{
+					std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
+					operator()((char*)Buf.c_str(), INET6_ADDRSTRLEN + 1);
+					return Buf;
+				}
+			} Ip;
+		};
+
+	};
+
+	class ADDRESS_INFO
+	{
+#define ADDRESS_INFO_FIELDS							\
+		struct										\
+		{											\
+		addrinfo * ai;							\
+		std::def_var_in_union_with_constructor	\
+		<std::basic_string<char>> PortName;	\
+		std::def_var_in_union_with_constructor	\
+		<std::basic_string<char>> HostName;	\
+		int iError;								\
+	}
+
+
+#define ADDRESS_INFO_SET_LAST_ERR(Str, Num)						\
+		{														\
+		static const ERROR_INFO Uei = {Num, Str};			\
+		((ADDRESS_INFO*)this)->HostName.LastErr =			\
+		(ERROR_INFO*)&Uei;									\
+	}
+		friend QUERY_URL;
+
+		operator addrinfo*() const
 		{
-			switch(ProtocolFamily())
-			{
-			case AF_INET:
-				return sizeof(AddrInet);
-			case AF_INET6:
-				return sizeof(AddrInet6);
-			}
-			return sizeof(Addr);
+			return HostName.ai;
 		}
 
-		inline TPORT ReadeblePort()
-		{ 
-			return htons(Port());
-		}
-
-		void* AddressData()
+		void InitFields()
 		{
-			switch(ProtocolFamily())
+			HostName.ai = nullptr;
+			LastError.Clear();
+			new(&HostName.PortName)  std::basic_string<char>("");
+			new(&HostName.HostName)  std::basic_string<char>("");
+		}
+
+
+		class ADDRESSES
+		{
+			friend QUERY_URL;
+			class ADDRESS_INTERATOR
 			{
-			case AF_INET:
-				return &AddrInet.sin_addr;
-			case AF_INET6:
-				return &AddrInet6.sin6_addr;
+				friend QUERY_URL;
+
+				inline operator addrinfo*() const
+				{
+					return Ip.ca;
+				}
+
+			public:
+				ADDRESS_INTERATOR(addrinfo * CurAddr)
+				{
+					Ip.ca = CurAddr;
+				}
+				union
+				{
+					class
+					{
+						addrinfo * ca;
+					public:
+						operator TPORT()
+						{
+							if(ca == nullptr)
+								return 0;
+							return ((SOCKET_ADDR*)ca->ai_addr)->Port;
+						}
+					} Port;
+
+					class
+					{
+						friend ADDRESS_INTERATOR;
+						addrinfo * ca;
+					public:
+						char* operator()(char * Dest, size_t Len = 0xffff)
+						{
+							if(ca == nullptr)
+								return nullptr;
+							inet_ntop(((SOCKET_ADDR*)ca->ai_addr)->ProtocolFamily, ((SOCKET_ADDR*)ca->ai_addr)->Ip.GetData(), Dest, Len);
+							return Dest;
+						}
+
+						void* GetData()
+						{
+							if(ca == nullptr)
+								return nullptr;
+							return ((SOCKET_ADDR*)ca->ai_addr)->Ip.GetData();
+						}
+
+						operator std::basic_string<char>()
+						{
+							std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
+							operator()((char*)Buf.c_str(), INET6_ADDRSTRLEN + 1);
+							return Buf;
+						}
+
+					} Ip;
+
+					class
+					{
+						addrinfo * ca;
+					public:
+						inline operator int() const
+						{
+							return ((SOCKET_ADDR*)ca->ai_addr)->ProtocolFamily;
+						}
+					} ProtocolFamily;
+
+					class
+					{
+						addrinfo * ca;
+					public:
+						inline operator int() const
+						{
+							return ca->ai_socktype;
+						}
+					} TypeSocket;
+
+					class
+					{
+						addrinfo * ca;
+					public:
+						inline operator int() const
+						{
+							return ca->ai_protocol;
+						}
+					} Protocol;
+
+					class
+					{
+						addrinfo * ca;
+					public:
+						inline operator int() const
+						{
+							return ca->ai_flags;
+						}
+					} Flags;
+
+					class
+					{
+						addrinfo * ca;
+					public:
+						inline operator char*() const
+						{
+							return ca->ai_canonname;
+						}
+					} CanonicalName;
+				};
+			};
+
+		public:
+			class
+			{
+				friend ADDRESSES;
+				ADDRESS_INFO_FIELDS;
+			public:
+				inline operator int() 
+				{ 
+					int Count = 0;
+					for(decltype(ai) i = ai; i; Count++, i = i->ai_next);
+					return Count;
+				}
+			} Count;
+
+			ADDRESS_INTERATOR operator[](unsigned Index)
+			{
+				int n = 0;
+				for(addrinfo * i = Count.ai; i; n++, i = i->ai_next)
+					if(n == Index)
+						return ADDRESS_INTERATOR(i);
+				return ADDRESS_INTERATOR(nullptr);
 			}
-			return nullptr;
+		};
+
+	public:
+
+		union
+		{
+			class
+			{		
+				ADDRESS_INFO_FIELDS;
+				friend ADDRESS_INFO;
+				int operator =(int nErr)
+				{
+					return iError = nErr;
+				}
+			public:
+				operator const char *()
+				{
+					return strerror(iError);
+				}
+
+				int GetNumber()
+				{
+					return iError;
+				}
+
+				void Clear()
+				{
+					iError = 0;
+				}
+			} LastError;
+
+			class
+			{
+				friend ADDRESS_INFO;
+				ADDRESS_INFO_FIELDS;
+			public:
+				operator const char*()
+				{
+					return HostName->c_str();
+				}
+			} HostName;
+
+			class 
+			{
+				ADDRESS_INFO_FIELDS;
+
+			public:
+				operator const char*()
+				{
+					return PortName->c_str();
+				}
+			} PortName;
+
+			ADDRESSES		Addresses;
+		};
+
+
+
+		ADDRESS_INFO(const char * FullAddress)
+		{
+			const char * _Pos;
+			int Pos;
+			TPORT Port;
+			InitFields();
+
+			if((_Pos = strstr(FullAddress, "://")) != nullptr)
+			{
+				HostName.PortName->append(FullAddress, (unsigned)_Pos - (unsigned)FullAddress);
+				_Pos += 3;
+			}else 
+			{
+				HostName.PortName = "http";
+				_Pos = FullAddress;
+			}
+			int CountReaded = sscanf(_Pos,"%*[^/:]%n%*c%hu", &Pos, &Port);
+			HostName.HostName->append(_Pos, Pos);
+			if(CountReaded > 1)
+				NumberToString(Port, *&HostName.PortName);
+			Update();
+		}
+
+		ADDRESS_INFO(const char * Host, const char * Port)
+		{
+			InitFields();
+			HostName.PortName = Port;
+			HostName.HostName = Host;
+			Update();
+		}
+
+
+		~ADDRESS_INFO()
+		{
+			if(HostName.ai != nullptr)
+				freeaddrinfo(HostName.ai);
+		}
+
+
+		bool Update(int iSocktype = SOCK_STREAM, int iProtocol = IPPROTO_TCP, int iFamily = AF_UNSPEC, int iFlags = 0)
+		{
+			if(GetWsa() == nullptr)
+			{
+				LastError = GetLastErr();
+				return false;
+			}
+			addrinfo host_info = {0}, *ah = nullptr;
+			host_info.ai_socktype = iSocktype;
+			host_info.ai_family = iFamily;
+			host_info.ai_protocol = iProtocol;
+			host_info.ai_flags = iFlags;                   //AI_PASSIVE
+			int ErrNb;
+			if((ErrNb = getaddrinfo(HostName, PortName, &host_info, &ah)) != 0)
+			{
+				LastError = GetLastErr();
+				return false;
+			}
+			if(HostName.ai != nullptr)
+				freeaddrinfo(HostName.ai);
+			HostName.ai = ah;
+			return true;
 		}
 	};
+
 private:
-#define URL_SET_LAST_ERR \
-	{\
-	((QUERY_URL*)this)->RemoteIp.iError = GetLastErr();\
-	   }
+#define URL_SET_LAST_ERR {((QUERY_URL*)this)->RemoteIp.iError = GetLastErr();}
 
 	struct PROTOCOL_INTERATOR
 	{
@@ -1092,7 +1466,7 @@ SSLErrOut:
 	}
 
 #define DEF_GET_OPTION_PROPERTY(RetType, SoketNum, Level, Option)					\
-	operator RetType()																\
+	operator RetType() const														\
 	{																				\
 	std::conditional<sizeof(RetType) < sizeof(int), int, RetType>::type v;	        \
 	int l = sizeof(v);																\
@@ -1154,8 +1528,6 @@ public:
 			}
 		} LastError;
 
-
-
 		/*
 		Remote host name.
 		*/
@@ -1168,7 +1540,7 @@ public:
 				SOCKET_ADDR sa;
 				if(!((QUERY_URL*)this)->RemoteIp.GetRemoteAddress(sa))
 					return "";
-				return GetInfoAboutHost(sa.AddressData(), sa.Len(), sa.ProtocolFamily()).Name;
+				return GetInfoAboutHost(sa.Ip.GetData(), sa.Len, sa.ProtocolFamily).Name;
 			}
 		} RemoteHostName;
 
@@ -1185,7 +1557,7 @@ public:
 				SOCKET_ADDR sa;
 				if(!((QUERY_URL*)this)->RemoteIp.GetRemoteAddress(sa))
 					return 0;
-				return sa.ReadeblePort();
+				return sa.Port.Readeble;
 			}
 
 			char* operator()(char * Dest, size_t Len = 0xffff) const
@@ -1217,19 +1589,19 @@ public:
 			inline bool GetRemoteAddress(SOCKET_ADDR & Address) const
 			{
 				int Len = sizeof(SOCKET_ADDR);
-				if((getpeername(hSocket, Address, &Len) != 0) || (Len != Address.Len()))
+				if((getpeername(hSocket, Address, &Len) != 0) || (Len != Address.Len))
 				{
 					URL_SET_LAST_ERR
-						return false;
+					return false;
 				}
 				return true;
 			}
 		public:
 			void* GetData() const
 			{
-				SOCKET_ADDR sa = {0};
+				SOCKET_ADDR sa;
 				GetRemoteAddress(sa);
-				return sa.AddressData();
+				return sa.Ip.GetData();
 			}
 
 			char* operator()(char * Dest, size_t Len = 0xffff) const
@@ -1237,7 +1609,7 @@ public:
 				SOCKET_ADDR sa;
 				if(GetRemoteAddress(sa))
 				{
-					inet_ntop(sa.ProtocolFamily(), sa.AddressData(), Dest, Len);
+					sa.Ip(Dest, Len);
 					return Dest;
 				}	
 				return nullptr;
@@ -1254,7 +1626,7 @@ public:
 			{
 				SOCKET_ADDR sa;
 				if(GetRemoteAddress(sa))
-					return GetInfoAboutHost(sa.AddressData(), sa.Len(), sa.ProtocolFamily());
+					return GetInfoAboutHost(sa.Ip.GetData(), sa.Len, sa.ProtocolFamily);
 				return INFO_HOST_INTERATOR(nullptr);
 			}
 		} RemoteIp;
@@ -1272,7 +1644,7 @@ public:
 			{
 				SOCKET_ADDR sa;
 				if(((QUERY_URL*)this)->LocalIp.GetLocalAddress(sa))
-					return GetInfoAboutHost(sa.AddressData(), sa.Len(), sa.ProtocolFamily()).Name;
+					return GetInfoAboutHost(sa.Ip.GetData(), sa.Len, sa.ProtocolFamily).Name;
 				return "";
 			}
 		} LocalHostName;
@@ -1290,7 +1662,7 @@ public:
 				SOCKET_ADDR sa;
 				if(!((QUERY_URL*)this)->LocalIp.GetLocalAddress(sa))
 					return 0;
-				return sa.ReadeblePort();
+				return sa.Port.Readeble;
 			}
 
 			char* operator()(char * Dest, size_t Len = 0xffff) const
@@ -1322,7 +1694,7 @@ public:
 			inline bool GetLocalAddress(SOCKET_ADDR & Address) const
 			{
 				int Len = sizeof(SOCKET_ADDR);
-				if((getsockname(hSocket, Address, &Len) != 0) || (Len != Address.Len()))
+				if((getsockname(hSocket, Address, &Len) != 0) || (Len != Address.Len))
 				{
 					URL_SET_LAST_ERR
 						return false;
@@ -1332,9 +1704,9 @@ public:
 		public:
 			void* GetData() const
 			{
-				SOCKET_ADDR sa = {0};
+				SOCKET_ADDR sa;
 				GetLocalAddress(sa);
-				return sa.AddressData();
+				return sa.Ip.GetData();
 			}
 
 			char* operator()(char * Dest, size_t Len = 0xffff) const
@@ -1342,7 +1714,7 @@ public:
 				SOCKET_ADDR sa;
 				if(GetLocalAddress(sa))
 				{
-					inet_ntop(sa.ProtocolFamily(), sa.AddressData(), Dest, Len);
+					sa.Ip(Dest, Len);
 					return Dest;
 				}	
 				return nullptr;
@@ -1359,7 +1731,7 @@ public:
 			{
 				SOCKET_ADDR sa;
 				if(GetLocalAddress(sa))
-					return GetInfoAboutHost(sa.AddressData(), sa.Len(), sa.ProtocolFamily());
+					return GetInfoAboutHost(sa.Ip.GetData(), sa.Len, sa.ProtocolFamily);
 				return INFO_HOST_INTERATOR(nullptr);
 			}
 		} LocalIp;
@@ -1378,15 +1750,15 @@ public:
 				SOCKET_ADDR SockAddr;
 				if(!((QUERY_URL*)this)->RemoteIp.GetRemoteAddress(SockAddr))
 					return -1;
-				return SockAddr.ProtocolFamily();
+				return SockAddr.ProtocolFamily;
 			}
 
-			operator char*()
+			operator char*() const
 			{
 				SOCKET_ADDR SockAddr;
 				if(!((QUERY_URL*)this)->RemoteIp.GetRemoteAddress(SockAddr))
 					return "";
-				switch(SockAddr.ProtocolFamily()) 
+				switch(SockAddr.ProtocolFamily) 
 				{ 
 				case AF_UNSPEC: 
 					return "UNSPEC"; 
@@ -1746,9 +2118,37 @@ public:
 				*/
 				DEF_SOCKET_OPTION_PROPERTY(PacketInfo, int, int, IPPROTO_IP, IP_PKTINFO);
 
+				/*
 
+				*/
+				DEF_SOCKET_OPTION_PROPERTY(IsRecive, bool, bool, IPPROTO_IP, IP_RECVIF);
+
+				/*
+				Set or receive the Type-Of-Service (TOS) field that is sent
+				with every IP packet originating from this socket.  It is used
+				to prioritize packets on the network.
+				*/
+				DEF_SOCKET_OPTION_PROPERTY(IsTypeOfService, bool, bool, IPPROTO_IP, IP_TOS);
+	
+				/* 
+				Changes the default value set by the TCP/IP service provider 
+				in the TTL field of the IP header in outgoing datagrams.
+				*/
+				DEF_SOCKET_OPTION_PROPERTY(IsSetTimeToLive, bool, bool, IPPROTO_IP, IP_TTL);
+
+
+				/* 
+				Changes the default value set by the TCP/IP service provider 
+				in the TTL field of the IP header in outgoing datagrams.
+				*/
+				DEF_SOCKET_OPTION_PROPERTY_SET(UnblockSource, ip_mreq_source&, IPPROTO_IP, IP_UNBLOCK_SOURCE);
 			};
 		} IpOptions;
+
+		class
+		{
+		public:
+		} Ip6Options;
 	};
 
 	/*
@@ -1838,297 +2238,6 @@ public:
 		return INFO_HOST_INTERATOR(gethostbyname(NameOrTextAddress));
 	}
 
-	class ADDRESS_INFO
-	{
-#define ADDRESS_INFO_FIELDS							\
-		struct										\
-		{											\
-		addrinfo * ai;							\
-		std::def_var_in_union_with_constructor	\
-		<std::basic_string<char>> PortName;	\
-		std::def_var_in_union_with_constructor	\
-		<std::basic_string<char>> HostName;	\
-		int iError;								\
-	}
-
-
-#define ADDRESS_INFO_SET_LAST_ERR(Str, Num)						\
-		{														\
-		static const ERROR_INFO Uei = {Num, Str};			\
-		((ADDRESS_INFO*)this)->HostName.LastErr =			\
-		(ERROR_INFO*)&Uei;									\
-	}
-		friend QUERY_URL;
-
-		operator addrinfo*() const
-		{
-			return HostName.ai;
-		}
-
-		void InitFields()
-		{
-			HostName.ai = nullptr;
-			LastError.Clear();
-			new(&HostName.PortName)  std::basic_string<char>("");
-			new(&HostName.HostName)  std::basic_string<char>("");
-		}
-
-
-		class ADDRESSES
-		{
-			friend QUERY_URL;
-			class ADDRESS_INTERATOR
-			{
-				friend QUERY_URL;
-
-				operator addrinfo*() const
-				{
-					return Ip.ca;
-				}
-			public:
-				ADDRESS_INTERATOR(addrinfo * CurAddr)
-				{
-					Ip.ca = CurAddr;
-				}
-				union
-				{
-					class
-					{
-						addrinfo * ca;
-					public:
-						operator TPORT()
-						{
-							if(ca == nullptr)
-								return 0;
-							return ((SOCKET_ADDR*)ca->ai_addr)->Port();
-						}
-					} Port;
-
-					class
-					{
-						friend ADDRESS_INTERATOR;
-						addrinfo * ca;
-					public:
-						char* operator()(char * Dest, size_t Len = 0xffff)
-						{
-							if(ca == nullptr)
-								return nullptr;
-							inet_ntop(((SOCKET_ADDR*)ca->ai_addr)->ProtocolFamily(), ((SOCKET_ADDR*)ca->ai_addr)->AddressData(), Dest, Len);
-							return Dest;
-						}
-
-						void* GetData()
-						{
-							if(ca == nullptr)
-								return nullptr;
-							return ((SOCKET_ADDR*)ca->ai_addr)->AddressData();
-						}
-
-						operator std::basic_string<char>()
-						{
-							std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
-							operator()((char*)Buf.c_str(), INET6_ADDRSTRLEN + 1);
-							return Buf;
-						}
-
-					} Ip;
-
-					class
-					{
-						addrinfo * ca;
-					public:
-						inline operator int() const
-						{
-							return ((SOCKET_ADDR*)ca->ai_addr)->ProtocolFamily();
-						}
-					} ProtocolFamily;
-
-					class
-					{
-						addrinfo * ca;
-					public:
-						inline operator int() const
-						{
-							return ca->ai_socktype;
-						}
-					} TypeSocket;
-
-					class
-					{
-						addrinfo * ca;
-					public:
-						inline operator int() const
-						{
-							return ca->ai_protocol;
-						}
-					} Protocol;
-
-					class
-					{
-						addrinfo * ca;
-					public:
-						inline operator int() const
-						{
-							return ca->ai_flags;
-						}
-					} Flags;
-
-					class
-					{
-						addrinfo * ca;
-					public:
-						inline operator char*() const
-						{
-							return ca->ai_canonname;
-						}
-					} CanonicalName;
-				};
-			};
-
-		public:
-			class
-			{
-				friend ADDRESSES;
-				ADDRESS_INFO_FIELDS;
-			public:
-				inline operator int() 
-				{ 
-					int Count = 0;
-					for(decltype(ai) i = ai; i; Count++, i = i->ai_next);
-					return Count;
-				}
-			} Count;
-
-			ADDRESS_INTERATOR operator[](unsigned Index)
-			{
-				int n = 0;
-				for(addrinfo * i = Count.ai; i; n++, i = i->ai_next)
-					if(n == Index)
-						return ADDRESS_INTERATOR(i);
-				return ADDRESS_INTERATOR(nullptr);
-			}
-		};
-
-	public:
-
-		union
-		{
-			class
-			{		
-				ADDRESS_INFO_FIELDS;
-				friend ADDRESS_INFO;
-				int operator =(int nErr)
-				{
-					return iError = nErr;
-				}
-			public:
-				operator const char *()
-				{
-					return strerror(iError);
-				}
-
-				int GetNumber()
-				{
-					return iError;
-				}
-
-				void Clear()
-				{
-					iError = 0;
-				}
-			} LastError;
-
-			class
-			{
-				friend ADDRESS_INFO;
-				ADDRESS_INFO_FIELDS;
-			public:
-				operator const char*()
-				{
-					return HostName->c_str();
-				}
-			} HostName;
-
-			class 
-			{
-				ADDRESS_INFO_FIELDS;
-
-			public:
-				operator const char*()
-				{
-					return PortName->c_str();
-				}
-			} PortName;
-
-			ADDRESSES		Addresses;
-		};
-
-
-
-		ADDRESS_INFO(const char * FullAddress)
-		{
-			const char * _Pos;
-			int Pos;
-			TPORT Port;
-			InitFields();
-
-			if((_Pos = strstr(FullAddress, "://")) != nullptr)
-			{
-				HostName.PortName->append(FullAddress, (unsigned)_Pos - (unsigned)FullAddress);
-				_Pos += 3;
-			}else 
-			{
-				HostName.PortName = "http";
-				_Pos = FullAddress;
-			}
-			int CountReaded = sscanf(_Pos,"%*[^/:]%n%*c%hu", &Pos, &Port);
-			HostName.HostName->append(_Pos, Pos);
-			if(CountReaded > 1)
-				NumberToString(Port, *&HostName.PortName);
-			Update();
-		}
-
-		ADDRESS_INFO(const char * Host, const char * Port)
-		{
-			InitFields();
-			HostName.PortName = Port;
-			HostName.HostName = Host;
-			Update();
-		}
-
-
-		~ADDRESS_INFO()
-		{
-			if(HostName.ai != nullptr)
-				freeaddrinfo(HostName.ai);
-		}
-
-
-		bool Update(int iSocktype = SOCK_STREAM, int iProtocol = IPPROTO_TCP, int iFamily = AF_UNSPEC, int iFlags = 0)
-		{
-			if(GetWsa() == nullptr)
-			{
-				LastError = GetLastErr();
-				return false;
-			}
-			addrinfo host_info = {0}, *ah = nullptr;
-			host_info.ai_socktype = iSocktype;
-			host_info.ai_family = iFamily;
-			host_info.ai_protocol = iProtocol;
-			host_info.ai_flags = iFlags;                   //AI_PASSIVE
-			int ErrNb;
-			if((ErrNb = getaddrinfo(HostName, PortName, &host_info, &ah)) != 0)
-			{
-				LastError = GetLastErr();
-				return false;
-			}
-			if(HostName.ai != nullptr)
-				freeaddrinfo(HostName.ai);
-			HostName.ai = ah;
-			return true;
-		}
-	};
-
 	/*
 	Connect with server at a specific address.
 	*/
@@ -2207,19 +2316,19 @@ public:
 	Connect with server.
 	*/
 	bool Connect
-		(
+	(
 		const char * Port, 
 		const char* HostAddr = nullptr, 
 		int iSocktype = SOCK_STREAM, 
 		int iProtocol = IPPROTO_TCP, 
 		int iFamily = AF_UNSPEC, 
 		int Flags = 0
-		)
+	)
 	{	
 		if(GetWsa() == nullptr)
 		{
 			URL_SET_LAST_ERR
-				return false;
+			return false;
 		}
 		{
 			if(RemoteIp.hSocket != -1)
@@ -2266,8 +2375,6 @@ public:
 		return true; 
 	}
 
-
-
 	/*
 	Create waiting client on port at a specific address.
 	*/
@@ -2276,7 +2383,7 @@ public:
 		if(GetWsa() == nullptr)
 		{
 			URL_SET_LAST_ERR
-				return false;
+			return false;
 		}
 		if(RemoteIp.hSocket != -1)
 		{
@@ -2316,7 +2423,7 @@ public:
 		if(GetWsa() == nullptr)
 		{
 			URL_SET_LAST_ERR
-				return false;
+			return false;
 		}
 		if(RemoteIp.hSocket != -1)
 		{
@@ -2353,14 +2460,14 @@ public:
 	Create waiting client on port.
 	*/
 	bool Bind
-		(
+	(
 		const char * Port, 
 		int MaxConnection = SOMAXCONN, 
 		int iSocktype = SOCK_STREAM, 
 		int iProtocol = IPPROTO_TCP, 
 		int iFamily = AF_INET, 
 		int Flags = AI_PASSIVE
-		)
+	)
 	{	
 		if(GetWsa() == nullptr)
 		{
@@ -2416,10 +2523,10 @@ public:
 		SOCKET_ADDR SockAddr;
 		int ClientAddressSize = sizeof(SockAddr);
 		int ConnectedSocket = accept(RemoteIp.hSocket, SockAddr, &ClientAddressSize);
-		if((ConnectedSocket == -1) || (SockAddr.Len() != ClientAddressSize))
+		if((ConnectedSocket == -1) || (SockAddr.Len != ClientAddressSize))
 		{
 			URL_SET_LAST_ERR
-				return false;
+			return false;
 		}
 		DestCoonection.RemoteIp.hSocket = ConnectedSocket;
 		DestCoonection.RemoteIp.ProtocolType = RemoteIp.ProtocolType;
@@ -2429,6 +2536,15 @@ public:
 		DestCoonection.RemoteIp.IsEnableSSLLayer = RemoteIp.IsEnableSSLLayer;
 		DestCoonection.LastError.Clear();
 		return true;
+	}
+
+
+	FILE* OpenAsFile(const char * TypeOpen = "w+")
+	{
+	    FILE* File = fdopen(RemoteIp.hSocket, TypeOpen);
+		if(File == NULL)
+			URL_SET_LAST_ERR
+		return File;
 	}
 
 
@@ -2475,6 +2591,39 @@ public:
 	inline bool SendQuery(const std::basic_string<char> & InQuery)
 	{
 		return SendQuery((void*)InQuery.c_str(), InQuery.length());
+	}
+
+
+	/*
+	@Flags:
+		MSG_PEEK - Peeks at the incoming data. 
+		MSG_OOB  - Processes Out Of Band (OOB) data.
+	*/
+	bool TakeFrom(void * Buffer, size_t LenBuff, SOCKET_ADDR& AddressSender, int Flags = 0)
+	{ 
+		int Len = sizeof(SOCKET_ADDR);
+		if(recvfrom(RemoteIp.hSocket, (char*)Buffer, LenBuff, Flags, AddressSender, &Len) != 0)
+		{
+		    URL_SET_LAST_ERR
+			return false;
+		}
+	    return true;
+	}
+
+	/*
+	@Flags:
+		MSG_PEEK - Peeks at the incoming data. 
+		MSG_OOB  - Processes Out Of Band (OOB) data.
+		MSG_DONTROUTE - Not use route.
+	*/
+	bool SendTo(void * Buffer, size_t LenBuff, SOCKET_ADDR& AddressReciver, int Flags = 0)
+	{ 
+		if(sendto(RemoteIp.hSocket, (char*)Buffer, LenBuff, Flags, AddressReciver, sizeof(SOCKET_ADDR)) != 0)
+		{
+		    URL_SET_LAST_ERR
+			return false;
+		}
+	    return true;
 	}
 
 
@@ -2584,7 +2733,6 @@ public:
 		*Buf = '\0';
 		return true;
 	}
-
 
 	inline bool SendAndTakeQuery(void * SendBuf, unsigned SizeSendBuf, void * Buf, unsigned SizeBuf, unsigned * SizeReaded = nullptr)
 	{
