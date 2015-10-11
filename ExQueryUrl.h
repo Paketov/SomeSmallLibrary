@@ -206,16 +206,18 @@ typedef UINT32 socklen_t;
 #	define sockaddr_dl winsock::sockaddr_dl
 #	define inet_pton winsock::inet_pton
 
-#	define IPPROTO_ICMP winsock::IPPROTO_ICMP
-#	define IPPROTO_IGMP winsock::IPPROTO_IGMP 
-#	define IPPROTO_GGP  winsock::IPPROTO_GGP
-#	define IPPROTO_TCP  winsock::IPPROTO_TCP
-#	define IPPROTO_PUP  winsock::IPPROTO_PUP
-#	define IPPROTO_UDP  winsock::IPPROTO_UDP
-#	define IPPROTO_IDP  winsock::IPPROTO_IDP
-#	define IPPROTO_ND   winsock::IPPROTO_ND
-#	define IPPROTO_RAW  winsock::IPPROTO_RAW
-#	define IPPROTO_MAX  winsock::IPPROTO_MAX
+#	define IPPROTO_ICMP ((int)winsock::IPPROTO_ICMP)
+#	define IPPROTO_IGMP ((int)winsock::IPPROTO_IGMP)
+#	define IPPROTO_GGP  ((int)winsock::IPPROTO_GGP)
+#	define IPPROTO_TCP  ((int)winsock::IPPROTO_TCP)
+#	define IPPROTO_PUP  ((int)winsock::IPPROTO_PUP)
+#	define IPPROTO_UDP  ((int)winsock::IPPROTO_UDP)
+#	define IPPROTO_IDP  ((int)winsock::IPPROTO_IDP)
+#	define IPPROTO_ND   ((int)winsock::IPPROTO_ND)
+#	define IPPROTO_RAW  ((int)winsock::IPPROTO_RAW)
+#	define IPPROTO_MAX  ((int)winsock::IPPROTO_MAX)
+#	define IPPROTO_IPV6 ((int)winsock::IPPROTO_IPV6)
+#	define ipv6_mreq winsock::ipv6_mreq
 
 #	define SHUT_RDWR    SD_BOTH
 #	define SHUT_RD		SD_RECEIVE
@@ -229,6 +231,7 @@ typedef UINT32 socklen_t;
 #else
 
 //For unix like operation sistem
+#	include <stdio.h>
 #   include <sys/types.h>
 #   include <sys/socket.h>
 #   include <netinet/in.h>
@@ -724,6 +727,7 @@ public:
 
 private:
 #define URL_SET_LAST_ERR {((QUERY_URL*)this)->RemoteIp.iError = GetLastErr();}
+#define URL_SET_LAST_ERR_VAL(Val) {((QUERY_URL*)this)->RemoteIp.iError = (Val);}
 
 	struct PROTOCOL_INTERATOR
 	{
@@ -1481,18 +1485,51 @@ SSLErrOut:
 
 #define DEF_SOCKET_OPTION_PROPERTY(Name, SetType, GetType, Level, Option)			\
 	class{_QUERY_URL_FIELDS1_;public:												\
+	static const bool IsHave = true;												\
+	static const bool IsSet = true;													\
+	static const bool IsGet = true;													\
 	DEF_SET_OPTION_PROPERTY(SetType, hSocket, Level, Option)						\
 	DEF_GET_OPTION_PROPERTY(GetType, hSocket, Level, Option)						\
 	} Name
 
 #define DEF_SOCKET_OPTION_PROPERTY_GET(Name, GetType, Level, Option)				\
 	class{_QUERY_URL_FIELDS1_; public:												\
+	static const bool IsHave = true;												\
+	static const bool IsSet = false;												\
+	static const bool IsGet = true;													\
 	DEF_GET_OPTION_PROPERTY(GetType, hSocket, Level, Option)} Name
 
 #define DEF_SOCKET_OPTION_PROPERTY_SET(Name, SetType, Level, Option)				\
 	class{ _QUERY_URL_FIELDS1_; public:												\
+	static const bool IsHave = true;												\
+	static const bool IsSet = true;													\
+	static const bool IsGet = false;												\
 	DEF_SET_OPTION_PROPERTY(SetType, hSocket, Level, Option)} Name
 
+#define DEF_SOCKET_EMPTY_OPTION(Name, SetType, GetType)								\
+	class{_QUERY_URL_FIELDS1_;public:												\
+	static const bool IsHave = false;												\
+	static const bool IsSet = false;												\
+	static const bool IsGet = false;												\
+	SetType operator=(SetType v)const {URL_SET_LAST_ERR_VAL(EOPNOTSUPP); return v;} \
+	operator GetType() const {URL_SET_LAST_ERR_VAL(EOPNOTSUPP); GetType v; return v;}\
+	} Name
+
+#define DEF_SOCKET_EMPTY_OPTION_GET(Name, GetType)									\
+	class{_QUERY_URL_FIELDS1_; public:												\
+	static const bool IsHave = false;												\
+	static const bool IsSet = false;												\
+	static const bool IsGet = false;												\
+	operator GetType() const {URL_SET_LAST_ERR_VAL(EOPNOTSUPP); GetType v; return v;}\
+	} Name
+
+#define DEF_SOCKET_EMPTY_OPTION_SET(Name, SetType)									\
+	class{ _QUERY_URL_FIELDS1_; public:												\
+	static const bool IsHave = false;												\
+	static const bool IsSet = false;												\
+	static const bool IsGet = false;												\
+	SetType operator=(SetType v)const {URL_SET_LAST_ERR_VAL(EOPNOTSUPP); return v;} \
+	} Name
 public:
 
 	union
@@ -1835,13 +1872,13 @@ public:
 				if (ioctlsocket(hSocket, FIONBIO, &nonBlocking) != NO_ERROR)
 					URL_SET_LAST_ERR
 				else
-				IsNonBlocket = NewVal;
+					IsNonBlocket = NewVal;
 #else
 				int nonBlocking = NewVal;
 				if (fcntl(hSocket, F_SETFL, O_NONBLOCK, nonBlocking) == -1)
 					URL_SET_LAST_ERR
 #endif
-					return NewVal;
+				return NewVal;
 			}
 
 			operator bool() const
@@ -1858,120 +1895,8 @@ public:
 		This field specifies the preferred socket type, for
 		example SOCK_STREAM or SOCK_DGRAM. 
 		*/
+
 		DEF_SOCKET_OPTION_PROPERTY_GET(TypeSocket, int, SOL_SOCKET, SO_TYPE);
-
-		/*
-		The timeout, in milliseconds, for blocking send calls. 
-		The default for this option is zero, 
-		which indicates that a send operation will not time out. 
-		If a blocking send call times out, the connection is in an indeterminate state and should be closed.
-		*/
-		DEF_SOCKET_OPTION_PROPERTY(ReceiveTimeout, timeval&, timeval, SOL_SOCKET, SO_RCVTIMEO);
-
-		/*
-		The timeout, in milliseconds, for blocking send calls. 
-		The default for this option is zero, which indicates that a send operation will not time out. 
-		If a blocking send call times out, the connection is in an indeterminate state and should be closed.
-		*/
-		DEF_SOCKET_OPTION_PROPERTY(SendTimeout, timeval&, timeval, SOL_SOCKET, SO_SNDTIMEO);
-
-		/*
-		The total per-socket buffer space reserved for sends. 
-		This is unrelated to SO_MAX_MSG_SIZE and does not necessarily correspond to the size of a TCP send window.
-		*/
-		DEF_SOCKET_OPTION_PROPERTY(SendSizeBuffer, int, int, SOL_SOCKET, SO_SNDBUF);
-
-		/*
-		The total per-socket buffer space reserved for receives. 
-		This is unrelated to SO_MAX_MSG_SIZE and does not necessarily correspond to the size of the TCP receive window.
-		*/
-		DEF_SOCKET_OPTION_PROPERTY(ReceiveSizeBuffer, int, int, SOL_SOCKET, SO_RCVBUF);
-
-		/*
-		Enables keep-alive for a socket connection. 
-		Valid only for protocols that support the notion of keep-alive (connection-oriented protocols). 
-		For TCP, the default keep-alive timeout is 2 hours and the keep-alive interval is 1 second. 
-		The default number of keep-alive probes varies based on the version of Windows.
-		*/
-		DEF_SOCKET_OPTION_PROPERTY(IsKeepAlive, bool, bool, SOL_SOCKET, SO_KEEPALIVE);
-
-		/*
-		Configure a socket for sending broadcast data. 
-		This option is only Valid for protocols that support broadcasting (IPX and UDP, for example).
-		*/
-		DEF_SOCKET_OPTION_PROPERTY(IsBroadcast, bool, bool, SOL_SOCKET, SO_BROADCAST);
-
-		/*
-		Enable socket debugging.  Only allowed for processes with the
-		CAP_NET_ADMIN capability or an effective user ID of 0.
-		*/
-		DEF_SOCKET_OPTION_PROPERTY(IsDebug, bool, bool, SOL_SOCKET, SO_DEBUG);
-
-		/*
-		Don't send via a gateway, send only to directly connected
-		hosts.  The same effect can be achieved by setting the
-		MSG_DONTROUTE flag on a socket send(2) operation.  Expects an
-		integer boolean flag.
-		*/
-		DEF_SOCKET_OPTION_PROPERTY(IsDontRoute, bool, bool, SOL_SOCKET, SO_DONTROUTE);
-
-		/*
-		Returns whether a socket is in listening mode. 
-		This option is only Valid for connection-oriented protocols.
-		*/
-		DEF_SOCKET_OPTION_PROPERTY_GET(IsAcceptConnection, bool, SOL_SOCKET, SO_ACCEPTCONN);
-
-		/*
-		Use the local loopback address when sending data from this socket. 
-		This option should only be used when all data sent will also be received locally. 
-		This option is not supported by the Windows TCP/IP provider. 
-		If this option is used on Windows Vista and later, the getsockopt and setsockopt functions fail with WSAEINVAL. 
-		On earlier versions of Windows, these functions fail with WSAENOPROTOOPT.
-		*/
-		DEF_SOCKET_OPTION_PROPERTY(IsUsedLoopBack, bool, bool, SOL_SOCKET, SO_USELOOPBACK);
-
-		/*
-		The socket can be bound to an address which is already in use. 
-		Not applicable for ATM sockets.
-		*/
-		DEF_SOCKET_OPTION_PROPERTY(IsReuseAddr, bool, bool, SOL_SOCKET, SO_REUSEADDR);
-
-
-		/*
-		If true, the Linger option is disabled.
-		*/
-		DEF_SOCKET_OPTION_PROPERTY(IsDontLinger, bool, bool, SOL_SOCKET, SO_DONTLINGER);
-
-		/*
-		When enabled, a close(2) or shutdown(2) will not return until
-		all queued messages for the socket have been successfully sent
-		or the linger timeout has been reached.  Otherwise, the call
-		returns immediately and the closing is done in the background.
-		When the socket is closed as part of exit(2), it always
-		lingers in the background.
-		*/
-		DEF_SOCKET_OPTION_PROPERTY(Linger, linger&, linger, SOL_SOCKET, SO_LINGER);
-
-		/*
-		Specify the minimum number of bytes in the buffer until the
-		socket layer will pass the data to the protocol (SO_SNDLOWAT)
-		or the user on receiving (SO_RCVLOWAT).
-		*/
-		DEF_SOCKET_OPTION_PROPERTY(SendLowWaterMark, int, int, SOL_SOCKET, SO_SNDLOWAT);
-
-		DEF_SOCKET_OPTION_PROPERTY(ReceiveLowWaterMark, int, int, SOL_SOCKET, SO_RCVLOWAT);
-
-		/*
-		Returns the last error code on this socket. 
-		This per-socket error code is not always immediately set.
-		*/
-		DEF_SOCKET_OPTION_PROPERTY_GET(LastSocketError, int, SOL_SOCKET, SO_ERROR);
-
-		/*
-		Indicates that out-of-bound data should be returned in-line with regular data. 
-		This option is only valid for connection-oriented protocols that support out-of-band data.
-		*/
-		DEF_SOCKET_OPTION_PROPERTY(IsReceivedOOBDataInLine, bool, bool, SOL_SOCKET, SO_OOBINLINE);
 
 		/*
 		Get or set option on various system.
@@ -2039,116 +1964,871 @@ public:
 
 		} Options;
 
-
-		class
+		union
 		{
-		public:
-			union
-			{
-				/*
-				Join the socket to the supplied multicast group on the specified interface.
-				*/
-				DEF_SOCKET_OPTION_PROPERTY_SET(AddMembership, ip_mreq&, IPPROTO_IP, IP_ADD_MEMBERSHIP);
+			/*
+			The timeout, in milliseconds, for blocking send calls. 
+			The default for this option is zero, 
+			which indicates that a send operation will not time out. 
+			If a blocking send call times out, the connection is in an indeterminate state and should be closed.
+			*/
+#ifdef SO_RCVTIMEO
+			DEF_SOCKET_OPTION_PROPERTY(ReceiveTimeout, timeval&, timeval, SOL_SOCKET, SO_RCVTIMEO);
+#else
+			DEF_SOCKET_EMPTY_OPTION(ReceiveTimeout, timeval&, timeval);
+#endif
+			/*
+			Have on windows.
+			Returns the number of seconds a socket has been connected. This option is only valid for connection-oriented protocols.
+			*/
+#ifdef SO_CONNECT_TIME
+			DEF_SOCKET_OPTION_PROPERTY_GET(ConnectTime, int, SOL_SOCKET, SO_CONNECT_TIME);
+#else
+			DEF_SOCKET_EMPTY_OPTION_GET(ConnectTime, int);
+#endif
+			/*
+			Have on windows.
+			Returns the maximum outbound message size for message-oriented sockets supported by the protocol. 
+			Has no meaning for stream-oriented sockets.
+			*/
+#ifdef SO_MAX_MSG_SIZE
+			DEF_SOCKET_OPTION_PROPERTY_GET(MaxMessageSize, int, SOL_SOCKET, SO_MAX_MSG_SIZE);
+#else
+			DEF_SOCKET_EMPTY_OPTION_GET(MaxMessageSize, int);
+#endif
+			/*
+			Have on windows.
+			Returns the maximum size, in bytes, for outbound datagrams supported by the protocol. 
+			This socket option has no meaning for stream-oriented sockets.
+			*/
+#ifdef SO_MAXDG
+			DEF_SOCKET_OPTION_PROPERTY_GET(MaxDatagramSize, int, SOL_SOCKET, SO_MAXDG);
+#else
+			DEF_SOCKET_EMPTY_OPTION_GET(MaxDatagramSize, int);
+#endif
 
-				/*
-				Join the supplied multicast group on the given interface and accept data sourced from the supplied source address.
-				*/
-				DEF_SOCKET_OPTION_PROPERTY_SET(AddSourceMembership, ip_mreq_source&, IPPROTO_IP, IP_ADD_SOURCE_MEMBERSHIP);
-
-				/*
-				Removes the given source as a sender to the supplied multicast group and interface.
-				*/
-				DEF_SOCKET_OPTION_PROPERTY_SET(AddBlockSourceMembership, ip_mreq_source&, IPPROTO_IP, IP_BLOCK_SOURCE);
-
-				/*
-				Leaves the specified multicast group from the specified interface. 
-				Service providers must support this option when multicast is supported. 
-				*/
-				DEF_SOCKET_OPTION_PROPERTY_SET(DropMembership, ip_mreq&, IPPROTO_IP, IP_DROP_MEMBERSHIP);
-
-				/*
-				Drops membership to the given multicast group, interface, and source address.
-				*/
-				DEF_SOCKET_OPTION_PROPERTY_SET(DropSourceMembership, ip_mreq_source&, IPPROTO_IP, IP_DROP_SOURCE_MEMBERSHIP);
-
-				/*
-				Indicates that data should not be fragmented regardless of the local MTU. 
-				Valid only for message oriented protocols. 
-				Microsoft TCP/IP providers respect this option for UDP and ICMP.
-				*/
-				DEF_SOCKET_OPTION_PROPERTY(IsDontFragment, bool, bool, IPPROTO_IP, IP_DONTFRAGMENT);
-
-				/*
-				When set to true, indicates the application provides the IP header. 
-				Applies only to SOCK_RAW sockets. 
-				The TCP/IP service provider may set the ID field, 
-				if the value supplied by the application is zero. 
-				*/
-				DEF_SOCKET_OPTION_PROPERTY(IsIncludeHeader, bool, bool, IPPROTO_IP, IP_HDRINCL);
-
-				/*
-				When set to true, indicates the application provides the IP header. 
-				Applies only to SOCK_RAW sockets. 
-				The TCP/IP service provider may set the ID field, 
-				if the value supplied by the application is zero. 
-				*/
-				DEF_SOCKET_OPTION_PROPERTY(Multicast, int, int, IPPROTO_IP, IP_MULTICAST_IF);
-
-				/*
-				Controls whether data sent by an application on the local computer
-				(not necessarily by the same socket) in a multicast session will be received by a
-				socket joined to the multicast destination group on the loopback interface.
-				*/
-				DEF_SOCKET_OPTION_PROPERTY(IsMulticastLoop, bool, bool, IPPROTO_IP, IP_MULTICAST_LOOP);
-
-				/*
-				Set or read the time-to-live value of outgoing multicast
-				packets for this socket.  It is very important for multicast
-				packets to set the smallest TTL possible.  The default is 1
-				which means that multicast packets don't leave the local
-				network unless the user program explicitly requests it.
-				Argument is an integer.
-				*/
-				DEF_SOCKET_OPTION_PROPERTY(MulticastTimeToLive, int, int, IPPROTO_IP, IP_MULTICAST_TTL);
-
-				/*
-				Pass an IP_PKTINFO ancillary message that contains a pktinfo
-				structure that supplies some information about the incoming
-				packet.  This only works for datagram oriented sockets.
-				*/
-				DEF_SOCKET_OPTION_PROPERTY(PacketInfo, int, int, IPPROTO_IP, IP_PKTINFO);
-
-				/*
-
-				*/
-				DEF_SOCKET_OPTION_PROPERTY(IsRecive, bool, bool, IPPROTO_IP, IP_RECVIF);
-
-				/*
-				Set or receive the Type-Of-Service (TOS) field that is sent
-				with every IP packet originating from this socket.  It is used
-				to prioritize packets on the network.
-				*/
-				DEF_SOCKET_OPTION_PROPERTY(IsTypeOfService, bool, bool, IPPROTO_IP, IP_TOS);
-	
-				/* 
-				Changes the default value set by the TCP/IP service provider 
-				in the TTL field of the IP header in outgoing datagrams.
-				*/
-				DEF_SOCKET_OPTION_PROPERTY(IsSetTimeToLive, bool, bool, IPPROTO_IP, IP_TTL);
+			/*
+			Have on some unix.
+			Enable or disable the receiving of the SCM_CREDENTIALS control message.
+			*/
+#ifdef SO_PASSCRED
+			DEF_SOCKET_OPTION_PROPERTY(IsEnableCredentionalsContrMsg, bool, bool, SOL_SOCKET, SO_MAXDG);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsEnableCredentionalsContrMsg, bool, bool);
+#endif
+			/*
+			Have on some unix.
+			Enable or disable the receiving of the SCM_CREDENTIALS control message.
+			*/
+#ifdef SO_TIMESTAMP
+			DEF_SOCKET_OPTION_PROPERTY(IsEnableTimestampMsg, bool, bool, SOL_SOCKET, SO_TIMESTAMP);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsEnableTimestampMsg, bool, bool);
+#endif
+			/*
+			Have on some unix.
+			Set the mark for each packet sent through this socket (similar to the netfilter MARK target but socket-based). 
+			Changing the mark can be used for mark-based routing without netfilter or for packet filtering. 
+			Setting this option requires the CAP_NET_ADMIN capability.
+			*/
+#ifdef SO_MARK
+			DEF_SOCKET_OPTION_PROPERTY(IsSetMarkForEachPacket, bool, bool, SOL_SOCKET, SO_MARK);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsSetMarkForEachPacket, bool, bool);
+#endif
 
 
-				/* 
-				Changes the default value set by the TCP/IP service provider 
-				in the TTL field of the IP header in outgoing datagrams.
-				*/
-				DEF_SOCKET_OPTION_PROPERTY_SET(UnblockSource, ip_mreq_source&, IPPROTO_IP, IP_UNBLOCK_SOURCE);
-			};
+#ifdef SO_ACCEPTFILTER
+			DEF_SOCKET_OPTION_PROPERTY(AcceptFilter, accept_filter_arg&, accept_filter_arg, SOL_SOCKET, SO_ACCEPTFILTER);
+#else
+			DEF_SOCKET_EMPTY_OPTION(AcceptFilter, std::empty_type&, std::empty_type);
+#endif
+			/*
+			Have on windows.
+			Once set, affects whether subsequent sockets that are created will be non-overlapped.
+			The possible values for this option are SO_SYNCHRONOUS_ALERT and SO_SYNCHRONOUS_NONALERT. 
+			This option should not be used.
+			Instead use the WSASocket function and leave the WSA_FLAG_OVERLAPPED bit in the dwFlags parameter turned off.
+			*/
+#ifdef SO_OPENTYPE
+			DEF_SOCKET_OPTION_PROPERTY(OpenType, int, int, SOL_SOCKET, SO_OPENTYPE);
+#else
+			DEF_SOCKET_EMPTY_OPTION(OpenType, int, int);
+#endif
+			/*
+			Have on windows.
+			Use this option for listening sockets. When the option is set, 
+			the socket responds to all incoming connections with an RST rather than accepting them.
+			*/
+#ifdef SO_PAUSE_ACCEPT
+			DEF_SOCKET_OPTION_PROPERTY(IsPauseAccept, bool, bool, SOL_SOCKET, SO_PAUSE_ACCEPT);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsPauseAccept, bool, bool);
+#endif
+
+			/*
+			Have on windows.
+			Enables local port scalability for a socket by allowing port allocation to be 
+			maximized by allocating wildcard ports multiple times for different local address port pairs on a 
+			local machine. On platforms where both options are available, prefer 
+			SO_REUSE_UNICASTPORT instead of this option. See the SO_PORT_SCALABILITY reference for more information.
+			*/
+#ifdef SO_PORT_SCALABILITY 
+			DEF_SOCKET_OPTION_PROPERTY(IsPortScalability , bool, bool, SOL_SOCKET, SO_PORT_SCALABILITY);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsPortScalability, bool, bool);
+#endif
+
+			/*
+			Have on windows.
+			When set, allow ephemeral port reuse for Winsock API connection functions which require an 
+			explicit bind, such as ConnectEx. Note that connection functions with an implicit bind (such as connect without an explicit bind) 
+			have this option set by default. Use this option instead of SO_PORT_SCALABILITY on platforms where both are available.
+			*/
+#ifdef SO_REUSE_UNICASTPORT  
+			DEF_SOCKET_OPTION_PROPERTY(IsReuseUnicastPort , bool, bool, SOL_SOCKET, SO_REUSE_UNICASTPORT);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsReuseUnicastPort, bool, bool);
+#endif
+
+			/*
+			Have on windows.
+			When set on a socket, this option indicates that the socket will never be used to receive unicast packets, 
+			and consequently that its port can be shared with other multicast-only applications. Setting the value to 1 
+			enables always sharing multicast traffic on the port. Setting the value to 0 (default) disables this behavior.
+			*/
+#ifdef SO_REUSE_MULTICASTPORT 
+			DEF_SOCKET_OPTION_PROPERTY(IsReuseMulticastPort , bool, bool, SOL_SOCKET, SO_REUSE_MULTICASTPORT);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsReuseMulticastPort, bool, bool);
+#endif
+			/*
+			The timeout, in milliseconds, for blocking send calls. 
+			The default for this option is zero, which indicates that a send operation will not time out. 
+			If a blocking send call times out, the connection is in an indeterminate state and should be closed.
+			*/
+#ifdef SO_SNDTIMEO
+			DEF_SOCKET_OPTION_PROPERTY(SendTimeout, timeval&, timeval, SOL_SOCKET, SO_SNDTIMEO);
+#else
+			DEF_SOCKET_EMPTY_OPTION(SendTimeout, timeval&, timeval);
+#endif
+			/*
+			The total per-socket buffer space reserved for sends. 
+			This is unrelated to SO_MAX_MSG_SIZE and does not necessarily correspond to the size of a TCP send window.
+			*/
+#ifdef SO_SNDBUF
+			DEF_SOCKET_OPTION_PROPERTY(SendSizeBuffer, int, int, SOL_SOCKET, SO_SNDBUF);
+#else
+			DEF_SOCKET_EMPTY_OPTION(SendSizeBuffer, int, int);
+#endif
+			/*
+			The total per-socket buffer space reserved for receives. 
+			This is unrelated to SO_MAX_MSG_SIZE and does not necessarily correspond to the size of the TCP receive window.
+			*/
+#ifdef SO_RCVBUF
+			DEF_SOCKET_OPTION_PROPERTY(ReceiveSizeBuffer, int, int, SOL_SOCKET, SO_RCVBUF);
+#else
+			DEF_SOCKET_EMPTY_OPTION(ReceiveSizeBuffer, int, int);
+#endif
+			/*
+			Enables keep-alive for a socket connection. 
+			Valid only for protocols that support the notion of keep-alive (connection-oriented protocols). 
+			For TCP, the default keep-alive timeout is 2 hours and the keep-alive interval is 1 second. 
+			The default number of keep-alive probes varies based on the version of Windows.
+			*/
+#ifdef SO_KEEPALIVE
+			DEF_SOCKET_OPTION_PROPERTY(IsKeepAlive, bool, bool, SOL_SOCKET, SO_KEEPALIVE);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsKeepAlive, bool, bool);
+#endif
+			/*
+			Configure a socket for sending broadcast data. 
+			This option is only Valid for protocols that support broadcasting (IPX and UDP, for example).
+			*/
+#ifdef SO_BROADCAST
+			DEF_SOCKET_OPTION_PROPERTY(IsBroadcast, bool, bool, SOL_SOCKET, SO_BROADCAST);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsBroadcast, bool, bool);
+#endif
+			/*
+			Enable socket debugging.  Only allowed for processes with the
+			CAP_NET_ADMIN capability or an effective user ID of 0.
+			*/
+#ifdef SO_DEBUG
+			DEF_SOCKET_OPTION_PROPERTY(IsDebug, bool, bool, SOL_SOCKET, SO_DEBUG);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsDebug, bool, bool);
+#endif
+
+			/*
+			Don't send via a gateway, send only to directly connected
+			hosts.  The same effect can be achieved by setting the
+			MSG_DONTROUTE flag on a socket send(2) operation.  Expects an
+			integer boolean flag.
+			*/
+#ifdef SO_DONTROUTE
+			DEF_SOCKET_OPTION_PROPERTY(IsDontRoute, bool, bool, SOL_SOCKET, SO_DONTROUTE);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsDontRoute, bool, bool);
+#endif
+			/*
+			Returns whether a socket is in listening mode. 
+			This option is only Valid for connection-oriented protocols.
+			*/
+#ifdef SO_ACCEPTCONN
+			DEF_SOCKET_OPTION_PROPERTY_GET(IsAcceptConnection, bool, SOL_SOCKET, SO_ACCEPTCONN);
+#else
+			DEF_SOCKET_EMPTY_OPTION_GET(IsAcceptConnection, bool, bool);
+#endif
+			/*
+			Use the local loopback address when sending data from this socket. 
+			This option should only be used when all data sent will also be received locally. 
+			This option is not supported by the Windows TCP/IP provider. 
+			If this option is used on Windows Vista and later, the getsockopt and setsockopt functions fail with WSAEINVAL. 
+			On earlier versions of Windows, these functions fail with WSAENOPROTOOPT.
+			*/
+#ifdef SO_USELOOPBACK
+			DEF_SOCKET_OPTION_PROPERTY(IsUsedLoopBack, bool, bool, SOL_SOCKET, SO_USELOOPBACK);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsUsedLoopBack, bool, bool);
+#endif
+			/*
+			The socket can be bound to an address which is already in use. 
+			Not applicable for ATM sockets.
+			*/
+#ifdef SO_REUSEADDR
+			DEF_SOCKET_OPTION_PROPERTY(IsReuseAddr, bool, bool, SOL_SOCKET, SO_REUSEADDR);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsReuseAddr, bool, bool);
+#endif
+
+			/*
+			If true, the Linger option is disabled.
+			*/
+#ifdef SO_DONTLINGER
+			DEF_SOCKET_OPTION_PROPERTY(IsDontLinger, bool, bool, SOL_SOCKET, SO_DONTLINGER);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsDontLinger, bool, bool);
+#endif
+			/*
+			When enabled, a close(2) or shutdown(2) will not return until
+			all queued messages for the socket have been successfully sent
+			or the linger timeout has been reached.  Otherwise, the call
+			returns immediately and the closing is done in the background.
+			When the socket is closed as part of exit(2), it always
+			lingers in the background.
+			*/
+#ifdef SO_LINGER
+			DEF_SOCKET_OPTION_PROPERTY(Linger, linger&, linger, SOL_SOCKET, SO_LINGER);
+#else
+			DEF_SOCKET_EMPTY_OPTION(Linger, linger&, linger);
+#endif
+			/*
+			Specify the minimum number of bytes in the buffer until the
+			socket layer will pass the data to the protocol (SO_SNDLOWAT)
+			or the user on receiving (SO_RCVLOWAT).
+			*/
+#ifdef SO_SNDLOWAT
+			DEF_SOCKET_OPTION_PROPERTY(SendLowWaterMark, int, int, SOL_SOCKET, SO_SNDLOWAT);
+#else
+			DEF_SOCKET_EMPTY_OPTION(SendLowWaterMark, int, int);
+#endif
+
+#ifdef SO_RCVLOWAT
+			DEF_SOCKET_OPTION_PROPERTY(ReceiveLowWaterMark, int, int, SOL_SOCKET, SO_RCVLOWAT);
+#else
+			DEF_SOCKET_EMPTY_OPTION(ReceiveLowWaterMark, int, int);
+#endif
+			/*
+			Returns the last error code on this socket. 
+			This per-socket error code is not always immediately set.
+			*/
+#ifdef SO_ERROR
+			DEF_SOCKET_OPTION_PROPERTY_GET(LastSocketError, int, SOL_SOCKET, SO_ERROR);
+#else
+			DEF_SOCKET_EMPTY_OPTION_GET(IsDebug, int);
+#endif
+			/*
+			Indicates that out-of-bound data should be returned in-line with regular data. 
+			This option is only valid for connection-oriented protocols that support out-of-band data.
+			*/
+#ifdef SO_OOBINLINE
+			DEF_SOCKET_OPTION_PROPERTY(IsReceivedOOBDataInLine, bool, bool, SOL_SOCKET, SO_OOBINLINE);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsReceivedOOBDataInLine, bool, bool);
+#endif
+		} SockOptions;
+
+		union
+		{
+			/*
+			Join the socket to the supplied multicast group on the specified interface.
+			*/
+#ifdef IP_ADD_MEMBERSHIP
+			DEF_SOCKET_OPTION_PROPERTY_SET(AddMembership, ip_mreq&, IPPROTO_IP, IP_ADD_MEMBERSHIP);
+#else
+			DEF_SOCKET_EMPTY_OPTION_SET(AddMembership, ip_mreq&);
+#endif
+#ifdef IPV6_ADD_MEMBERSHIP
+			DEF_SOCKET_OPTION_PROPERTY_SET(Ip6AddMembership, ipv6_mreq&, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP);
+#else
+			DEF_SOCKET_EMPTY_OPTION_SET(Ip6AddMembership, ipv6_mreq&);
+#endif
+
+			/*
+			Join the supplied multicast group on the given interface and accept data sourced from the supplied source address.
+			*/
+#ifdef IP_ADD_SOURCE_MEMBERSHIP
+			DEF_SOCKET_OPTION_PROPERTY_SET(AddSourceMembership, ip_mreq_source&, IPPROTO_IP, IP_ADD_SOURCE_MEMBERSHIP);
+#else
+			DEF_SOCKET_EMPTY_OPTION_SET(AddSourceMembership, ip_mreq_source&);
+#endif
+			/*
+			Removes the given source as a sender to the supplied multicast group and interface.
+			*/
+#ifdef IP_BLOCK_SOURCE
+			DEF_SOCKET_OPTION_PROPERTY_SET(AddBlockSourceMembership, ip_mreq_source&, IPPROTO_IP, IP_BLOCK_SOURCE);
+#else
+			DEF_SOCKET_EMPTY_OPTION_SET(AddBlockSourceMembership, ip_mreq_source&);
+#endif
+
+			/*
+			Leaves the specified multicast group from the specified interface. 
+			Service providers must support this option when multicast is supported. 
+			*/
+#ifdef IP_DROP_MEMBERSHIP
+			DEF_SOCKET_OPTION_PROPERTY_SET(DropMembership, ip_mreq&, IPPROTO_IP, IP_DROP_MEMBERSHIP);
+#else
+			DEF_SOCKET_EMPTY_OPTION_SET(DropMembership, ip_mreq&);
+#endif
+
+#ifdef IPV6_DROP_MEMBERSHIP
+			DEF_SOCKET_OPTION_PROPERTY_SET(Ip6DropMembership, ipv6_mreq&, IPPROTO_IPV6, IPV6_DROP_MEMBERSHIP);
+#else
+			DEF_SOCKET_EMPTY_OPTION_SET(Ip6DropMembership, ipv6_mreq&);
+#endif
+
+			/*
+			Drops membership to the given multicast group, interface, and source address.
+			*/
+#ifdef IP_DROP_SOURCE_MEMBERSHIP
+			DEF_SOCKET_OPTION_PROPERTY_SET(DropSourceMembership, ip_mreq_source&, IPPROTO_IP, IP_DROP_SOURCE_MEMBERSHIP);
+#else
+			DEF_SOCKET_EMPTY_OPTION_SET(DropSourceMembership, ip_mreq_source&);
+#endif
+			/*
+			Indicates that data should not be fragmented regardless of the local MTU. 
+			Valid only for message oriented protocols. 
+			Microsoft TCP/IP providers respect this option for UDP and ICMP.
+			*/
+#ifdef IP_DONTFRAGMENT
+			DEF_SOCKET_OPTION_PROPERTY(IsDontFragment, bool, bool, IPPROTO_IP, IP_DONTFRAGMENT);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsDontFragment, bool, bool);
+#endif
+			/*
+			When set to true, indicates the application provides the IP header. 
+			Applies only to SOCK_RAW sockets. 
+			The TCP/IP service provider may set the ID field, 
+			if the value supplied by the application is zero. 
+			*/
+#ifdef IP_HDRINCL
+			DEF_SOCKET_OPTION_PROPERTY(IsIncludeHeader, bool, bool, IPPROTO_IP, IP_HDRINCL);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsIncludeHeader, bool, bool);
+#endif
+#ifdef IPV6_HDRINCL
+			DEF_SOCKET_OPTION_PROPERTY(IsIp6IncludeHeader, bool, bool, IPPROTO_IPV6, IPV6_HDRINCL);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsIp6IncludeHeader, bool, bool);
+#endif
+			/*
+			Set the multicast hop limit for the socket.  Argument is a
+			pointer to an integer.  -1 in the value means use the route
+			default, otherwise it should be between 0 and 255.
+			*/
+#ifdef IPV6_MULTICAST_HOPS
+			DEF_SOCKET_OPTION_PROPERTY(Ip6MulticastHopLimit, int, int, IPPROTO_IPV6, IPV6_MULTICAST_HOPS);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsIp6IncludeHeader, int, int);
+#endif
+			/*
+			When set to true, indicates the application provides the IP header. 
+			Applies only to SOCK_RAW sockets. 
+			The TCP/IP service provider may set the ID field, 
+			if the value supplied by the application is zero. 
+			*/
+#ifdef IP_MULTICAST_IF
+			DEF_SOCKET_OPTION_PROPERTY(Multicast, int, int, IPPROTO_IP, IP_MULTICAST_IF);
+#else
+			DEF_SOCKET_EMPTY_OPTION(Multicast, int, int);
+#endif
+#ifdef IPV6_MULTICAST_IF
+			DEF_SOCKET_OPTION_PROPERTY(Ip6Multicast, int, int, IPPROTO_IPV6, IPV6_MULTICAST_IF);
+#else
+			DEF_SOCKET_EMPTY_OPTION(Ip6Multicast, int, int);
+#endif
+			/*
+			Controls whether data sent by an application on the local computer
+			(not necessarily by the same socket) in a multicast session will be received by a
+			socket joined to the multicast destination group on the loopback interface.
+			*/
+#ifdef IP_MULTICAST_LOOP
+			DEF_SOCKET_OPTION_PROPERTY(IsMulticastLoop, bool, bool, IPPROTO_IP, IP_MULTICAST_LOOP);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsMulticastLoop, bool, bool);
+#endif
+#ifdef IPV6_MULTICAST_LOOP
+			DEF_SOCKET_OPTION_PROPERTY(IsIp6MulticastLoop, bool, bool, IPPROTO_IPV6, IPV6_MULTICAST_LOOP);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsMulticastLoop, bool, bool);
+#endif
+			/*
+			Set or read the time-to-live value of outgoing multicast
+			packets for this socket.  It is very important for multicast
+			packets to set the smallest TTL possible.  The default is 1
+			which means that multicast packets don't leave the local
+			network unless the user program explicitly requests it.
+			Argument is an integer.
+			*/
+#ifdef IP_MULTICAST_LOOP
+			DEF_SOCKET_OPTION_PROPERTY(MulticastTimeToLive, int, int, IPPROTO_IP, IP_MULTICAST_TTL);
+#else
+			DEF_SOCKET_EMPTY_OPTION(MulticastTimeToLive, int, int);
+#endif
+			/*
+			Pass an IP_PKTINFO ancillary message that contains a pktinfo
+			structure that supplies some information about the incoming
+			packet.  This only works for datagram oriented sockets.
+			*/
+#ifdef IP_PKTINFO
+			DEF_SOCKET_OPTION_PROPERTY(PacketInfo, int, int, IPPROTO_IP, IP_PKTINFO);
+#else
+			DEF_SOCKET_EMPTY_OPTION(PacketInfo, int, int);
+#endif
+			/*
+			Indicates that packet information should be returned by the recvmsg.
+			*/
+#ifdef IPV6_PKTINFO
+			DEF_SOCKET_OPTION_PROPERTY(IsIp6PacketInfo, bool, bool, IPPROTO_IPV6, IPV6_PKTINFO);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsIp6PacketInfo, bool, bool);
+#endif
+
+			/*
+
+			*/
+#ifdef IP_RECVIF
+			DEF_SOCKET_OPTION_PROPERTY(IsRecive, bool, bool, IPPROTO_IP, IP_RECVIF);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsRecive, bool, bool);
+#endif
+#ifdef IPV6_RECVIF
+			DEF_SOCKET_OPTION_PROPERTY(IsIp6Recive, bool, bool, IPPROTO_IPV6, IPV6_RECVIF);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsIp6Recive, bool, bool);
+#endif
+
+			/*
+			Indicates if a socket created for the AF_INET6 address family is restricted to IPv6 communications only.
+			*/
+#ifdef IPV6_V6ONLY
+			DEF_SOCKET_OPTION_PROPERTY(IsIp6Only, bool, bool, IPPROTO_IPV6, IPV6_V6ONLY);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsIp6Only, bool, bool);
+#endif
+			/*
+			Set or receive the Type-Of-Service (TOS) field that is sent
+			with every IP packet originating from this socket.  It is used
+			to prioritize packets on the network.
+			*/
+#ifdef IP_TOS
+			DEF_SOCKET_OPTION_PROPERTY(IsTypeOfService, bool, bool, IPPROTO_IP, IP_TOS);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsTypeOfService, bool, bool);
+#endif
+			/* 
+			Changes the default value set by the TCP/IP service provider 
+			in the TTL field of the IP header in outgoing datagrams.
+			*/
+#ifdef IP_TTL
+			DEF_SOCKET_OPTION_PROPERTY(IsSetTimeToLive, bool, bool, IPPROTO_IP, IP_TTL);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsSetTimeToLive, bool, bool);
+#endif
+
+			/* 
+			Changes the default value set by the TCP/IP service provider 
+			in the TTL field of the IP header in outgoing datagrams.
+			*/
+#ifdef IP_UNBLOCK_SOURCE
+			DEF_SOCKET_OPTION_PROPERTY_SET(UnblockSource, ip_mreq_source&, IPPROTO_IP, IP_UNBLOCK_SOURCE);
+#else
+			DEF_SOCKET_EMPTY_OPTION_SET(UnblockSource, ip_mreq_source&);
+#endif
+
+			/* 
+			Have on unix.
+			Setting this boolean option enables transparent proxying on
+			this socket.  This socket option allows the calling
+			application to bind to a nonlocal IP address and operate both
+			as a client and a server with the foreign address as the local
+			endpoint.  NOTE: this requires that routing be set up in a way
+			that packets going to the foreign address are routed through
+			the TProxy box (i.e., the system hosting the application that
+			employs the IP_TRANSPARENT socket option).  Enabling this
+			socket option requires superuser privileges (the CAP_NET_ADMIN
+			capability).
+			*/
+#ifdef IP_TRANSPARENT
+			DEF_SOCKET_OPTION_PROPERTY(IsEnablesTransparentProxying, bool, bool, IPPROTO_IP, IP_TRANSPARENT);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsEnablesTransparentProxying, bool, bool);
+#endif
+
+			/* 
+			Have on unix.
+			If enabled (argument is nonzero), the reassembly of outgoing
+			packets is disabled in the netfilter layer.  The argument is
+			an integer.
+
+			This option is valid only for SOCK_RAW sockets.
+			*/
+#ifdef IP_NODEFRAG
+			DEF_SOCKET_OPTION_PROPERTY(IsNoDefrag, bool, bool, IPPROTO_IP, IP_NODEFRAG);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsNoDefrag, bool, bool);
+#endif
+
+			/* 
+			Have on unix.
+			This option provides access to the advanced full-state
+			filtering API.
+			There are two macros, MCAST_INCLUDE and MCAST_EXCLUDE, which
+			can be used to specify the filtering mode.  Additionally, the
+			IP_MSFILTER_SIZE(n) macro exists to determine how much memory
+			is needed to store ip_msfilter structure with n sources in the
+			source list.
+
+			*/
+#ifdef IP_MSFILTER
+			DEF_SOCKET_OPTION_PROPERTY(MsFilter, ip_msfilter&, ip_msfilter, IPPROTO_IP, IP_MSFILTER);
+#else
+			DEF_SOCKET_EMPTY_OPTION(MsFilter, std::empty_type, std::empty_type);
+#endif
+
+			/* 
+			Have on unix.
+			If enabled, this boolean option allows binding to an IP
+			address that is nonlocal or does not (yet) exist.  This
+			permits listening on a socket, without requiring the
+			underlying network interface or the specified dynamic IP
+			address to be up at the time that the application is trying to
+			bind to it.  This option is the per-socket equivalent of the
+			ip_nonlocal_bind /proc interface described below.
+			*/
+#ifdef IP_FREEBIND
+			DEF_SOCKET_OPTION_PROPERTY(IsFreeBind, bool, bool, IPPROTO_IP, IP_FREEBIND);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsFreeBind, bool, bool);
+#endif
 		} IpOptions;
 
-		class
+		union
 		{
-		public:
-		} Ip6Options;
+			/*
+			Have on windows.
+			If TRUE, the service provider implements the Berkeley Software Distribution (BSD) style (default) 
+			for handling expedited data. This option is the inverse of the TCP_EXPEDITED_1122 option. 
+			*/
+#ifdef TCP_BSDURGENT
+			DEF_SOCKET_OPTION_PROPERTY(IsBsdUrgent, bool, bool, IPPROTO_TCP, TCP_BSDURGENT);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsBsdUrgent, bool, bool);
+#endif
+			/*
+			Have on windows.
+			If TRUE, the service provider implements the expedited data as specified in RFC-1222. 
+			Otherwise, the Berkeley Software Distribution (BSD) style (default) is used.
+			*/
+#ifdef TCP_EXPEDITED_1122
+			DEF_SOCKET_OPTION_PROPERTY(IsExpeditedRFC1222, bool, bool, IPPROTO_TCP, TCP_EXPEDITED_1122);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsExpeditedRFC1222, bool, bool);
+#endif
+
+			/*
+			Have on windows.
+			If this value is non-negative, it represents the desired connection timeout in seconds. 
+			If it is -1, it represents a request to disable connection timeout (i.e. the connection will retransmit forever). 
+			If the connection timeout is disabled, the retransmit timeout increases exponentially 
+			for each retransmission up to its maximum value of 60sec and then stays there.
+			*/
+#ifdef TCP_MAXRT
+			DEF_SOCKET_OPTION_PROPERTY(RequestDisableConnectTimeout, int, int, IPPROTO_TCP, TCP_MAXRT);
+#else
+			DEF_SOCKET_EMPTY_OPTION(RequestDisableConnectTimeout, int, int);
+#endif
+
+			/*
+			Have on windows, some unix.
+			Enables or disables the Nagle algorithm for TCP sockets. 
+			This option is disabled (set to FALSE) by default.
+			*/
+#ifdef TCP_NODELAY
+			DEF_SOCKET_OPTION_PROPERTY(IsEnableNagleAlgorithm, bool, bool, IPPROTO_TCP, TCP_NODELAY);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsEnableNagleAlgorithm, bool, bool);
+#endif
+
+			/*
+			Have on windows, some unix.
+			Enables or disables RFC 1323 time stamps. 
+			Note that there is also a global configuration for timestamps (default is off), 
+			"Timestamps" in (set/get)-nettcpsetting. Setting this socket option overrides that global configuration setting.
+			*/
+#ifdef TCP_TIMESTAMPS
+			DEF_SOCKET_OPTION_PROPERTY(IsEnableRFC1323TimeStamps, bool, bool, IPPROTO_TCP, TCP_TIMESTAMPS);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsEnableRFC1323TimeStamps, bool, bool);
+#endif
+
+			/*
+			Have on unix.
+			The argument for this option is a string.  This option allows
+			the caller to set the TCP congestion control algorithm to be
+			used, on a per-socket basis.  Unprivileged processes are
+			restricted to choosing one of the algorithms in
+			tcp_allowed_congestion_control (described above).  Privileged
+			processes (CAP_NET_ADMIN) can choose from any of the available
+			congestion-control algorithms (see the description of
+			tcp_available_congestion_control above).
+			*/
+#ifdef TCP_CONGESTION
+
+			DEF_SOCKET_OPTION_PROPERTY_SET(CongestionControlAlgorithm, const char*, IPPROTO_TCP, TCP_CONGESTION);
+#else
+			DEF_SOCKET_EMPTY_OPTION_SET(CongestionControlAlgorithm, const char*);
+#endif
+
+			/*
+			Have on unix.
+			If set, don't send out partial frames.  All queued partial
+			frames are sent when the option is cleared again.  This is
+			useful for prepending headers before calling sendfile, or
+			for throughput optimization.  As currently implemented, there
+			is a 200 millisecond ceiling on the time for which output is
+			corked by TCP_CORK.  If this ceiling is reached, then queued
+			data is automatically transmitted.  This option can be
+			combined with TCP_NODELAY only since Linux 2.5.71.  This
+			option should not be used in code intended to be portable.
+			*/
+#ifdef TCP_CORK
+			DEF_SOCKET_OPTION_PROPERTY(IsDontSendPartialFrames, bool, bool, IPPROTO_TCP, TCP_CORK);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsDontSendPartialFrames, bool, bool);
+#endif
+
+			/*
+			Have on unix.
+			Allow a listener to be awakened only when data arrives on the
+			socket.  Takes an integer value (seconds), this can bound the
+			maximum number of attempts TCP will make to complete the
+			connection.  This option should not be used in code intended
+			to be portable.
+			*/
+#ifdef TCP_DEFER_ACCEPT
+			DEF_SOCKET_OPTION_PROPERTY(DeferAccept, int, int, IPPROTO_TCP, TCP_DEFER_ACCEPT);
+#else
+			DEF_SOCKET_EMPTY_OPTION(DeferAccept, int, int);
+#endif
+
+			/*
+			Have on unix.
+			In computer networking, TCP Fast Open (TFO) is an extension to 
+			speed up the opening of successive TCP connections between two endpoints.
+			*/
+#ifdef TCP_FASTOPEN
+			DEF_SOCKET_OPTION_PROPERTY(IsFastOpen, bool, bool, IPPROTO_TCP, TCP_FASTOPEN);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsFastOpen, bool, bool);
+#endif
+			/*
+			Have on unix.
+			Used to collect information about this socket.  The kernel
+			returns a struct tcp_info as defined in the file
+			/usr/include/linux/tcp.h.  This option should not be used in
+			code intended to be portable.
+			*/
+#ifdef TCP_INFO
+			DEF_SOCKET_OPTION_PROPERTY(TcpInfo, tcp_info&, tcp_info, IPPROTO_TCP, TCP_INFO);
+#else
+			DEF_SOCKET_EMPTY_OPTION(TcpInfo, std::empty_type&, std::empty_type);
+#endif
+
+			/*
+			Have on unix.
+			The maximum number of keepalive probes TCP should send before
+			dropping the connection.  This option should not be used in
+			code intended to be portable.
+			*/
+#ifdef TCP_KEEPCNT
+			DEF_SOCKET_OPTION_PROPERTY(KeepCnt, int, int, IPPROTO_TCP, TCP_KEEPCNT);
+#else
+			DEF_SOCKET_EMPTY_OPTION(KeepCnt, int, int);
+#endif
+
+			/*
+			Have on unix.
+			The time (in seconds) the connection needs to remain idle
+			before TCP starts sending keepalive probes, if the socket
+			option SO_KEEPALIVE has been set on this socket.  This option
+			should not be used in code intended to be portable.
+			*/
+#ifdef TCP_KEEPIDLE
+			DEF_SOCKET_OPTION_PROPERTY(KeepIdle, int, int, IPPROTO_TCP, TCP_KEEPIDLE);
+#else
+			DEF_SOCKET_EMPTY_OPTION(KeepIdle, int, int);
+#endif
+
+			/*
+			Have on unix.
+			The time (in seconds) between individual keepalive probes.
+			This option should not be used in code intended to be
+			portable.
+			*/
+#ifdef TCP_KEEPINTVL
+			DEF_SOCKET_OPTION_PROPERTY(KeepIntvl, int, int, IPPROTO_TCP, TCP_KEEPINTVL);
+#else
+			DEF_SOCKET_EMPTY_OPTION(KeepIntvl, int, int);
+#endif
+			/*
+			Have on unix, windows.
+			The maximum segment size for outgoing TCP packets.  In Linux
+			2.2 and earlier, and in Linux 2.6.28 and later, if this option
+			is set before connection establishment, it also changes the
+			MSS value announced to the other end in the initial packet.
+			Values greater than the (eventual) interface MTU have no
+			effect.  TCP will also impose its minimum and maximum bounds
+			over the value provided.
+			*/
+#ifdef TCP_MAXSEG
+			DEF_SOCKET_OPTION_PROPERTY(MaxSegmentSize, int, int, IPPROTO_TCP, TCP_MAXSEG);
+#else
+			DEF_SOCKET_EMPTY_OPTION(MaxSegmentSize, int, int);
+#endif
+
+			/*
+			Have on unix, windows.
+			If set, disable the Nagle algorithm.  This means that segments
+			are always sent as soon as possible, even if there is only a
+			small amount of data.  When not set, data is buffered until
+			there is a sufficient amount to send out, thereby avoiding the
+			frequent sending of small packets, which results in poor
+			utilization of the network.  This option is overridden by
+			TCP_CORK; however, setting this option forces an explicit
+			flush of pending output, even if TCP_CORK is currently set.
+			*/
+#ifdef TCP_NODELAY
+			DEF_SOCKET_OPTION_PROPERTY(IsNoDelay, bool, bool, IPPROTO_TCP, TCP_NODELAY);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsNoDelay, bool, bool);
+#endif
+
+			/*
+			Have on unix.
+			Enable quickack mode if set or disable quickack mode if
+			cleared.  In quickack mode, acks are sent immediately, rather
+			than delayed if needed in accordance to normal TCP operation.
+			This flag is not permanent, it only enables a switch to or
+			from quickack mode.  Subsequent operation of the TCP protocol
+			will once again enter/leave quickack mode depending on
+			internal protocol processing and factors such as delayed ack
+			timeouts occurring and data transfer.  This option should not
+			be used in code intended to be portable.
+			*/
+#ifdef TCP_QUICKACK
+			DEF_SOCKET_OPTION_PROPERTY(IsQuickackEnable, bool, bool, IPPROTO_TCP, TCP_QUICKACK);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsQuickackEnable, bool, bool);
+#endif
+
+			/*
+			Have on unix.
+			This option takes an unsigned int as an argument.  When the
+			value is greater than 0, it specifies the maximum amount of
+			time in milliseconds that transmitted data may remain
+			unacknowledged before TCP will forcibly close the
+			corresponding connection and return ETIMEDOUT to the
+			application.  If the option value is specified as 0, TCP will
+			to use the system default.
+			*/
+#ifdef TCP_USER_TIMEOUT
+			DEF_SOCKET_OPTION_PROPERTY(UserTimeout, unsigned, unsigned, IPPROTO_TCP, TCP_USER_TIMEOUT);
+#else
+			DEF_SOCKET_EMPTY_OPTION(UserTimeout, unsigned, unsigned);
+#endif
+
+			/*
+			Have on unix.
+			Set the number of SYN retransmits that TCP should send before
+			aborting the attempt to connect.  It cannot exceed 255.  This
+			option should not be used in code intended to be portable.
+			*/
+#ifdef TCP_SYNCNT
+			DEF_SOCKET_OPTION_PROPERTY(SynRetransmitCount, int, int, IPPROTO_TCP, TCP_SYNCNT);
+#else
+			DEF_SOCKET_EMPTY_OPTION(SynRetransmitCount, int, int);
+#endif
+
+			/*
+			Have on unix.
+			Bound the size of the advertised window to this value.  The
+			kernel imposes a minimum size of SOCK_MIN_RCVBUF/2.  This
+			option should not be used in code intended to be portable.
+			*/
+#ifdef TCP_WINDOW_CLAMP
+			DEF_SOCKET_OPTION_PROPERTY(WindowClamp, int, int, IPPROTO_TCP, TCP_WINDOW_CLAMP);
+#else
+			DEF_SOCKET_EMPTY_OPTION(WindowClamp, int, int);
+#endif
+		} TcpOptions;
+
+		union
+		{
+			/*
+			Have on windows, unix.
+			When TRUE, UDP datagrams are sent with a checksum.
+			*/
+#ifdef UDP_CHECKSUM_COVERAGE
+			DEF_SOCKET_OPTION_PROPERTY(IsEnableChecksum, bool, bool, IPPROTO_UDP, UDP_CHECKSUM_COVERAGE);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsEnableChecksum, bool, bool);
+#endif
+			/*
+			Have on windows, unix.
+			When TRUE, UDP datagrams are sent with the checksum of zero. 
+			Required for service providers. If a service provider does not have a mechanism to disable UDP checksum calculation,
+			it may simply store this option without taking any action. This option is not supported for IPv6.
+			*/
+#ifdef UDP_NOCHECKSUM
+			DEF_SOCKET_OPTION_PROPERTY(IsZeroChecksum, bool, bool, IPPROTO_UDP, UDP_NOCHECKSUM);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsZeroChecksum, bool, bool);
+#endif
+			/*
+			Have on unix.
+			If this option is enabled, then all data output on this socket
+			is accumulated into a single datagram that is transmitted when
+			the option is disabled.  This option should not be used in
+			code intended to be portable.
+			*/
+#ifdef UDP_CORK
+			DEF_SOCKET_OPTION_PROPERTY(IsCork, bool, bool, IPPROTO_UDP, UDP_CORK);
+#else
+			DEF_SOCKET_EMPTY_OPTION(IsCork, bool, bool);
+#endif
+		} UdpOptions;
 	};
 
 	/*
@@ -2464,7 +3144,7 @@ public:
 		const char * Port, 
 		int MaxConnection = SOMAXCONN, 
 		int iSocktype = SOCK_STREAM, 
-		int iProtocol = IPPROTO_TCP, 
+		int iProtocol = IPPROTO_TCP,
 		int iFamily = AF_INET, 
 		int Flags = AI_PASSIVE
 	)
