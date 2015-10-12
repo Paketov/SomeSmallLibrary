@@ -7,6 +7,9 @@
 
 #	include <winsock.h>
 
+#	ifndef WSA_VERSION
+#		define WSA_VERSION MAKEWORD(2, 2)
+#	endif
 
 #	undef IPPROTO_ICMP
 #	undef IPPROTO_IGMP
@@ -24,6 +27,216 @@ namespace winsock
 #	include <ws2tcpip.h>
 #	include <Ws2ipdef.h>
 #	include <winsock2.h>
+
+	static int GetLastErrSocket()
+	{
+		switch (WSAGetLastError()) 
+		{
+		case WSAEADDRINUSE:
+#ifdef EADDRINUSE
+			return EADDRINUSE;
+#else
+			break;
+#endif
+		case WSAEADDRNOTAVAIL:
+#ifdef EADDRNOTAVAIL
+			return EADDRNOTAVAIL;
+#else
+			break;
+#endif
+		case WSAEAFNOSUPPORT:
+#ifdef EAFNOSUPPORT
+			return EAFNOSUPPORT;
+#else
+			break;
+#endif
+		case WSAEALREADY:
+#ifdef EALREADY
+			return EALREADY;
+#else
+			break;
+#endif
+		case WSAEBADF:			return EBADF;
+		case WSAECONNABORTED:
+#ifdef ECONNABORTED
+			return ECONNABORTED;
+#else
+			break;
+#endif
+		case WSAECONNREFUSED:
+#ifdef ECONNREFUSED
+			return ECONNREFUSED;
+#else
+			break;
+#endif
+		case WSAECONNRESET:
+#ifdef ECONNRESET
+			return ECONNRESET;
+#else
+			break;
+#endif
+		case WSAEDESTADDRREQ:
+#ifdef EDESTADDRREQ
+			return EDESTADDRREQ;
+#else
+			break;
+#endif
+		case WSAEFAULT:			return EFAULT;
+		case WSAEHOSTDOWN:
+#ifdef EHOSTDOWN
+			return EHOSTDOWN;
+#else
+			break;
+#endif
+		case WSAEHOSTUNREACH:
+#ifdef EHOSTUNREACH
+			return EHOSTUNREACH;
+#else
+			break;
+#endif
+		case WSAEINPROGRESS:
+#ifdef EINPROGRESS
+			return EINPROGRESS;
+#else
+			break;
+#endif
+		case WSAEINTR:			return EINTR;
+		case WSAEINVAL:			return EINVAL;
+		case WSAEISCONN:
+#ifdef EISCONN
+			return EISCONN;
+#else
+			break;
+#endif
+		case WSAELOOP:
+#ifdef ELOOP
+			return ELOOP;
+#else
+			break;
+#endif
+		case WSAEMFILE:			return EMFILE;
+		case WSAEMSGSIZE:
+#ifdef EMSGSIZE
+			return EMSGSIZE;
+#else
+			break;
+#endif
+		case WSAENAMETOOLONG:	return ENAMETOOLONG;
+		case WSAENETDOWN:
+#ifdef ENETDOWN
+			return ENETDOWN;
+#else
+			break;
+#endif
+		case WSAENETRESET:
+#ifdef ENETRESET
+			return ENETRESET;
+#else
+			break;
+#endif
+		case WSAENETUNREACH:
+#ifdef ENETUNREACH
+			return ENETUNREACH;
+#else
+			break;
+#endif
+		case WSAENOBUFS:
+#ifdef ENOBUFS
+			return ENOBUFS;
+#else
+			break;
+#endif
+		case WSAENOPROTOOPT:
+#ifdef ENOPROTOOPT
+			return ENOPROTOOPT;
+#else
+			break;
+#endif
+		case WSAENOTCONN:
+#ifdef ENOTCONN
+			return ENOTCONN;
+#else
+			break;
+#endif
+		case WSANOTINITIALISED:	return EAGAIN;
+		case WSAENOTSOCK:
+#ifdef ENOTSOCK
+			return ENOTSOCK;
+#else
+			break;
+#endif
+		case WSAEOPNOTSUPP:		return EOPNOTSUPP;
+		case WSAEPFNOSUPPORT:
+#ifdef EPFNOSUPPORT 
+			return EPFNOSUPPORT;
+#else 
+			break;
+#endif
+		case WSAEPROTONOSUPPORT:
+#ifdef EPROTONOSUPPORT
+			return EPROTONOSUPPORT;
+#else
+			break;
+#endif
+		case WSAEPROTOTYPE:
+#ifdef EPROTOTYPE
+			return EPROTOTYPE;
+#else
+			break;
+#endif
+		case WSAESHUTDOWN:
+#ifdef ESHUTDOWN
+			return ESHUTDOWN;
+#else
+			break;
+#endif
+		case WSAESOCKTNOSUPPORT:
+#ifdef ESOCKTNOSUPPORT
+			return ESOCKTNOSUPPORT;
+#else
+			break;
+#endif
+		case WSAETIMEDOUT:
+#ifdef ETIMEDOUT
+			return ETIMEDOUT;
+#else
+			break;
+#endif
+		case WSAETOOMANYREFS:
+#ifdef ETOOMANYREFS
+			return ETOOMANYREFS;
+#else
+			break;
+#endif
+		case WSAEWOULDBLOCK:
+#ifdef EWOULDBLOCK
+			return EWOULDBLOCK;
+#else
+			return EAGAIN;
+#endif
+		case WSAHOST_NOT_FOUND:
+#ifdef EHOSTUNREACH
+			return EHOSTUNREACH;
+#else
+			break;
+#endif
+		case WSASYSNOTREADY:
+		case WSATRY_AGAIN:		return EAGAIN;
+		case WSAVERNOTSUPPORTED:
+#ifdef DB_OPNOTSUP
+			return DB_OPNOTSUP;
+#else
+			break;
+#endif
+		case WSAEACCES:			return EACCES;
+		case 0:
+			return 0;
+		}
+
+		return EFAULT;
+	}
+
+#	define LAST_ERR_SOCKET winsock::GetLastErrSocket()
 
 	struct ::netent * readnetnetworklist()
 	{
@@ -190,6 +403,31 @@ lblOut:
 	} 
 
 #	define getservbyname winsock::getservbyname__
+
+	inline int poll___(pollfd fds[], int nfds, int timeout)
+	{
+		return WSAPoll(fds, nfds, timeout);
+	}
+
+	static void * GetWsa()
+	{
+		static LPWSADATA wd = nullptr;
+		if(wd == nullptr)
+		{
+			wd = (decltype(wd))malloc(sizeof(WSADATA));
+			if(WSAStartup(WSA_VERSION, wd) == 0)
+				return wd;
+			return nullptr;
+		}
+		return wd;
+		return (void*)1;
+	}
+
+	static void EndWsa()
+	{
+		if(GetWsa() != nullptr)
+			WSACleanup();
+	}
 };
 
 using winsock::addrinfo;
@@ -198,6 +436,7 @@ using winsock::inet_ntop;
 using winsock::ip_mreq_source;
 
 typedef UINT32 socklen_t;
+
 #	define gai_strerror gai_strerrorA
 #	define sockaddr  winsock::sockaddr
 #	define sockaddr_in  winsock::sockaddr_in
@@ -205,6 +444,7 @@ typedef UINT32 socklen_t;
 #	define sockaddr_storage winsock::sockaddr_storage
 #	define sockaddr_dl winsock::sockaddr_dl
 #	define inet_pton winsock::inet_pton
+#   define poll winsock::poll___
 
 #	define IPPROTO_ICMP ((int)winsock::IPPROTO_ICMP)
 #	define IPPROTO_IGMP ((int)winsock::IPPROTO_IGMP)
@@ -223,10 +463,16 @@ typedef UINT32 socklen_t;
 #	define SHUT_RD		SD_RECEIVE
 #	define SHUT_WR      SD_SEND
 
-#	ifndef WSA_VERSION
-#		define WSA_VERSION MAKEWORD(2, 2)
-#	endif
+
 #	pragma comment(lib, "Ws2_32.lib")
+
+#	define INIT_WSA							\
+	if(winsock::GetWsa() == nullptr)	\
+{									\
+	URL_SET_LAST_ERR				\
+	return false;					\
+}
+
 
 #else
 
@@ -241,6 +487,8 @@ typedef UINT32 socklen_t;
 #   include <fcntl.h>
 #	include <errno.h>
 #	define closesocket(socket)  close(socket)
+#	define LAST_ERR_SOCKET errno
+#	define INIT_WSA   
 #endif
 
 
@@ -269,6 +517,9 @@ typedef UINT32 socklen_t;
 
 class QUERY_URL
 {
+#define URL_SET_LAST_ERR {((QUERY_URL*)this)->RemoteIp.iError = LAST_ERR_SOCKET;}
+#define URL_SET_LAST_ERR_VAL(Val) {((QUERY_URL*)this)->RemoteIp.iError = (Val);}
+
 public:
 	typedef decltype(std::declval<sockaddr_in>().sin_port) TPORT;
 
@@ -281,7 +532,7 @@ public:
 		sockaddr_in			AddrInet;\
 		sockaddr_in6		AddrInet6;\
 		sockaddr_storage	AddrStorage;\
-		}
+	}
 
 		template<typename RetType>
 		inline operator RetType*()
@@ -328,7 +579,7 @@ public:
 
 			class ___PORT
 			{
-				
+
 			public:
 
 				class
@@ -479,6 +730,11 @@ public:
 				inline operator addrinfo*() const
 				{
 					return Ip.ca;
+				}
+
+				SOCKET_ADDR& GetSocketAddr()
+				{
+				   return (SOCKET_ADDR&)Ip.ca;
 				}
 
 			public:
@@ -702,11 +958,7 @@ public:
 
 		bool Update(int iSocktype = SOCK_STREAM, int iProtocol = IPPROTO_TCP, int iFamily = AF_UNSPEC, int iFlags = 0)
 		{
-			if(GetWsa() == nullptr)
-			{
-				LastError = GetLastErr();
-				return false;
-			}
+			INIT_WSA;
 			addrinfo host_info = {0}, *ah = nullptr;
 			host_info.ai_socktype = iSocktype;
 			host_info.ai_family = iFamily;
@@ -715,8 +967,8 @@ public:
 			int ErrNb;
 			if((ErrNb = getaddrinfo(HostName, PortName, &host_info, &ah)) != 0)
 			{
-				LastError = GetLastErr();
-				return false;
+				URL_SET_LAST_ERR
+					return false;
 			}
 			if(HostName.ai != nullptr)
 				freeaddrinfo(HostName.ai);
@@ -726,8 +978,7 @@ public:
 	};
 
 private:
-#define URL_SET_LAST_ERR {((QUERY_URL*)this)->RemoteIp.iError = GetLastErr();}
-#define URL_SET_LAST_ERR_VAL(Val) {((QUERY_URL*)this)->RemoteIp.iError = (Val);}
+
 
 	struct PROTOCOL_INTERATOR
 	{
@@ -1133,31 +1384,6 @@ private:
 		};
 	};
 
-	static void * GetWsa()
-	{
-#ifdef _WIN32
-		static LPWSADATA wd = nullptr;
-		if(wd == nullptr)
-		{
-			wd = (decltype(wd))malloc(sizeof(WSADATA));
-			if(WSAStartup(WSA_VERSION, wd) == 0)
-				return wd;
-			return nullptr;
-		}
-		return wd;
-#endif
-		return (void*)1;
-	}
-
-	static void EndWsa()
-	{
-#ifdef _WIN32
-
-		if(GetWsa() != nullptr)
-			WSACleanup();
-#endif
-	}
-
 	void InitFields()
 	{
 
@@ -1221,221 +1447,10 @@ SSLErrOut:
 #endif
 	}
 
-	static int GetLastErr()
-	{
-#ifdef _WIN32
-		switch (WSAGetLastError()) 
-		{
-		case WSAEADDRINUSE:
-#ifdef EADDRINUSE
-			return EADDRINUSE;
-#else
-			break;
-#endif
-		case WSAEADDRNOTAVAIL:
-#ifdef EADDRNOTAVAIL
-			return EADDRNOTAVAIL;
-#else
-			break;
-#endif
-		case WSAEAFNOSUPPORT:
-#ifdef EAFNOSUPPORT
-			return EAFNOSUPPORT;
-#else
-			break;
-#endif
-		case WSAEALREADY:
-#ifdef EALREADY
-			return EALREADY;
-#else
-			break;
-#endif
-		case WSAEBADF:			return EBADF;
-		case WSAECONNABORTED:
-#ifdef ECONNABORTED
-			return ECONNABORTED;
-#else
-			break;
-#endif
-		case WSAECONNREFUSED:
-#ifdef ECONNREFUSED
-			return ECONNREFUSED;
-#else
-			break;
-#endif
-		case WSAECONNRESET:
-#ifdef ECONNRESET
-			return ECONNRESET;
-#else
-			break;
-#endif
-		case WSAEDESTADDRREQ:
-#ifdef EDESTADDRREQ
-			return EDESTADDRREQ;
-#else
-			break;
-#endif
-		case WSAEFAULT:			return EFAULT;
-		case WSAEHOSTDOWN:
-#ifdef EHOSTDOWN
-			return EHOSTDOWN;
-#else
-			break;
-#endif
-		case WSAEHOSTUNREACH:
-#ifdef EHOSTUNREACH
-			return EHOSTUNREACH;
-#else
-			break;
-#endif
-		case WSAEINPROGRESS:
-#ifdef EINPROGRESS
-			return EINPROGRESS;
-#else
-			break;
-#endif
-		case WSAEINTR:			return EINTR;
-		case WSAEINVAL:			return EINVAL;
-		case WSAEISCONN:
-#ifdef EISCONN
-			return EISCONN;
-#else
-			break;
-#endif
-		case WSAELOOP:
-#ifdef ELOOP
-			return ELOOP;
-#else
-			break;
-#endif
-		case WSAEMFILE:			return EMFILE;
-		case WSAEMSGSIZE:
-#ifdef EMSGSIZE
-			return EMSGSIZE;
-#else
-			break;
-#endif
-		case WSAENAMETOOLONG:	return ENAMETOOLONG;
-		case WSAENETDOWN:
-#ifdef ENETDOWN
-			return ENETDOWN;
-#else
-			break;
-#endif
-		case WSAENETRESET:
-#ifdef ENETRESET
-			return ENETRESET;
-#else
-			break;
-#endif
-		case WSAENETUNREACH:
-#ifdef ENETUNREACH
-			return ENETUNREACH;
-#else
-			break;
-#endif
-		case WSAENOBUFS:
-#ifdef ENOBUFS
-			return ENOBUFS;
-#else
-			break;
-#endif
-		case WSAENOPROTOOPT:
-#ifdef ENOPROTOOPT
-			return ENOPROTOOPT;
-#else
-			break;
-#endif
-		case WSAENOTCONN:
-#ifdef ENOTCONN
-			return ENOTCONN;
-#else
-			break;
-#endif
-		case WSANOTINITIALISED:	return EAGAIN;
-		case WSAENOTSOCK:
-#ifdef ENOTSOCK
-			return ENOTSOCK;
-#else
-			break;
-#endif
-		case WSAEOPNOTSUPP:		return EOPNOTSUPP;
-		case WSAEPFNOSUPPORT:
-#ifdef EPFNOSUPPORT 
-			return EPFNOSUPPORT;
-#else 
-			break;
-#endif
-		case WSAEPROTONOSUPPORT:
-#ifdef EPROTONOSUPPORT
-			return EPROTONOSUPPORT;
-#else
-			break;
-#endif
-		case WSAEPROTOTYPE:
-#ifdef EPROTOTYPE
-			return EPROTOTYPE;
-#else
-			break;
-#endif
-		case WSAESHUTDOWN:
-#ifdef ESHUTDOWN
-			return ESHUTDOWN;
-#else
-			break;
-#endif
-		case WSAESOCKTNOSUPPORT:
-#ifdef ESOCKTNOSUPPORT
-			return ESOCKTNOSUPPORT;
-#else
-			break;
-#endif
-		case WSAETIMEDOUT:
-#ifdef ETIMEDOUT
-			return ETIMEDOUT;
-#else
-			break;
-#endif
-		case WSAETOOMANYREFS:
-#ifdef ETOOMANYREFS
-			return ETOOMANYREFS;
-#else
-			break;
-#endif
-		case WSAEWOULDBLOCK:
-#ifdef EWOULDBLOCK
-			return EWOULDBLOCK;
-#else
-			return EAGAIN;
-#endif
-		case WSAHOST_NOT_FOUND:
-#ifdef EHOSTUNREACH
-			return EHOSTUNREACH;
-#else
-			break;
-#endif
-		case WSASYSNOTREADY:
-		case WSATRY_AGAIN:		return EAGAIN;
-		case WSAVERNOTSUPPORTED:
-#ifdef DB_OPNOTSUP
-			return DB_OPNOTSUP;
-#else
-			break;
-#endif
-		case WSAEACCES:			return EACCES;
-		case 0:
-			return 0;
-		}
-
-		return EFAULT;
-#endif
-		return errno;
-	}
-
 	static inline int SetOption(int hSocket, int Level, int Option, bool & New)
 	{										
 		int v = New;
-		return setsockopt(hSocket, Level, Option, (char*)&v, sizeof(v));
+		return setsockopt(hSocket, Level, Option, (char*)&v, sizeof(int));
 	}
 
 	template<typename SetType>
@@ -1629,7 +1644,7 @@ public:
 				if((getpeername(hSocket, Address, &Len) != 0) || (Len != Address.Len))
 				{
 					URL_SET_LAST_ERR
-					return false;
+						return false;
 				}
 				return true;
 			}
@@ -1872,13 +1887,13 @@ public:
 				if (ioctlsocket(hSocket, FIONBIO, &nonBlocking) != NO_ERROR)
 					URL_SET_LAST_ERR
 				else
-					IsNonBlocket = NewVal;
+				IsNonBlocket = NewVal;
 #else
 				int nonBlocking = NewVal;
 				if (fcntl(hSocket, F_SETFL, O_NONBLOCK, nonBlocking) == -1)
 					URL_SET_LAST_ERR
 #endif
-				return NewVal;
+					return NewVal;
 			}
 
 			operator bool() const
@@ -1890,6 +1905,17 @@ public:
 #endif
 			}
 		} IsNonBlocket;
+
+
+		class
+		{			
+			_QUERY_URL_FIELDS1_;
+		public:
+			inline operator bool()
+			{
+				return hSocket != -1;
+			}
+		} IsOpen;
 
 		/*
 		This field specifies the preferred socket type, for
@@ -1975,7 +2001,7 @@ public:
 #ifdef SO_RCVTIMEO
 			DEF_SOCKET_OPTION_PROPERTY(ReceiveTimeout, timeval&, timeval, SOL_SOCKET, SO_RCVTIMEO);
 #else
-			DEF_SOCKET_EMPTY_OPTION(ReceiveTimeout, timeval&, timeval);
+			DEF_SOCKET_EMPTY_OPTION(ReceiveTimeout, std::empty_type&, std::empty_type);
 #endif
 			/*
 			Have on windows.
@@ -2055,6 +2081,7 @@ public:
 #else
 			DEF_SOCKET_EMPTY_OPTION(OpenType, int, int);
 #endif
+
 			/*
 			Have on windows.
 			Use this option for listening sockets. When the option is set, 
@@ -2719,23 +2746,6 @@ public:
 #endif
 
 			/*
-			Have on unix, windows.
-			If set, disable the Nagle algorithm.  This means that segments
-			are always sent as soon as possible, even if there is only a
-			small amount of data.  When not set, data is buffered until
-			there is a sufficient amount to send out, thereby avoiding the
-			frequent sending of small packets, which results in poor
-			utilization of the network.  This option is overridden by
-			TCP_CORK; however, setting this option forces an explicit
-			flush of pending output, even if TCP_CORK is currently set.
-			*/
-#ifdef TCP_NODELAY
-			DEF_SOCKET_OPTION_PROPERTY(IsNoDelay, bool, bool, IPPROTO_TCP, TCP_NODELAY);
-#else
-			DEF_SOCKET_EMPTY_OPTION(IsNoDelay, bool, bool);
-#endif
-
-			/*
 			Have on unix.
 			Enable quickack mode if set or disable quickack mode if
 			cleared.  In quickack mode, acks are sent immediately, rather
@@ -2918,35 +2928,30 @@ public:
 		return INFO_HOST_INTERATOR(gethostbyname(NameOrTextAddress));
 	}
 
+
 	/*
 	Connect with server at a specific address.
 	*/
 	bool Connect(ADDRESS_INFO::ADDRESSES::ADDRESS_INTERATOR& Address)
 	{
-		if(GetWsa() == nullptr)
+		INIT_WSA;
+		if(RemoteIp.hSocket != -1)
 		{
-			URL_SET_LAST_ERR
-				return false;
+			ShutdownSendRecive();
+			Close();
 		}
+		addrinfo *i = Address;
+		if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == -1)
 		{
-			if(RemoteIp.hSocket != -1)
-			{
-				ShutdownSendRecive();
-				Close();
-			}
-			addrinfo *i = Address;
-			if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == -1)
-			{
-				URL_SET_LAST_ERR
-					return false;
-			}else if (connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) == -1)
-			{
-				URL_SET_LAST_ERR
-					Close();
-				return false;
-			}		
-			RemoteIp.ProtocolType = i->ai_protocol;
-		}
+			URL_SET_LAST_ERR;
+			return false;
+		}else if (connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) == -1)
+		{
+			URL_SET_LAST_ERR;
+			Close();
+			return false;
+		}		
+		RemoteIp.ProtocolType = i->ai_protocol;
 		if(IsEnableSSL)
 			if(!InitSSL())
 				return false;
@@ -2958,34 +2963,28 @@ public:
 	*/
 	bool Connect(ADDRESS_INFO& AddrInfo)
 	{
-		if(GetWsa() == nullptr)
+		INIT_WSA;
+		if(RemoteIp.hSocket != -1)
 		{
-			URL_SET_LAST_ERR
-				return false;
+			ShutdownSendRecive();
+			Close();
 		}
+		addrinfo *i = AddrInfo;
+		for (; i != nullptr; i = i->ai_next) 
 		{
-			if(RemoteIp.hSocket != -1)
-			{
-				ShutdownSendRecive();
-				Close();
-			}
-			addrinfo *i = AddrInfo;
-			for (; i != nullptr; i = i->ai_next) 
-			{
-				if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == -1)
-					continue;
-				if (connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) != -1)
-					break;
-				Close();
-			}
-			if(i == nullptr)
-			{
-				URL_SET_LAST_ERR
-					RemoteIp.hSocket = -1;
-				return false;
-			}
-			RemoteIp.ProtocolType = i->ai_protocol;
+			if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == -1)
+				continue;
+			if (connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) != -1)
+				break;
+			Close();
 		}
+		if(i == nullptr)
+		{
+			URL_SET_LAST_ERR;
+			RemoteIp.hSocket = -1;
+			return false;
+		}
+		RemoteIp.ProtocolType = i->ai_protocol;
 		if(IsEnableSSL)
 			if(!InitSSL())
 				return false;
@@ -3005,50 +3004,44 @@ public:
 		int Flags = 0
 	)
 	{	
-		if(GetWsa() == nullptr)
+		INIT_WSA;
+		if(RemoteIp.hSocket != -1)
 		{
-			URL_SET_LAST_ERR
+			ShutdownSendRecive();
+			Close();
+		}
+		addrinfo host_info = {0}, *ah = nullptr, *i;
+		host_info.ai_socktype = iSocktype;
+		host_info.ai_family = iFamily;
+		host_info.ai_protocol = iProtocol;
+		host_info.ai_flags = Flags;                   //AI_PASSIVE
+
+		if(getaddrinfo(HostAddr, Port, &host_info, &ah) != 0)
+		{
+			URL_SET_LAST_ERR;
 			return false;
 		}
+
+		for (i = ah; i != nullptr; i = i->ai_next) 
 		{
-			if(RemoteIp.hSocket != -1)
-			{
-				ShutdownSendRecive();
-				Close();
-			}
-			addrinfo host_info = {0}, *ah = nullptr, *i;
-			host_info.ai_socktype = iSocktype;
-			host_info.ai_family = iFamily;
-			host_info.ai_protocol = iProtocol;
-			host_info.ai_flags = Flags;                   //AI_PASSIVE
+			if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == -1)
+				continue;
+			if (connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) != -1)
+				break;
+			Close();
+		}
 
-			if(getaddrinfo(HostAddr, Port, &host_info, &ah) != 0)
-			{
-				URL_SET_LAST_ERR
-					return false;
-			}
-
-			for (i = ah; i != nullptr; i = i->ai_next) 
-			{
-				if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == -1)
-					continue;
-				if (connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) != -1)
-					break;
-				Close();
-			}
-
-			if(i == nullptr)
-			{
-				URL_SET_LAST_ERR
-					RemoteIp.hSocket = -1;
-				if(ah != nullptr)
-					freeaddrinfo(ah);
-				return false;
-			}
-			RemoteIp.ProtocolType = i->ai_protocol;
+		if(i == nullptr)
+		{
+			URL_SET_LAST_ERR;
+			RemoteIp.hSocket = -1;
 			if(ah != nullptr)
 				freeaddrinfo(ah);
+			return false;
 		}
+		RemoteIp.ProtocolType = i->ai_protocol;
+		if(ah != nullptr)
+			freeaddrinfo(ah);
 		if(IsEnableSSL)
 			if(!InitSSL())
 				return false;
@@ -3060,11 +3053,7 @@ public:
 	*/
 	bool Bind(ADDRESS_INFO::ADDRESSES::ADDRESS_INTERATOR& Address, int MaxConnection = SOMAXCONN)
 	{	
-		if(GetWsa() == nullptr)
-		{
-			URL_SET_LAST_ERR
-			return false;
-		}
+		INIT_WSA;
 		if(RemoteIp.hSocket != -1)
 		{
 			ShutdownSendRecive();
@@ -3073,20 +3062,20 @@ public:
 		addrinfo *i = Address;
 		if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == -1)
 		{
-			URL_SET_LAST_ERR
-				return false;
+			URL_SET_LAST_ERR;
+			return false;
 		}else if(bind(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) == -1)
 		{
 			Close();
 			RemoteIp.hSocket = -1;
-			URL_SET_LAST_ERR
-				return false;
+			URL_SET_LAST_ERR;
+			return false;
 		}else if(listen(RemoteIp.hSocket, MaxConnection) == -1)
 		{
 			Close();
 			RemoteIp.hSocket = -1;
-			URL_SET_LAST_ERR
-				return false;
+			URL_SET_LAST_ERR;
+			return false;
 		}
 		RemoteIp.ProtocolType = i->ai_protocol;
 		if(IsEnableSSL)
@@ -3100,11 +3089,7 @@ public:
 	*/
 	bool Bind(ADDRESS_INFO& AddrInfo, int MaxConnection = SOMAXCONN)
 	{	
-		if(GetWsa() == nullptr)
-		{
-			URL_SET_LAST_ERR
-			return false;
-		}
+		INIT_WSA;
 		if(RemoteIp.hSocket != -1)
 		{
 			ShutdownSendRecive();
@@ -3149,11 +3134,7 @@ public:
 		int Flags = AI_PASSIVE
 	)
 	{	
-		if(GetWsa() == nullptr)
-		{
-			URL_SET_LAST_ERR
-				return false;
-		}
+		INIT_WSA;
 		if(RemoteIp.hSocket != -1)
 		{
 			ShutdownSendRecive();
@@ -3166,8 +3147,8 @@ public:
 		host_info.ai_flags = Flags;                   //AI_PASSIVE
 		if(getaddrinfo(nullptr, Port, &host_info, &ah) != 0)
 		{
-			URL_SET_LAST_ERR
-				return false;
+			URL_SET_LAST_ERR;
+			return false;
 		}
 
 		for (i = ah; i != nullptr; i = i->ai_next) 
@@ -3205,7 +3186,7 @@ public:
 		int ConnectedSocket = accept(RemoteIp.hSocket, SockAddr, &ClientAddressSize);
 		if((ConnectedSocket == -1) || (SockAddr.Len != ClientAddressSize))
 		{
-			URL_SET_LAST_ERR
+			URL_SET_LAST_ERR;
 			return false;
 		}
 		DestCoonection.RemoteIp.hSocket = ConnectedSocket;
@@ -3221,9 +3202,9 @@ public:
 
 	FILE* OpenAsFile(const char * TypeOpen = "w+")
 	{
-	    FILE* File = fdopen(RemoteIp.hSocket, TypeOpen);
+		FILE* File = fdopen(RemoteIp.hSocket, TypeOpen);
 		if(File == NULL)
-			URL_SET_LAST_ERR
+			URL_SET_LAST_ERR;
 		return File;
 	}
 
@@ -3275,36 +3256,74 @@ public:
 
 
 	/*
+	Create socket for TakeFrom and SendTo functions.
+	*/
+	bool OnlyCreate(int iSocktype = SOCK_DGRAM, int iProtocol = IPPROTO_UDP, int iFamily = AF_INET)
+	{
+		if(RemoteIp.hSocket != -1)
+		{
+			ShutdownSendRecive();
+			Close();
+		}
+
+		if((RemoteIp.hSocket = socket(iFamily, iSocktype, iProtocol)) != 0)
+		{
+			URL_SET_LAST_ERR;
+			return false;
+		}
+		RemoteIp.ProtocolType = iProtocol;
+		IsEnableSSL = false;
+	}
+
+
+	/*
 	@Flags:
-		MSG_PEEK - Peeks at the incoming data. 
-		MSG_OOB  - Processes Out Of Band (OOB) data.
+	MSG_PEEK - Peeks at the incoming data. 
+	MSG_OOB  - Processes Out Of Band (OOB) data.
 	*/
 	bool TakeFrom(void * Buffer, size_t LenBuff, SOCKET_ADDR& AddressSender, int Flags = 0)
 	{ 
 		int Len = sizeof(SOCKET_ADDR);
 		if(recvfrom(RemoteIp.hSocket, (char*)Buffer, LenBuff, Flags, AddressSender, &Len) != 0)
 		{
-		    URL_SET_LAST_ERR
+			URL_SET_LAST_ERR;
 			return false;
 		}
-	    return true;
+		return true;
 	}
+
+	inline bool TakeFrom(void * Buffer, size_t LenBuff, ADDRESS_INFO::ADDRESSES::ADDRESS_INTERATOR& AddressSender, int Flags = 0)
+	{
+		return TakeFrom(Buffer, LenBuff, AddressSender.GetSocketAddr(), Flags);
+	}
+
 
 	/*
 	@Flags:
-		MSG_PEEK - Peeks at the incoming data. 
-		MSG_OOB  - Processes Out Of Band (OOB) data.
-		MSG_DONTROUTE - Not use route.
+	MSG_PEEK - Peeks at the incoming data. 
+	MSG_OOB  - Processes Out Of Band (OOB) data.
+	MSG_DONTROUTE - Not use routing.
 	*/
-	bool SendTo(void * Buffer, size_t LenBuff, SOCKET_ADDR& AddressReciver, int Flags = 0)
+	bool SendTo(const void * Buffer, size_t LenBuff, SOCKET_ADDR& AddressReciver, int Flags = 0)
 	{ 
-		if(sendto(RemoteIp.hSocket, (char*)Buffer, LenBuff, Flags, AddressReciver, sizeof(SOCKET_ADDR)) != 0)
+		if(sendto(RemoteIp.hSocket, (const char*)Buffer, LenBuff, Flags, AddressReciver, sizeof(SOCKET_ADDR)) != 0)
 		{
-		    URL_SET_LAST_ERR
+			URL_SET_LAST_ERR;
 			return false;
 		}
-	    return true;
+		return true;
 	}
+
+
+	inline bool SendTo(const void * Buffer, size_t LenBuff, ADDRESS_INFO::ADDRESSES::ADDRESS_INTERATOR& AddressSender, int Flags = 0)
+	{
+		return SendTo(Buffer, LenBuff, AddressSender.GetSocketAddr(), Flags);
+	}
+
+	class WAIT_CHANGES
+	{
+	public:
+	};
 
 
 	bool Close()
@@ -3326,14 +3345,14 @@ public:
 #ifdef	IS_HAVE_OPEN_SSL
 			if(SSL_write(ssl, QueryBuf, SizeBuf) < 0)
 			{
-				URL_SET_LAST_ERR
-					return false;
+				URL_SET_LAST_ERR;
+				return false;
 			}
 #endif
 		}else if(send(RemoteIp.hSocket, (char*)QueryBuf, SizeBuf, 0) < 0)
 		{
-			URL_SET_LAST_ERR
-				return false;
+			URL_SET_LAST_ERR;
+			return false;
 		}
 		return true;
 	}
@@ -3347,14 +3366,14 @@ public:
 #ifdef	IS_HAVE_OPEN_SSL
 			if((ReadedSize = SSL_read(ssl, Buf, SizeBuf)) < 0)
 			{
-				URL_SET_LAST_ERR
-					return false;
+				URL_SET_LAST_ERR;
+				return false;
 			}
 #endif
 		}else if((ReadedSize = recv(RemoteIp.hSocket, (char*)Buf, SizeBuf, 0)) == -1)
 		{
-			URL_SET_LAST_ERR
-				return false;
+			URL_SET_LAST_ERR;
+			return false;
 		}
 		if(SizeReaded != nullptr)
 			*SizeReaded = ReadedSize;
@@ -3377,8 +3396,8 @@ public:
 				int ReadedSize = SSL_read(ssl, Buf, PortionSize);
 				if(ReadedSize < 0)
 				{
-					URL_SET_LAST_ERR
-						return false;
+					URL_SET_LAST_ERR;
+					return false;
 				}else if(ReadedSize == 0)
 					break;
 				else
@@ -3396,8 +3415,8 @@ public:
 				int ReadedSize = recv(RemoteIp.hSocket, Buf, RemoteIp.PortionSize, 0);
 				if(ReadedSize == -1)
 				{
-					URL_SET_LAST_ERR
-						return false;
+					URL_SET_LAST_ERR;
+					return false;
 				}else if(ReadedSize == 0)
 					break;
 				else
