@@ -967,8 +967,8 @@ public:
 			int ErrNb;
 			if((ErrNb = getaddrinfo(HostName, PortName, &host_info, &ah)) != 0)
 			{
-				URL_SET_LAST_ERR
-					return false;
+				URL_SET_LAST_ERR;
+				return false;
 			}
 			if(HostName.ai != nullptr)
 				freeaddrinfo(HostName.ai);
@@ -1490,13 +1490,13 @@ SSLErrOut:
 	std::conditional<sizeof(RetType) < sizeof(int), int, RetType>::type v;	        \
 	int l = sizeof(v);																\
 	if(getsockopt(SoketNum, Level, Option, (char*)&v, &l) != 0)						\
-	URL_SET_LAST_ERR																\
+	URL_SET_LAST_ERR;																\
 	return v;																		\
 	}
 
 #define DEF_SET_OPTION_PROPERTY(SetType, SoketNum, Level, Option)					\
 	SetType operator=(SetType New){													\
-	if(SetOption(SoketNum, Level, Option, New) != 0) URL_SET_LAST_ERR return New;}
+	if(SetOption(SoketNum, Level, Option, New) != 0) URL_SET_LAST_ERR; return New;}
 
 #define DEF_SOCKET_OPTION_PROPERTY(Name, SetType, GetType, Level, Option)			\
 	class{_QUERY_URL_FIELDS1_;public:												\
@@ -1643,8 +1643,8 @@ public:
 				int Len = sizeof(SOCKET_ADDR);
 				if((getpeername(hSocket, Address, &Len) != 0) || (Len != Address.Len))
 				{
-					URL_SET_LAST_ERR
-						return false;
+					URL_SET_LAST_ERR;
+					return false;
 				}
 				return true;
 			}
@@ -1749,7 +1749,7 @@ public:
 				if((getsockname(hSocket, Address, &Len) != 0) || (Len != Address.Len))
 				{
 					URL_SET_LAST_ERR
-						return false;
+					return false;
 				}
 				return true;
 			}
@@ -1887,13 +1887,13 @@ public:
 				if (ioctlsocket(hSocket, FIONBIO, &nonBlocking) != NO_ERROR)
 					URL_SET_LAST_ERR
 				else
-				IsNonBlocket = NewVal;
+					IsNonBlocket = NewVal;
 #else
 				int nonBlocking = NewVal;
 				if (fcntl(hSocket, F_SETFL, O_NONBLOCK, nonBlocking) == -1)
-					URL_SET_LAST_ERR
+					URL_SET_LAST_ERR;
 #endif
-					return NewVal;
+				return NewVal;
 			}
 
 			operator bool() const
@@ -1956,8 +1956,8 @@ public:
 					v.i = 0;
 					int l = sizeof(v);
 					if(getsockopt(hSocket, Level, OptIndex, (char*)&v, &l) != 0)
-						URL_SET_LAST_ERR
-						return v.Val;
+						URL_SET_LAST_ERR;
+					return v.Val;
 				}
 
 				template<typename SetType>
@@ -1969,8 +1969,8 @@ public:
 					} v;
 					v.i = 0, v.Val = New;
 					if(setsockopt(hSocket, Level, OptIndex, (char*)&v, sizeof(v)) != 0)
-						URL_SET_LAST_ERR
-						return New;
+						URL_SET_LAST_ERR;
+					return New;
 				}
 			};
 		public:
