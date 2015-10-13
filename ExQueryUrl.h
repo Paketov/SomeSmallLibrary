@@ -516,8 +516,6 @@ typedef UINT32 socklen_t;
 #define ERR_ARG(Str) Str, L ## Str
 
 
-
-
 template<bool = true>
 class __QUERY_URL
 {
@@ -2020,17 +2018,7 @@ public:
 
 		union
 		{
-			/*
-			The timeout, in milliseconds, for blocking send calls. 
-			The default for this option is zero, 
-			which indicates that a send operation will not time out. 
-			If a blocking send call times out, the connection is in an indeterminate state and should be closed.
-			*/
-#ifdef SO_RCVTIMEO
-			DEF_SOCKET_OPTION_PROPERTY(ReceiveTimeout, timeval&, timeval, SOL_SOCKET, SO_RCVTIMEO);
-#else
-			DEF_SOCKET_EMPTY_OPTION(ReceiveTimeout, std::empty_type&, std::empty_type);
-#endif
+
 			/*
 			Have on windows.
 			Returns the number of seconds a socket has been connected. This option is only valid for connection-oriented protocols.
@@ -2066,7 +2054,7 @@ public:
 			Enable or disable the receiving of the SCM_CREDENTIALS control message.
 			*/
 #ifdef SO_PASSCRED
-			DEF_SOCKET_OPTION_PROPERTY(IsEnableCredentionalsContrMsg, bool, bool, SOL_SOCKET, SO_MAXDG);
+			DEF_SOCKET_OPTION_PROPERTY(IsEnableCredentionalsContrMsg, bool, bool, SOL_SOCKET, SO_PASSCRED);
 #else
 			DEF_SOCKET_EMPTY_OPTION(IsEnableCredentionalsContrMsg, bool, bool);
 #endif
@@ -2097,6 +2085,24 @@ public:
 #else
 			DEF_SOCKET_EMPTY_OPTION(AcceptFilter, std::empty_type&, std::empty_type);
 #endif
+			SO_PRIORITY
+
+			/*
+			Have on some unix.
+			Set the protocol-defined priority for  all  packets
+            to  be  sent on this socket.  Linux uses this value
+            to order the  networking  queues:  packets  with  a
+            higher priority may be processed first depending on
+            the selected device queueing discipline. For ip(4),
+            this  also  sets the IP type-of-service (TOS) field
+            for outgoing packets.
+			*/
+#ifdef SO_PRIORITY
+			DEF_SOCKET_OPTION_PROPERTY(Priority, int, int, SOL_SOCKET, SO_PRIORITY);
+#else
+			DEF_SOCKET_EMPTY_OPTION(Priority, int, int);
+#endif
+
 			/*
 			Have on windows.
 			Once set, affects whether subsequent sockets that are created will be non-overlapped.
@@ -2167,6 +2173,13 @@ public:
 #else
 			DEF_SOCKET_EMPTY_OPTION(SendTimeout, timeval&, timeval);
 #endif
+
+#ifdef SO_RCVTIMEO
+			DEF_SOCKET_OPTION_PROPERTY(ReceiveTimeout, timeval&, timeval, SOL_SOCKET, SO_RCVTIMEO);
+#else
+			DEF_SOCKET_EMPTY_OPTION(ReceiveTimeout, std::empty_type&, std::empty_type);
+#endif
+
 			/*
 			The total per-socket buffer space reserved for sends. 
 			This is unrelated to SO_MAX_MSG_SIZE and does not necessarily correspond to the size of a TCP send window.
