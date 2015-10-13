@@ -442,12 +442,14 @@ typedef UINT32 socklen_t;
 #	define sockaddr_storage winsock::sockaddr_storage
 #	define sockaddr_dl winsock::sockaddr_dl
 #	define inet_pton winsock::inet_pton
-#   define poll winsock::WSAPoll
+#	define poll winsock::WSAPoll
 #	define getnetbyname winsock::getnetbyname__<true>
 #	define getnetbyaddr winsock::getnetbyaddr__<true>
 #	define getservbyport winsock::getservbyport__<true>
 #	define getservbyname winsock::getservbyname__<true>
+#	define ipv6_mreq winsock::ipv6_mreq
 
+#	define LAST_ERR_SOCKET winsock::GetLastErrSocket<true>()
 
 #	define IPPROTO_ICMP ((int)winsock::IPPROTO_ICMP)
 #	define IPPROTO_IGMP ((int)winsock::IPPROTO_IGMP)
@@ -460,9 +462,6 @@ typedef UINT32 socklen_t;
 #	define IPPROTO_RAW  ((int)winsock::IPPROTO_RAW)
 #	define IPPROTO_MAX  ((int)winsock::IPPROTO_MAX)
 #	define IPPROTO_IPV6 ((int)winsock::IPPROTO_IPV6)
-#	define ipv6_mreq winsock::ipv6_mreq
-
-#	define LAST_ERR_SOCKET winsock::GetLastErrSocket<true>()
 
 #	define SHUT_RDWR    SD_BOTH
 #	define SHUT_RD		SD_RECEIVE
@@ -918,8 +917,6 @@ public:
 
 			ADDRESSES		Addresses;
 		};
-
-
 
 		ADDRESS_INFO(const char * FullAddress)
 		{
