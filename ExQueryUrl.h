@@ -28,6 +28,7 @@ namespace winsock
 #	include <Ws2ipdef.h>
 #	include <winsock2.h>
 
+	template<bool>
 	static int GetLastErrSocket()
 	{
 		switch (WSAGetLastError()) 
@@ -236,9 +237,8 @@ namespace winsock
 		return EFAULT;
 	}
 
-#	define LAST_ERR_SOCKET winsock::GetLastErrSocket()
-
-	struct ::netent * readnetnetworklist()
+	template<bool>
+	::netent * readnetnetworklist()
 	{
 		char Name[BUFSIZ+1], c, NetworksPath[MAX_PATH];
 		::netent * NewNet = (::netent*)malloc(sizeof(::netent));
@@ -289,9 +289,11 @@ lblOut:
 		return NewNet;
 	}
 
-	struct ::netent * GetNetworksInfo(){ static struct ::netent * gn = readnetnetworklist(); return gn;}
+	template<bool>
+	::netent * GetNetworksInfo(){ static struct ::netent * gn = readnetnetworklist(); return gn;}
 
-	struct ::netent * getnetbyname__(const char *name)
+	template<bool>
+	::netent * getnetbyname__(const char *name)
 	{
 		for(::netent * gn = GetNetworksInfo();gn->n_name;gn++)
 			if(StringCompare(name, gn->n_name) == 0)
@@ -299,18 +301,17 @@ lblOut:
 		return NULL;
 	}
 
-#define getnetbyname winsock::getnetbyname__
-
-	struct ::netent * getnetbyaddr__(long net, int type)
+	template<bool>
+	::netent * getnetbyaddr__(long net, int type)
 	{
 		for(::netent * gn = GetNetworksInfo();gn->n_name;gn++)
 			if((gn->n_net == net) && (gn->n_addrtype == type))
 				return gn;
 		return NULL;
 	} 
-#define getnetbyaddr winsock::getnetbyaddr__
 
-	struct ::servent * readservicelist()
+	template<bool>
+	::servent * readservicelist()
 	{
 		char Name[BUFSIZ+1], ProtocolName[BUFSIZ+1], c, NetworksPath[MAX_PATH];
 		::servent * NewServEnt = (::servent*)malloc(sizeof(::servent));
@@ -372,9 +373,11 @@ lblOut:
 		return NewServEnt;
 	}
 
-	struct ::servent * GetServiceInfo(){ static struct ::servent * gn = readservicelist(); return gn;}
+	template<bool>
+	::servent * GetServiceInfo(){ static struct ::servent * gn = readservicelist(); return gn;}
 
-	struct ::servent * getservbyport__(int port, const char * proto)
+	template<bool>
+	::servent * getservbyport__(int port, const char * proto)
 	{
 
 		for(::servent * gn = GetServiceInfo();gn->s_name;gn++)
@@ -388,8 +391,8 @@ lblOut:
 			return NULL;
 	}
 
-#define getservbyport winsock::getservbyport__
-	struct ::servent * getservbyname__(const char * Name, const char * proto)
+	template<bool>
+	::servent * getservbyname__(const char * Name, const char * proto)
 	{
 		for(::servent * gn = GetServiceInfo();gn->s_name;gn++)
 			if(StringICompare(Name, gn->s_name) == 0)
@@ -400,15 +403,9 @@ lblOut:
 					return gn;
 			}
 			return NULL;
-	} 
-
-#	define getservbyname winsock::getservbyname__
-
-	inline int poll___(pollfd fds[], int nfds, int timeout)
-	{
-		return WSAPoll(fds, nfds, timeout);
 	}
 
+	template<bool>
 	static void * GetWsa()
 	{
 		static LPWSADATA wd = nullptr;
@@ -423,6 +420,7 @@ lblOut:
 		return (void*)1;
 	}
 
+	template<bool>
 	static void EndWsa()
 	{
 		if(GetWsa() != nullptr)
@@ -444,7 +442,12 @@ typedef UINT32 socklen_t;
 #	define sockaddr_storage winsock::sockaddr_storage
 #	define sockaddr_dl winsock::sockaddr_dl
 #	define inet_pton winsock::inet_pton
-#   define poll winsock::poll___
+#	define poll winsock::WSAPoll
+#	define getnetbyname winsock::getnetbyname__<true>
+#	define getnetbyaddr winsock::getnetbyaddr__<true>
+#	define getservbyport winsock::getservbyport__<true>
+#	define getservbyname winsock::getservbyname__<true>
+
 
 #	define IPPROTO_ICMP ((int)winsock::IPPROTO_ICMP)
 #	define IPPROTO_IGMP ((int)winsock::IPPROTO_IGMP)
@@ -459,6 +462,8 @@ typedef UINT32 socklen_t;
 #	define IPPROTO_IPV6 ((int)winsock::IPPROTO_IPV6)
 #	define ipv6_mreq winsock::ipv6_mreq
 
+#	define LAST_ERR_SOCKET winsock::GetLastErrSocket<true>()
+
 #	define SHUT_RDWR    SD_BOTH
 #	define SHUT_RD		SD_RECEIVE
 #	define SHUT_WR      SD_SEND
@@ -467,11 +472,11 @@ typedef UINT32 socklen_t;
 #	pragma comment(lib, "Ws2_32.lib")
 
 #	define INIT_WSA							\
-	if(winsock::GetWsa() == nullptr)	\
-{									\
-	URL_SET_LAST_ERR				\
-	return false;					\
-}
+	if(winsock::GetWsa<true>() == nullptr)	\
+	{										\
+		URL_SET_LAST_ERR					\
+		return false;						\
+	}
 
 
 #else
@@ -514,11 +519,11 @@ typedef UINT32 socklen_t;
 
 
 
-
-class QUERY_URL
+template<bool = true>
+class __QUERY_URL
 {
-#define URL_SET_LAST_ERR {((QUERY_URL*)this)->RemoteIp.iError = LAST_ERR_SOCKET;}
-#define URL_SET_LAST_ERR_VAL(Val) {((QUERY_URL*)this)->RemoteIp.iError = (Val);}
+#define URL_SET_LAST_ERR {((__QUERY_URL*)this)->RemoteIp.iError = LAST_ERR_SOCKET;}
+#define URL_SET_LAST_ERR_VAL(Val) {((__QUERY_URL*)this)->RemoteIp.iError = (Val);}
 
 public:
 	typedef decltype(std::declval<sockaddr_in>().sin_port) TPORT;
@@ -646,7 +651,7 @@ public:
 
 			class
 			{
-				friend QUERY_URL;
+				friend __QUERY_URL;
 				SOCKET_ADDR_FIELDS;
 			public:
 				const char * operator=(const char* AddrStr)
@@ -689,22 +694,22 @@ public:
 #define ADDRESS_INFO_FIELDS							\
 		struct										\
 		{											\
-		addrinfo * ai;							\
-		std::def_var_in_union_with_constructor	\
-		<std::basic_string<char>> PortName;	\
-		std::def_var_in_union_with_constructor	\
-		<std::basic_string<char>> HostName;	\
-		int iError;								\
-	}
+		addrinfo * ai;								\
+		std::def_var_in_union_with_constructor		\
+		<std::basic_string<char>> PortName;			\
+		std::def_var_in_union_with_constructor		\
+		<std::basic_string<char>> HostName;			\
+		int iError;									\
+		}
 
 
-#define ADDRESS_INFO_SET_LAST_ERR(Str, Num)						\
-		{														\
-		static const ERROR_INFO Uei = {Num, Str};			\
-		((ADDRESS_INFO*)this)->HostName.LastErr =			\
-		(ERROR_INFO*)&Uei;									\
-	}
-		friend QUERY_URL;
+#define ADDRESS_INFO_SET_LAST_ERR(Str, Num)			\
+		{											\
+		static const ERROR_INFO Uei = {Num, Str};	\
+		((ADDRESS_INFO*)this)->HostName.LastErr =	\
+		(ERROR_INFO*)&Uei;							\
+		}
+		friend __QUERY_URL;
 
 		operator addrinfo*() const
 		{
@@ -718,125 +723,124 @@ public:
 			new(&HostName.PortName)  std::basic_string<char>("");
 			new(&HostName.HostName)  std::basic_string<char>("");
 		}
+	public:
+		class ADDRESS_INTERATOR
+		{
+			friend __QUERY_URL;
 
+			inline operator addrinfo*() const
+			{
+				return Ip.ca;
+			}
 
+			SOCKET_ADDR& GetSocketAddr()
+			{
+				return (SOCKET_ADDR&)Ip.ca;
+			}
+
+		public:
+			ADDRESS_INTERATOR(addrinfo * CurAddr)
+			{
+				Ip.ca = CurAddr;
+			}
+			union
+			{
+				class
+				{
+					addrinfo * ca;
+				public:
+					operator TPORT()
+					{
+						if(ca == nullptr)
+							return 0;
+						return ((SOCKET_ADDR*)ca->ai_addr)->Port;
+					}
+				} Port;
+
+				class
+				{
+					friend ADDRESS_INTERATOR;
+					addrinfo * ca;
+				public:
+					char* operator()(char * Dest, size_t Len = 0xffff)
+					{
+						if(ca == nullptr)
+							return nullptr;
+						inet_ntop(((SOCKET_ADDR*)ca->ai_addr)->ProtocolFamily, ((SOCKET_ADDR*)ca->ai_addr)->Ip.GetData(), Dest, Len);
+						return Dest;
+					}
+
+					void* GetData()
+					{
+						if(ca == nullptr)
+							return nullptr;
+						return ((SOCKET_ADDR*)ca->ai_addr)->Ip.GetData();
+					}
+
+					operator std::basic_string<char>()
+					{
+						std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
+						operator()((char*)Buf.c_str(), INET6_ADDRSTRLEN + 1);
+						return Buf;
+					}
+
+				} Ip;
+
+				class
+				{
+					addrinfo * ca;
+				public:
+					inline operator int() const
+					{
+						return ((SOCKET_ADDR*)ca->ai_addr)->ProtocolFamily;
+					}
+				} ProtocolFamily;
+
+				class
+				{
+					addrinfo * ca;
+				public:
+					inline operator int() const
+					{
+						return ca->ai_socktype;
+					}
+				} TypeSocket;
+
+				class
+				{
+					addrinfo * ca;
+				public:
+					inline operator int() const
+					{
+						return ca->ai_protocol;
+					}
+				} Protocol;
+
+				class
+				{
+					addrinfo * ca;
+				public:
+					inline operator int() const
+					{
+						return ca->ai_flags;
+					}
+				} Flags;
+
+				class
+				{
+					addrinfo * ca;
+				public:
+					inline operator char*() const
+					{
+						return ca->ai_canonname;
+					}
+				} CanonicalName;
+			};
+		};
+
+	private:
 		class ADDRESSES
 		{
-			friend QUERY_URL;
-			class ADDRESS_INTERATOR
-			{
-				friend QUERY_URL;
-
-				inline operator addrinfo*() const
-				{
-					return Ip.ca;
-				}
-
-				SOCKET_ADDR& GetSocketAddr()
-				{
-				   return (SOCKET_ADDR&)Ip.ca;
-				}
-
-			public:
-				ADDRESS_INTERATOR(addrinfo * CurAddr)
-				{
-					Ip.ca = CurAddr;
-				}
-				union
-				{
-					class
-					{
-						addrinfo * ca;
-					public:
-						operator TPORT()
-						{
-							if(ca == nullptr)
-								return 0;
-							return ((SOCKET_ADDR*)ca->ai_addr)->Port;
-						}
-					} Port;
-
-					class
-					{
-						friend ADDRESS_INTERATOR;
-						addrinfo * ca;
-					public:
-						char* operator()(char * Dest, size_t Len = 0xffff)
-						{
-							if(ca == nullptr)
-								return nullptr;
-							inet_ntop(((SOCKET_ADDR*)ca->ai_addr)->ProtocolFamily, ((SOCKET_ADDR*)ca->ai_addr)->Ip.GetData(), Dest, Len);
-							return Dest;
-						}
-
-						void* GetData()
-						{
-							if(ca == nullptr)
-								return nullptr;
-							return ((SOCKET_ADDR*)ca->ai_addr)->Ip.GetData();
-						}
-
-						operator std::basic_string<char>()
-						{
-							std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
-							operator()((char*)Buf.c_str(), INET6_ADDRSTRLEN + 1);
-							return Buf;
-						}
-
-					} Ip;
-
-					class
-					{
-						addrinfo * ca;
-					public:
-						inline operator int() const
-						{
-							return ((SOCKET_ADDR*)ca->ai_addr)->ProtocolFamily;
-						}
-					} ProtocolFamily;
-
-					class
-					{
-						addrinfo * ca;
-					public:
-						inline operator int() const
-						{
-							return ca->ai_socktype;
-						}
-					} TypeSocket;
-
-					class
-					{
-						addrinfo * ca;
-					public:
-						inline operator int() const
-						{
-							return ca->ai_protocol;
-						}
-					} Protocol;
-
-					class
-					{
-						addrinfo * ca;
-					public:
-						inline operator int() const
-						{
-							return ca->ai_flags;
-						}
-					} Flags;
-
-					class
-					{
-						addrinfo * ca;
-					public:
-						inline operator char*() const
-						{
-							return ca->ai_canonname;
-						}
-					} CanonicalName;
-				};
-			};
-
 		public:
 			class
 			{
@@ -1543,9 +1547,30 @@ SSLErrOut:
 	static const bool IsHave = false;												\
 	static const bool IsSet = false;												\
 	static const bool IsGet = false;												\
-	SetType operator=(SetType v)const {URL_SET_LAST_ERR_VAL(EOPNOTSUPP); return v;} \
+	SetType operator=(SetType v) const {URL_SET_LAST_ERR_VAL(EOPNOTSUPP); return v;}\
 	} Name
+	
+	
+	class ERR_HANDLER
+	{
+	public:
+		typedef void(*TYPE_HANDLER_PROC)(__QUERY_URL&);
+	private:
+		TYPE_HANDLER_PROC & GetCur()
+		{
+			static TYPE_HANDLER_PROC v;
+			return v;
+		}
+
+
+	public:
+
+
+
+	};
 public:
+
+	
 
 	union
 	{
@@ -1555,7 +1580,7 @@ public:
 		*/
 		class
 		{		
-			friend QUERY_URL;
+			friend __QUERY_URL;
 			_QUERY_URL_FIELDS1_;
 
 			int operator =(int nErr)
@@ -1564,17 +1589,17 @@ public:
 			}
 
 		public:
-			operator const char *()
+			inline operator const char *()
 			{
 				return strerror(iError);
 			}
 
-			int GetNumber()
+			inline int GetNumber()
 			{
 				return iError;
 			}
 
-			void Clear()
+			inline void Clear()
 			{
 				iError = 0;
 			}
@@ -1590,7 +1615,7 @@ public:
 			operator char*() const
 			{
 				SOCKET_ADDR sa;
-				if(!((QUERY_URL*)this)->RemoteIp.GetRemoteAddress(sa))
+				if(!((__QUERY_URL*)this)->RemoteIp.GetRemoteAddress(sa))
 					return "";
 				return GetInfoAboutHost(sa.Ip.GetData(), sa.Len, sa.ProtocolFamily).Name;
 			}
@@ -1601,23 +1626,25 @@ public:
 		*/
 		class
 		{
-			friend QUERY_URL;
+			friend __QUERY_URL;
 			_QUERY_URL_FIELDS1_;
 		public:
+
+			//As number
 			inline operator TPORT() const
 			{
 				SOCKET_ADDR sa;
-				if(!((QUERY_URL*)this)->RemoteIp.GetRemoteAddress(sa))
+				if(!((__QUERY_URL*)this)->RemoteIp.GetRemoteAddress(sa))
 					return 0;
 				return sa.Port.Readeble;
 			}
-
+			//As c string
 			char* operator()(char * Dest, size_t Len = 0xffff) const
 			{
 				NumberToString(operator unsigned short(), Dest, Len);
 				return Dest;
 			}
-
+			//As stl string
 			std::basic_string<char> operator()() const
 			{
 				std::basic_string<char> Buf("", 6);
@@ -1625,6 +1652,7 @@ public:
 				return Buf;
 			}
 
+			//Get more info about remote port
 			inline PORT_SERVICE_INTERATOR GetInfo() const
 			{
 				return GetSystemService(operator unsigned short());
@@ -1636,7 +1664,7 @@ public:
 		*/
 		class
 		{
-			friend QUERY_URL;
+			friend __QUERY_URL;
 			_QUERY_URL_FIELDS1_;
 			inline bool GetRemoteAddress(SOCKET_ADDR & Address) const
 			{
@@ -1656,6 +1684,7 @@ public:
 				return sa.Ip.GetData();
 			}
 
+			//As c string
 			char* operator()(char * Dest, size_t Len = 0xffff) const
 			{
 				SOCKET_ADDR sa;
@@ -1667,6 +1696,7 @@ public:
 				return nullptr;
 			}
 
+			//As stl string
 			operator std::basic_string<char>() const
 			{
 				std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
@@ -1674,6 +1704,7 @@ public:
 				return Buf;
 			}
 
+			//Get info about this IP
 			inline INFO_HOST_INTERATOR GetInfo() const
 			{
 				SOCKET_ADDR sa;
@@ -1688,14 +1719,14 @@ public:
 		*/
 		class
 		{
-			friend QUERY_URL;
+			friend __QUERY_URL;
 			_QUERY_URL_FIELDS1_;
 		public:
 
 			operator char*() const
 			{
 				SOCKET_ADDR sa;
-				if(((QUERY_URL*)this)->LocalIp.GetLocalAddress(sa))
+				if(((__QUERY_URL*)this)->LocalIp.GetLocalAddress(sa))
 					return GetInfoAboutHost(sa.Ip.GetData(), sa.Len, sa.ProtocolFamily).Name;
 				return "";
 			}
@@ -1712,7 +1743,7 @@ public:
 			inline operator TPORT() const
 			{
 				SOCKET_ADDR sa;
-				if(!((QUERY_URL*)this)->LocalIp.GetLocalAddress(sa))
+				if(!((__QUERY_URL*)this)->LocalIp.GetLocalAddress(sa))
 					return 0;
 				return sa.Port.Readeble;
 			}
@@ -1741,7 +1772,7 @@ public:
 		*/
 		class 
 		{
-			friend QUERY_URL;
+			friend __QUERY_URL;
 			_QUERY_URL_FIELDS1_;
 			inline bool GetLocalAddress(SOCKET_ADDR & Address) const
 			{
@@ -1800,7 +1831,7 @@ public:
 			operator decltype(std::declval<addrinfo>().ai_protocol)()
 			{
 				SOCKET_ADDR SockAddr;
-				if(!((QUERY_URL*)this)->RemoteIp.GetRemoteAddress(SockAddr))
+				if(!((__QUERY_URL*)this)->RemoteIp.GetRemoteAddress(SockAddr))
 					return -1;
 				return SockAddr.ProtocolFamily;
 			}
@@ -1808,7 +1839,7 @@ public:
 			operator char*() const
 			{
 				SOCKET_ADDR SockAddr;
-				if(!((QUERY_URL*)this)->RemoteIp.GetRemoteAddress(SockAddr))
+				if(!((__QUERY_URL*)this)->RemoteIp.GetRemoteAddress(SockAddr))
 					return "";
 				switch(SockAddr.ProtocolFamily) 
 				{ 
@@ -1860,7 +1891,7 @@ public:
 		*/
 		class
 		{
-			friend QUERY_URL;
+			friend __QUERY_URL;
 			_QUERY_URL_FIELDS1_;
 			bool operator =(bool NewValue)
 			{
@@ -2254,6 +2285,7 @@ public:
 			Specify the minimum number of bytes in the buffer until the
 			socket layer will pass the data to the protocol (SO_SNDLOWAT)
 			or the user on receiving (SO_RCVLOWAT).
+			
 			*/
 #ifdef SO_SNDLOWAT
 			DEF_SOCKET_OPTION_PROPERTY(SendLowWaterMark, int, int, SOL_SOCKET, SO_SNDLOWAT);
@@ -2261,6 +2293,10 @@ public:
 			DEF_SOCKET_EMPTY_OPTION(SendLowWaterMark, int, int);
 #endif
 
+			/*
+			Задаёт минимальное количество данных на приём(сокет вернёт управление из TakeQuery только при достижении 
+			этого количества данных).
+			*/
 #ifdef SO_RCVLOWAT
 			DEF_SOCKET_OPTION_PROPERTY(ReceiveLowWaterMark, int, int, SOL_SOCKET, SO_RCVLOWAT);
 #else
@@ -2932,7 +2968,7 @@ public:
 	/*
 	Connect with server at a specific address.
 	*/
-	bool Connect(ADDRESS_INFO::ADDRESSES::ADDRESS_INTERATOR& Address)
+	bool Connect(typename ADDRESS_INFO::ADDRESS_INTERATOR& Address)
 	{
 		INIT_WSA;
 		if(RemoteIp.hSocket != -1)
@@ -3051,7 +3087,7 @@ public:
 	/*
 	Create waiting client on port at a specific address.
 	*/
-	bool Bind(ADDRESS_INFO::ADDRESSES::ADDRESS_INTERATOR& Address, int MaxConnection = SOMAXCONN)
+	bool Bind(typename ADDRESS_INFO::ADDRESS_INTERATOR& Address, int MaxConnection = SOMAXCONN)
 	{	
 		INIT_WSA;
 		if(RemoteIp.hSocket != -1)
@@ -3179,7 +3215,7 @@ public:
 	}
 
 
-	bool AcceptClient(QUERY_URL & DestCoonection)
+	bool AcceptClient(__QUERY_URL & DestCoonection)
 	{
 		SOCKET_ADDR SockAddr;
 		int ClientAddressSize = sizeof(SockAddr);
@@ -3210,18 +3246,18 @@ public:
 
 
 
-	QUERY_URL()
+	__QUERY_URL()
 	{
 		InitFields();
 	}
 
-	QUERY_URL(bool nIsEnableSSL)
+	__QUERY_URL(bool nIsEnableSSL)
 	{
 		InitFields();
 		IsEnableSSL = nIsEnableSSL;
 	}
 
-	~QUERY_URL()
+	~__QUERY_URL()
 	{
 		if(IsEnableSSL)
 			UninitSSL();
@@ -3292,7 +3328,7 @@ public:
 		return true;
 	}
 
-	inline bool TakeFrom(void * Buffer, size_t LenBuff, ADDRESS_INFO::ADDRESSES::ADDRESS_INTERATOR& AddressSender, int Flags = 0)
+	inline bool TakeFrom(void * Buffer, size_t LenBuff, typename ADDRESS_INFO::ADDRESS_INTERATOR& AddressSender, int Flags = 0)
 	{
 		return TakeFrom(Buffer, LenBuff, AddressSender.GetSocketAddr(), Flags);
 	}
@@ -3315,7 +3351,7 @@ public:
 	}
 
 
-	inline bool SendTo(const void * Buffer, size_t LenBuff, ADDRESS_INFO::ADDRESSES::ADDRESS_INTERATOR& AddressSender, int Flags = 0)
+	inline bool SendTo(const void * Buffer, size_t LenBuff, typename ADDRESS_INFO::ADDRESS_INTERATOR& AddressSender, int Flags = 0)
 	{
 		return SendTo(Buffer, LenBuff, AddressSender.GetSocketAddr(), Flags);
 	}
@@ -3323,6 +3359,8 @@ public:
 	class WAIT_CHANGES
 	{
 	public:
+
+
 	};
 
 
@@ -3477,6 +3515,6 @@ public:
 
 };
 
-
+typedef __QUERY_URL<true> QUERY_URL;
 
 #endif // QUERYURL_H_INCLUDED
