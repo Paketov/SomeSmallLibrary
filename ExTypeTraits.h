@@ -1,5 +1,5 @@
-#ifndef __EXTYPETRAITS_H__
-#define __EXTYPETRAITS_H__
+#ifndef __EXTYPETRAITS_H_HAS_INCLUDED__
+#define __EXTYPETRAITS_H_HAS_INCLUDED__
 
 #include <malloc.h>
 #include <type_traits>
@@ -30,6 +30,7 @@
 
 /*
 * For define local function.
+* Not lambda way.
 * Example:
 
 	int CallLocalFunc(int(*jj)(int))
@@ -62,6 +63,56 @@
 
 namespace std
 {		
+
+
+
+	template<typename T> 
+	struct is_has_func
+	{
+	private:
+		static int detect(...);
+		template<typename U> 
+		static decltype(std::declval<U>().foo(42)) detect(const U&);
+	public:
+		static const bool value = is_same<void, decltype(detect(std::declval<T>()))>::value;
+	};
+
+	template<typename TypeHaveConstructor>
+	struct def_var_in_union_with_constructor
+	{
+	private:
+	    char _Data[sizeof(TypeHaveConstructor)];
+	public:
+		inline TypeHaveConstructor * operator->()
+		{
+		   return (TypeHaveConstructor*)_Data;
+		}
+
+		operator TypeHaveConstructor&()
+		{
+		   return *(TypeHaveConstructor*)_Data;
+		}
+
+		TypeHaveConstructor& operator =(TypeHaveConstructor& Data)
+		{
+			*(TypeHaveConstructor*)_Data = Data;
+		   return *(TypeHaveConstructor*)_Data;
+		}
+
+		TypeHaveConstructor* operator &()
+		{
+		   return (TypeHaveConstructor*)_Data;
+		}
+
+		template<typename SetType>
+		TypeHaveConstructor & operator =(SetType & Val)
+		{
+		    *(TypeHaveConstructor*)_Data = Val;
+			return *this;
+		}
+
+	};
+
 
 	template <typename Type, unsigned Offset = 0>
 	struct decl_spec_val
@@ -153,7 +204,22 @@ namespace std
 		}
 
 	};
+	
+	struct variant_arg
+	{
+		template<typename RetVal>
+		operator RetVal() const
+		{
+			return declval<RetVal>();
+		}
+	};
 
+
+	template<typename ElemType, size_t CountElements>
+	struct make_array
+	{
+	    typedef ElemType type[CountElements];
+	};
 
 	template<typename T1, typename T2>
 	struct is_equal: is_same<T1, T2> {};
