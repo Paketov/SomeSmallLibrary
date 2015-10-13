@@ -1546,26 +1546,8 @@ SSLErrOut:
 	} Name
 	
 	
-	class ERR_HANDLER
-	{
-	public:
-		typedef void(*TYPE_HANDLER_PROC)(__QUERY_URL&);
-	private:
-		TYPE_HANDLER_PROC & GetCur()
-		{
-			static TYPE_HANDLER_PROC v;
-			return v;
-		}
 
-
-	public:
-
-
-
-	};
 public:
-
-	
 
 	union
 	{
@@ -2085,7 +2067,6 @@ public:
 #else
 			DEF_SOCKET_EMPTY_OPTION(AcceptFilter, std::empty_type&, std::empty_type);
 #endif
-			SO_PRIORITY
 
 			/*
 			Have on some unix.
