@@ -64,19 +64,6 @@
 namespace std
 {		
 
-
-
-	template<typename T> 
-	struct is_has_func
-	{
-	private:
-		static int detect(...);
-		template<typename U> 
-		static decltype(std::declval<U>().foo(42)) detect(const U&);
-	public:
-		static const bool value = is_same<void, decltype(detect(std::declval<T>()))>::value;
-	};
-
 	template<typename TypeHaveConstructor>
 	struct def_var_in_union_with_constructor
 	{
