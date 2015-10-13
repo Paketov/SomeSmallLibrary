@@ -442,7 +442,7 @@ typedef UINT32 socklen_t;
 #	define sockaddr_storage winsock::sockaddr_storage
 #	define sockaddr_dl winsock::sockaddr_dl
 #	define inet_pton winsock::inet_pton
-#	define poll winsock::WSAPoll
+#   define poll winsock::WSAPoll
 #	define getnetbyname winsock::getnetbyname__<true>
 #	define getnetbyaddr winsock::getnetbyaddr__<true>
 #	define getservbyport winsock::getservbyport__<true>
