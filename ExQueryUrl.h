@@ -487,8 +487,8 @@ typedef UINT32 socklen_t;
 #   include <netinet/in.h>
 #   include <arpa/inet.h>
 #   include <netdb.h>
-#   include <unistd.h>
-#   include <fcntl.h>
+#	include <unistd.h>
+#	include <fcntl.h>
 #	include <errno.h>
 #	define closesocket(socket)  close(socket)
 #	define LAST_ERR_SOCKET errno
@@ -1458,6 +1458,23 @@ SSLErrOut:
 		return setsockopt(hSocket, Level, Option, (char*)&New, sizeof(SetType));
 	}
 
+	static inline int GetOption(int hSocket, int Level, int Option, bool & New)
+	{										
+		int v = 0;
+		int l = sizeof(v);
+		auto r = getsockopt(hSocket, Level, Option, (char*)&v, &l);
+		New = v;
+		return r;
+	}
+
+	template<typename GetType>
+	static inline int GetOption(int hSocket, int Level, int Option, GetType & New)
+	{
+		int l = sizeof(GetType);
+		return getsockopt(hSocket, Level, Option, (char*)&New, &l);
+	}
+
+
 
 #ifdef _WIN32
 #	define ADDITIONAL_FIELDS														\
@@ -1486,11 +1503,8 @@ SSLErrOut:
 #define DEF_GET_OPTION_PROPERTY(RetType, SoketNum, Level, Option)					\
 	operator RetType() const														\
 	{																				\
-	std::conditional<sizeof(RetType) < sizeof(int), int, RetType>::type v;	        \
-	int l = sizeof(v);																\
-	if(getsockopt(SoketNum, Level, Option, (char*)&v, &l) != 0)						\
-	URL_SET_LAST_ERR;																\
-	return v;																		\
+		RetType v; if(GetOption(SoketNum, Level, Option, v) != 0) URL_SET_LAST_ERR;	\
+		return v;																	\
 	}
 
 #define DEF_SET_OPTION_PROPERTY(SetType, SoketNum, Level, Option)					\
@@ -1526,7 +1540,7 @@ SSLErrOut:
 	static const bool IsSet = false;												\
 	static const bool IsGet = false;												\
 	SetType operator=(SetType v)const {URL_SET_LAST_ERR_VAL(EOPNOTSUPP); return v;} \
-	operator GetType() const {URL_SET_LAST_ERR_VAL(EOPNOTSUPP); GetType v; return v;}\
+	operator GetType() const {URL_SET_LAST_ERR_VAL(EOPNOTSUPP); return GetType();}	\
 	} Name
 
 #define DEF_SOCKET_EMPTY_OPTION_GET(Name, GetType)									\
@@ -1534,7 +1548,7 @@ SSLErrOut:
 	static const bool IsHave = false;												\
 	static const bool IsSet = false;												\
 	static const bool IsGet = false;												\
-	operator GetType() const {URL_SET_LAST_ERR_VAL(EOPNOTSUPP); GetType v; return v;}\
+	operator GetType() const {URL_SET_LAST_ERR_VAL(EOPNOTSUPP); return GetType();}	\
 	} Name
 
 #define DEF_SOCKET_EMPTY_OPTION_SET(Name, SetType)									\
@@ -2150,15 +2164,15 @@ public:
 			If a blocking send call times out, the connection is in an indeterminate state and should be closed.
 			*/
 #ifdef SO_SNDTIMEO
-			DEF_SOCKET_OPTION_PROPERTY(SendTimeout, timeval&, timeval, SOL_SOCKET, SO_SNDTIMEO);
+			DEF_SOCKET_OPTION_PROPERTY(SendTimeout, int, int, SOL_SOCKET, SO_SNDTIMEO);
 #else
-			DEF_SOCKET_EMPTY_OPTION(SendTimeout, timeval&, timeval);
+			DEF_SOCKET_EMPTY_OPTION(SendTimeout, int, int);
 #endif
 
 #ifdef SO_RCVTIMEO
-			DEF_SOCKET_OPTION_PROPERTY(ReceiveTimeout, timeval&, timeval, SOL_SOCKET, SO_RCVTIMEO);
+			DEF_SOCKET_OPTION_PROPERTY(ReceiveTimeout, int, int, SOL_SOCKET, SO_RCVTIMEO);
 #else
-			DEF_SOCKET_EMPTY_OPTION(ReceiveTimeout, std::empty_type&, std::empty_type);
+			DEF_SOCKET_EMPTY_OPTION(ReceiveTimeout, int, int);
 #endif
 
 			/*
