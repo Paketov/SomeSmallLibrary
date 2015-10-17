@@ -6,6 +6,8 @@
 #ifdef _WIN32
 
 #	include <winsock.h>
+#	include <io.h>
+#	include <fcntl.h>
 
 #	ifndef WSA_VERSION
 #		define WSA_VERSION MAKEWORD(2, 2)
@@ -442,7 +444,9 @@ typedef UINT32 socklen_t;
 #	define sockaddr_storage winsock::sockaddr_storage
 #	define sockaddr_dl winsock::sockaddr_dl
 #	define inet_pton winsock::inet_pton
+//#	define socket(ProtFamily, SockType, Protocol) winsock::WSASocketA((ProtFamily), (SockType), (Protocol), NULL, 0, 0)
 #	define poll winsock::WSAPoll
+#	define pollfd winsock::pollfd
 #	define getnetbyname winsock::getnetbyname__<true>
 #	define getnetbyaddr winsock::getnetbyaddr__<true>
 #	define getservbyport winsock::getservbyport__<true>
@@ -978,7 +982,6 @@ public:
 
 private:
 
-
 	struct PROTOCOL_INTERATOR
 	{
 #define PROTOCOL_INTERATOR_FIELDS struct protoent * Cur;
@@ -1446,19 +1449,19 @@ SSLErrOut:
 #endif
 	}
 
-	static inline int SetOption(int hSocket, int Level, int Option, bool & New)
+	static inline int SetOption(int hSocket, int Level, int Option, bool& New)
 	{										
 		int v = New;
 		return setsockopt(hSocket, Level, Option, (char*)&v, sizeof(int));
 	}
 
 	template<typename SetType>
-	static inline int SetOption(int hSocket, int Level, int Option, SetType & New)
+	static inline int SetOption(int hSocket, int Level, int Option, SetType& New)
 	{
 		return setsockopt(hSocket, Level, Option, (char*)&New, sizeof(SetType));
 	}
 
-	static inline int GetOption(int hSocket, int Level, int Option, bool & New)
+	static inline int GetOption(int hSocket, int Level, int Option, bool& New)
 	{										
 		int v = 0;
 		int l = sizeof(v);
@@ -1468,7 +1471,7 @@ SSLErrOut:
 	}
 
 	template<typename GetType>
-	static inline int GetOption(int hSocket, int Level, int Option, GetType & New)
+	static inline int GetOption(int hSocket, int Level, int Option, GetType& New)
 	{
 		int l = sizeof(GetType);
 		return getsockopt(hSocket, Level, Option, (char*)&New, &l);
@@ -1558,14 +1561,11 @@ SSLErrOut:
 	static const bool IsGet = false;												\
 	SetType operator=(SetType v) const {URL_SET_LAST_ERR_VAL(EOPNOTSUPP); return v;}\
 	} Name
-	
-	
 
 public:
 
 	union
 	{
-
 		/*
 		Get last error on class level.
 		*/
@@ -1580,16 +1580,19 @@ public:
 			}
 
 		public:
+			//Get string description error
 			inline operator const char *()
 			{
 				return strerror(iError);
 			}
 
+			//Get number error
 			inline int GetNumber()
 			{
 				return iError;
 			}
 
+			//Set err to OK state
 			inline void Clear()
 			{
 				iError = 0;
@@ -1940,6 +1943,25 @@ public:
 		} IsOpen;
 
 		/*
+		Is remote host send fin flag in packet.
+		*/
+		class
+		{			
+			_QUERY_URL_FIELDS1_;
+		public:
+			operator bool() const
+			{
+				pollfd pfd;
+				pfd.events = POLLIN;
+				pfd.revents = 0;
+				pfd.fd = hSocket;
+				if(poll(&pfd, 1, 0) == -1)
+					return false;
+				return pfd.revents & POLLHUP;
+			}
+		} IsRecivedFin;
+
+		/*
 		This field specifies the preferred socket type, for
 		example SOCK_STREAM or SOCK_DGRAM. 
 		*/
@@ -1971,26 +1993,16 @@ public:
 				template<typename RetType>
 				operator RetType()
 				{
-					union
-					{
-						RetType Val; int i;
-					} v;
-					v.i = 0;
-					int l = sizeof(v);
-					if(getsockopt(hSocket, Level, OptIndex, (char*)&v, &l) != 0)
+					RetType v;
+					if(GetOption(hSocket, Level, OptIndex, v) != 0)
 						URL_SET_LAST_ERR;
-					return v.Val;
+					return v;
 				}
 
 				template<typename SetType>
-				SetType operator=(SetType New)
+				SetType & operator=(SetType & New)
 				{
-					union
-					{
-						SetType Val; int i;
-					} v;
-					v.i = 0, v.Val = New;
-					if(setsockopt(hSocket, Level, OptIndex, (char*)&v, sizeof(v)) != 0)
+					if(SetOption(hSocket, Level, OptIndex, New) != 0)
 						URL_SET_LAST_ERR;
 					return New;
 				}
@@ -2004,7 +2016,6 @@ public:
 				return OPTION_INTERATOR(SOL_SOCKET, hSocket, OptIndex);
 			}
 
-
 			OPTION_INTERATOR operator()(int OptIndex, int nLevel)
 			{
 				return OPTION_INTERATOR(nLevel, hSocket, OptIndex);
@@ -2014,7 +2025,6 @@ public:
 
 		union
 		{
-
 			/*
 			Have on windows.
 			Returns the number of seconds a socket has been connected. This option is only valid for connection-oriented protocols.
@@ -2130,7 +2140,7 @@ public:
 			SO_REUSE_UNICASTPORT instead of this option. See the SO_PORT_SCALABILITY reference for more information.
 			*/
 #ifdef SO_PORT_SCALABILITY 
-			DEF_SOCKET_OPTION_PROPERTY(IsPortScalability , bool, bool, SOL_SOCKET, SO_PORT_SCALABILITY);
+			DEF_SOCKET_OPTION_PROPERTY(IsPortScalability, bool, bool, SOL_SOCKET, SO_PORT_SCALABILITY);
 #else
 			DEF_SOCKET_EMPTY_OPTION(IsPortScalability, bool, bool);
 #endif
@@ -2142,7 +2152,7 @@ public:
 			have this option set by default. Use this option instead of SO_PORT_SCALABILITY on platforms where both are available.
 			*/
 #ifdef SO_REUSE_UNICASTPORT  
-			DEF_SOCKET_OPTION_PROPERTY(IsReuseUnicastPort , bool, bool, SOL_SOCKET, SO_REUSE_UNICASTPORT);
+			DEF_SOCKET_OPTION_PROPERTY(IsReuseUnicastPort, bool, bool, SOL_SOCKET, SO_REUSE_UNICASTPORT);
 #else
 			DEF_SOCKET_EMPTY_OPTION(IsReuseUnicastPort, bool, bool);
 #endif
@@ -2154,7 +2164,7 @@ public:
 			enables always sharing multicast traffic on the port. Setting the value to 0 (default) disables this behavior.
 			*/
 #ifdef SO_REUSE_MULTICASTPORT 
-			DEF_SOCKET_OPTION_PROPERTY(IsReuseMulticastPort , bool, bool, SOL_SOCKET, SO_REUSE_MULTICASTPORT);
+			DEF_SOCKET_OPTION_PROPERTY(IsReuseMulticastPort, bool, bool, SOL_SOCKET, SO_REUSE_MULTICASTPORT);
 #else
 			DEF_SOCKET_EMPTY_OPTION(IsReuseMulticastPort, bool, bool);
 #endif
@@ -2284,7 +2294,7 @@ public:
 #ifdef SO_LINGER
 			DEF_SOCKET_OPTION_PROPERTY(Linger, linger&, linger, SOL_SOCKET, SO_LINGER);
 #else
-			DEF_SOCKET_EMPTY_OPTION(Linger, linger&, linger);
+			DEF_SOCKET_EMPTY_OPTION(Linger, std::empty_type&, std::empty_type);
 #endif
 			/*
 			Specify the minimum number of bytes in the buffer until the
@@ -2299,7 +2309,7 @@ public:
 #endif
 
 			/*
-			Задаёт минимальное количество данных на приём(сокет вернёт управление из TakeQuery только при достижении 
+			Задаёт минимальное количество данных на приём(сокет вернёт управление из Recive только при достижении 
 			этого количества данных).
 			*/
 #ifdef SO_RCVLOWAT
@@ -2325,6 +2335,28 @@ public:
 #else
 			DEF_SOCKET_EMPTY_OPTION(IsReceivedOOBDataInLine, bool, bool);
 #endif
+
+			/*
+			 Return the credentials of the foreign process  connected  to  this  socket.   Only useful for PF_UNIX
+             sockets.  Argument is a  ucred  structure. Only valid as a getsockopt.
+			*/
+#ifdef SO_PEERCRED
+			DEF_SOCKET_OPTION_PROPERTY(PeerCredentials, ucred&, ucred, SOL_SOCKET, SO_PEERCRED);
+#else
+			DEF_SOCKET_EMPTY_OPTION(PeerCredentials, std::empty_type&, std::empty_type);
+#endif
+
+			/*
+			 Have on some unix.
+			 Set the associated FIB (routing table) for the socket (set only).
+			*/
+#ifdef SO_SETFIB
+			DEF_SOCKET_OPTION_PROPERTY_SET(FIBRoutingTable, int, SOL_SOCKET, SO_SETFIB);
+#else
+			DEF_SOCKET_EMPTY_OPTION_SET(FIBRoutingTable, int);
+#endif
+
+
 		} SockOptions;
 
 		union
@@ -2903,7 +2935,6 @@ public:
 		return PROTOCOL_INTERATOR(getprotobyname(Name));
 	}
 
-
 	/*
 	Get info about service by port number
 	example:
@@ -2923,7 +2954,6 @@ public:
 	{
 		return PORT_SERVICE_INTERATOR(getservbyname(Name, Prot));
 	}
-
 
 	/*
 	Get info about network by number
@@ -2968,7 +2998,6 @@ public:
 	{
 		return INFO_HOST_INTERATOR(gethostbyname(NameOrTextAddress));
 	}
-
 
 	/*
 	Connect with server at a specific address.
@@ -3241,14 +3270,45 @@ public:
 	}
 
 
-	FILE* OpenAsFile(const char * TypeOpen = "w+")
+	FILE* OpenAsFile(const char * mode = "w+")
 	{
-		FILE* File = fdopen(RemoteIp.hSocket, TypeOpen);
-		if(File == NULL)
+		FILE* File;
+#ifdef _WIN32
+		const char * m = mode; 
+		int fileflag = 0;
+		while (*mode == ' ') ++mode;
+		switch (*mode) 
+		{
+			case 'r': fileflag = _O_RDONLY; break;
+			case 'w': fileflag = _O_CREAT | _O_WRONLY; break;
+			case 'a': fileflag = _O_APPEND; break;
+			default:  URL_SET_LAST_ERR_VAL(EFAULT); return nullptr;
+		}
+		while(*++mode)
+			switch(*mode) 
+			{
+				case ' ': break;
+				case '+': fileflag |= _O_RDWR; break;
+				case 'b': fileflag |= _O_BINARY; break;
+				case 't': fileflag |= _O_TEXT; break;
+				case 'c': break; case 'n': break;
+				default: URL_SET_LAST_ERR_VAL(EFAULT); return nullptr;
+			}
+
+		int fd = _open_osfhandle((intptr_t)RemoteIp.hSocket, fileflag);
+		if(fd == -1)
+		{
+			URL_SET_LAST_ERR_VAL(EFAULT);
+			return nullptr;
+		}
+		File = _fdopen(fd, m);
+#else
+		File = fdopen(RemoteIp.hSocket, TypeOpen);
+#endif
+		if(File == nullptr)
 			URL_SET_LAST_ERR;
 		return File;
 	}
-
 
 
 	__QUERY_URL()
@@ -3274,30 +3334,7 @@ public:
 	}
 
 	/*
-	Shutdown sesion.
-	*/
-	inline bool ShutdownSend()
-	{
-		return shutdown(RemoteIp.hSocket, SHUT_WR) == 0; 
-	}
-
-	inline bool ShutdownRecive()
-	{
-		return shutdown(RemoteIp.hSocket, SHUT_RD) == 0; 
-	}
-	inline bool ShutdownSendRecive()
-	{
-		return shutdown(RemoteIp.hSocket, SHUT_RDWR) == 0; 
-	}
-
-	inline bool SendQuery(const std::basic_string<char> & InQuery)
-	{
-		return SendQuery((void*)InQuery.c_str(), InQuery.length());
-	}
-
-
-	/*
-	Create socket for TakeFrom and SendTo functions.
+	Create socket for ReciveFrom and SendTo functions.
 	*/
 	bool OnlyCreate(int iSocktype = SOCK_DGRAM, int iProtocol = IPPROTO_UDP, int iFamily = AF_INET)
 	{
@@ -3316,59 +3353,481 @@ public:
 		IsEnableSSL = false;
 	}
 
-
-	/*
-	@Flags:
-	MSG_PEEK - Peeks at the incoming data. 
-	MSG_OOB  - Processes Out Of Band (OOB) data.
-	*/
-	bool TakeFrom(void * Buffer, size_t LenBuff, SOCKET_ADDR& AddressSender, int Flags = 0)
-	{ 
-		int Len = sizeof(SOCKET_ADDR);
-		if(recvfrom(RemoteIp.hSocket, (char*)Buffer, LenBuff, Flags, AddressSender, &Len) != 0)
+	template<bool IsUseQuerUrl = true>
+	class CHECK_EVENTS_SEL
+	{
+		struct ELEM_DESCR
 		{
-			URL_SET_LAST_ERR;
-			return false;
-		}
-		return true;
-	}
-
-	inline bool TakeFrom(void * Buffer, size_t LenBuff, typename ADDRESS_INFO::ADDRESS_INTERATOR& AddressSender, int Flags = 0)
-	{
-		return TakeFrom(Buffer, LenBuff, AddressSender.GetSocketAddr(), Flags);
-	}
-
-
-	/*
-	@Flags:
-	MSG_PEEK - Peeks at the incoming data. 
-	MSG_OOB  - Processes Out Of Band (OOB) data.
-	MSG_DONTROUTE - Not use routing.
-	*/
-	bool SendTo(const void * Buffer, size_t LenBuff, SOCKET_ADDR& AddressReciver, int Flags = 0)
-	{ 
-		if(sendto(RemoteIp.hSocket, (const char*)Buffer, LenBuff, Flags, AddressReciver, sizeof(SOCKET_ADDR)) != 0)
+			unsigned char f;
+			int           d;
+			inline int GetDescriptor()
+			{
+			   return d;
+			}
+			inline void SetDescriptor(int nd)
+			{
+				d = nd;
+			}
+						
+			inline __QUERY_URL* GetSock()
+			{
+			   return nullptr;
+			}
+			inline void SetSock(__QUERY_URL* ns)
+			{
+				d = ns->RemoteIp.hSocket;
+			}
+		};
+				
+		struct ELEM_SOCK
 		{
-			URL_SET_LAST_ERR;
-			return false;
-		}
-		return true;
-	}
+			unsigned char f;
+			__QUERY_URL*   s;
+			inline int GetDescriptor()
+			{
+			   return s->RemoteIp.hSocket;
+			}
+			inline void SetDescriptor(int nd)
+			{
+				s->RemoteIp.hSocket = nd;
+			}
+						
+			inline __QUERY_URL* GetSock()
+			{
+			   return s;
+			}
+			inline void SetSock(__QUERY_URL* ns)
+			{
+				s = ns;
+			}
+		};
+
+		typedef typename std::conditional<IsUseQuerUrl, ELEM_SOCK, ELEM_DESCR>::type ELEM;
+#	define __WAIT_CHANGES_FIELDS__	struct{ unsigned CountSockets; fd_set rdf, wdf, edf; ELEM * e;};
+		
+		class INTERATOR
+		{		
+#	define __INTERATOR_FIELDS__ struct{CHECK_EVENTS_SEL* This; unsigned Index;}
+
+		public:
+			inline INTERATOR(CHECK_EVENTS_SEL* w, unsigned i)
+			{
+				IsFollowWrite.This = w;
+				IsFollowWrite.Index = i;
+			}
+
+			inline INTERATOR()
+			{
+				IsFollowWrite.This = nullptr;
+				IsFollowWrite.Index = 0;
+			}
+
+			union
+			{
+
+#define __INTERATOR_PROPERTY__e(Name, FdSet, BitTest)									\
+			   class{friend INTERATOR;__INTERATOR_FIELDS__;								\
+			   public:																	\
+				   inline operator bool() const {return This->Count.e[Index].f & BitTest;}\
+				   inline bool operator=(bool v){										\
+				   if(v){																\
+						FD_SET(This->Count.e[Index].GetDescriptor(), &This->Count.FdSet);\
+						This->Count.e[Index].f |= BitTest;								\
+				   }else{																\
+						FD_CLR(This->Count.e[Index].GetDescriptor(), &This->Count.FdSet);\
+						This->Count.e[Index].f &= (~((unsigned char)BitTest));		    \
+				   }return v;}															\
+			   } Name
+
+#define __INTERATOR_PROPERTY__r(Name, FdSet)											\
+			   class{friend INTERATOR;__INTERATOR_FIELDS__;								\
+			   public:																	\
+				   inline operator bool() const{return FD_ISSET(This->Count.e[Index].GetDescriptor(), &This->Count.FdSet);}\
+			   } Name
+
+			   __INTERATOR_PROPERTY__e(IsFollowWrite, wdf, 0x1);
+			   __INTERATOR_PROPERTY__e(IsFollowRead,  rdf, 0x2);
+			   __INTERATOR_PROPERTY__e(IsFollowError, edf, 0x4);
 
 
-	inline bool SendTo(const void * Buffer, size_t LenBuff, typename ADDRESS_INFO::ADDRESS_INTERATOR& AddressSender, int Flags = 0)
-	{
-		return SendTo(Buffer, LenBuff, AddressSender.GetSocketAddr(), Flags);
-	}
+			   __INTERATOR_PROPERTY__r(IsAdoptedWrite, wdf);
+			   __INTERATOR_PROPERTY__r(IsAdoptedRead,  rdf);
+			   __INTERATOR_PROPERTY__r(IsAdoptedError, edf);
 
-	class WAIT_CHANGES
-	{
+			   class
+			   {
+				    __INTERATOR_FIELDS__;
+			   public:
+				   inline operator int() const
+				   {
+					   return This->Count.e[Index].GetDescriptor();
+				   }
+			   } Descriptor;
+
+			   class
+			   {
+				   __INTERATOR_FIELDS__;
+			   public:
+				   inline operator __QUERY_URL*()
+				   {
+					   if(This->Count.e == nullptr)
+						   return nullptr;
+					   return This->Count.e[Index].GetSock();
+				   }
+
+				   inline __QUERY_URL* operator->()
+				   {
+					   if(This->Count.e == nullptr)
+						   return nullptr;
+					   return This->Count.e[Index].GetSock();
+				   }
+			   } Connection;
+			};
+
+			void Remove()
+			{
+			    if(IsFollowWrite.Index >= IsFollowWrite.This->Count)
+					return;	
+				unsigned From = --IsFollowWrite.This->Count.CountSockets;
+				IsFollowWrite = false;
+				IsFollowRead = false;
+				IsFollowError = false;
+				if(From != IsFollowWrite.Index)
+				{
+					IsFollowWrite.This->Count.e[IsFollowWrite.Index] = IsFollowWrite.This->Count.e[From];
+				}
+				void * New = realloc(IsFollowWrite.This->Count.e, From * sizeof(IsFollowWrite.This->Count.e[0]));
+				IsFollowWrite.This->Count.e = (ELEM*)New;
+
+			}
+		};
 	public:
 
+		CHECK_EVENTS_SEL()
+		{
+			Count.CountSockets = 0;
+			Count.e = nullptr;
+			FD_ZERO(&Count.rdf);
+			FD_ZERO(&Count.wdf);
+			FD_ZERO(&Count.edf);
+		}
 
+		~CHECK_EVENTS_SEL()
+		{
+			if(Count.e != nullptr)
+				free(Count.e);
+		}
+	
+		union
+		{
+			class
+			{
+				friend CHECK_EVENTS_SEL;
+				__WAIT_CHANGES_FIELDS__
+			public:
+				inline operator unsigned()
+				{
+					return CountSockets;
+				}
+			} Count;
+		};
+				
+		int AddConnection(__QUERY_URL& Sock)
+		{
+			unsigned i = Count.CountSockets, j = i + 1;
+			void * New = realloc(Count.e, j * sizeof(Count.e[0]));
+			if(New == nullptr)
+				return -1;
+			Count.e = (ELEM*)New;
+			Count.e[i].f = 0;
+			Count.e[i].SetSock(&Sock);
+			Count.CountSockets = j;
+			return i;
+		}
+
+		int AddConnection(int SocketDescriptor)
+		{
+			unsigned i = Count.CountSockets, j = i + 1;
+			void * New = realloc(Count.e, j * sizeof(Count.e[0]));
+			if(New == nullptr)
+				return -1;
+			Count.e = (ELEM*)New;
+			Count.e[i].f = 0;
+			Count.e[i].SetDescriptor(SocketDescriptor);
+			Count.CountSockets = j;
+			return i;
+		}
+
+		inline INTERATOR operator[](unsigned Index)
+		{
+			if(Index >= Count)
+				throw "CHECK_EVENTS_SEL::operator[] : Out of bound";	
+		    return INTERATOR(this, Index);
+		}
+
+		int Check(long WaitTimeSec = 0, long WaitTimeMiliSec = 0)
+		{
+			if((Count == 0) || (Count.e == nullptr))
+				return 0;
+			timeval tv;
+			tv.tv_sec = WaitTimeSec;
+			tv.tv_usec = WaitTimeMiliSec;
+			return select(Count, &Count.rdf, &Count.wdf, &Count.edf, &tv);
+		}
 	};
 
+	template<bool IsUseQuerUrl = true>
+	class CHECK_EVENTS_POL
+	{
+#	define __WAIT_CHANGES_FIELDS__ 	struct{unsigned CountSockets; pollfd * pfd; __QUERY_URL** Elements;};
 
+		class INTERATOR
+		{
+			
+#	define __INTERATOR_FIELDS__ struct{CHECK_EVENTS_POL* This; unsigned Index;}		
+			
+		public:
+			inline INTERATOR(CHECK_EVENTS_POL* w, unsigned i)
+			{
+				IsFollowWrite.This = w;
+				IsFollowWrite.Index = i;
+			}
+
+			inline INTERATOR()
+			{
+				IsFollowWrite.This = nullptr;
+				IsFollowWrite.Index = 0;
+			}
+
+			union
+			{
+
+#define __INTERATOR_PROPERTY__e(Name, Opt)												\
+			   class{friend INTERATOR;__INTERATOR_FIELDS__;								\
+			   public:																	\
+				   inline operator bool() const {return This->Count.pfd[Index].events & Opt;}	\
+				   inline bool operator=(bool v){										\
+				   This->Count.pfd[Index].events |= ((v)?Opt:0);return v;}				\
+			   } Name
+#define __INTERATOR_PROPERTY__r(Name, Opt)												\
+			   class{friend INTERATOR;__INTERATOR_FIELDS__;								\
+			   public:																	\
+				   inline operator bool() const{return This->Count.pfd[Index].revents & Opt;}\
+			   } Name
+
+			   __INTERATOR_PROPERTY__e(IsFollowWrite, POLLIN);
+			   __INTERATOR_PROPERTY__e(IsFollowWriteNorm, POLLRDNORM);
+			   __INTERATOR_PROPERTY__e(IsFollowWriteBand, POLLRDBAND);
+			   __INTERATOR_PROPERTY__e(IsFollowWritePrior,POLLPRI);
+
+			   __INTERATOR_PROPERTY__e(IsFollowRead, POLLOUT);
+			   __INTERATOR_PROPERTY__e(IsFollowReadNorm, POLLWRNORM);
+			   __INTERATOR_PROPERTY__e(IsFollowReadBand, POLLWRBAND);
+
+			   __INTERATOR_PROPERTY__e(IsFollowError, POLLERR);
+			   __INTERATOR_PROPERTY__e(IsFollowDisconnected, POLLHUP);
+			   __INTERATOR_PROPERTY__e(IsFollowNotFile, POLLNVAL);
+
+
+			   __INTERATOR_PROPERTY__r(IsAdoptedWrite, POLLIN);
+			   __INTERATOR_PROPERTY__r(IsAdoptedWriteNorm, POLLRDNORM);
+			   __INTERATOR_PROPERTY__r(IsAdoptedWriteBand, POLLRDBAND);
+			   __INTERATOR_PROPERTY__r(IsAdoptedWritePrior, POLLPRI);
+
+			   __INTERATOR_PROPERTY__r(IsAdoptedRead, POLLOUT);
+			   __INTERATOR_PROPERTY__r(IsAdoptedReadNorm, POLLWRNORM);
+			   __INTERATOR_PROPERTY__r(IsAdoptedReadBand, POLLWRBAND);
+			   
+			   __INTERATOR_PROPERTY__r(IsAdoptedError, POLLERR);
+			   __INTERATOR_PROPERTY__r(IsAdoptedDisconnected, POLLHUP);
+			   __INTERATOR_PROPERTY__r(IsAdoptedNotFile, POLLNVAL);
+
+			   class
+			   {
+				   __INTERATOR_FIELDS__;
+			   public:
+				   inline operator decltype(std::declval<pollfd>().revents)() const
+				   {
+					   return This->Count.pfd[Index].revents;
+				   }
+			   } ReturnedEvents;
+
+			   class
+			   {
+				   __INTERATOR_FIELDS__;
+			   public:
+				   inline operator decltype(std::declval<pollfd>().events)() const
+				   {
+					   return This->Count.pfd[Index].events;
+				   }
+
+				   inline decltype(std::declval<pollfd>().events) operator=(decltype(std::declval<pollfd>().events) v)
+				   {
+					   This->Count.pfd[Index].events = v;
+					   return v;
+				   }
+			   } RequestedEvents;
+
+			   class
+			   {
+				    __INTERATOR_FIELDS__;
+			   public:
+				   inline operator decltype(std::declval<pollfd>().fd)() const
+				   {
+					   return This->Count.pfd[Index].fd;
+				   }	   
+			   } Descriptor;
+
+			   class
+			   {
+				   __INTERATOR_FIELDS__;
+			   public:
+				   inline operator __QUERY_URL*()
+				   {
+					   if(!IsUseQuerUrl || (This->Count.Elements == nullptr))
+						   return nullptr;
+					   return This->Count.Elements[Index];
+				   }
+
+				   inline __QUERY_URL* operator->()
+				   {
+					   if(!IsUseQuerUrl || (This->Count.Elements == nullptr))
+						   return nullptr;
+					   return This->Count.Elements[Index];
+				   }
+			   } Connection;
+			};
+
+			void Remove()
+			{
+				if(IsFollowWrite.Index >= IsFollowWrite.This->Count)
+					return;	
+				unsigned From = --IsFollowWrite.This->Count.CountSockets;
+				if(From != IsFollowWrite.Index)
+				{
+					IsFollowWrite.This->Count.pfd[IsFollowWrite.Index] = IsFollowWrite.This->Count.pfd[From];
+					if(IsUseQuerUrl)
+						IsFollowWrite.This->Count.Elements[IsFollowWrite.Index] = IsFollowWrite.This->Count.Elements[From];
+				}
+				void * New = realloc(IsFollowWrite.This->Count.pfd, From * sizeof(IsFollowWrite.This->Count.pfd[0]));
+				IsFollowWrite.This->Count.pfd = (pollfd*)New;
+				if(IsUseQuerUrl)
+				{
+					New = realloc(IsFollowWrite.This->Count.Elements, From * sizeof(IsFollowWrite.This->Count.Elements[0]));
+					IsFollowWrite.This->Count.Elements = (__QUERY_URL**)New;
+				}
+			}
+
+			int Check(unsigned WaitTime = 0)
+			{
+				if(IsFollowWrite.This == nullptr)
+					return 0;
+				return poll(IsFollowWrite.This->Count.pfd + IsFollowWrite.Index, 1, WaitTime);
+			}
+		};
+
+		friend INTERATOR;
+	public:
+
+		CHECK_EVENTS_POL()
+		{
+			Count.CountSockets = 0;
+			Count.pfd = nullptr;
+			Count.Elements = nullptr;
+		}
+
+		~CHECK_EVENTS_POL()
+		{
+			if(Count.pfd != nullptr)
+				free(Count.pfd);
+			if(IsUseQuerUrl && (Count.Elements != nullptr))
+				free(Count.Elements);
+		}
+
+		union
+		{
+			class
+			{
+				friend CHECK_EVENTS_POL;
+				__WAIT_CHANGES_FIELDS__
+			public:
+				inline operator unsigned()
+				{
+				    return CountSockets;
+				}
+			} Count;
+		};
+
+		int AddConnection(__QUERY_URL& Sock)
+		{
+			unsigned i = Count.CountSockets, j = i + 1;
+			void * New = realloc(Count.pfd, j * sizeof(Count.pfd[0]));
+			if(New == nullptr)
+				return -1;
+			Count.pfd = (pollfd*)New;
+			Count.pfd[i].fd = Sock.RemoteIp.hSocket;
+			Count.pfd[i].events = 0;
+			Count.pfd[i].revents = 0;
+			if(IsUseQuerUrl)
+			{
+				New = realloc(Count.Elements, j * sizeof(Count.Elements[0]));
+				if(New == nullptr)
+					return -1;
+				Count.Elements = (__QUERY_URL**)New;
+				Count.Elements[i] = &Sock;
+			}
+			Count.CountSockets = j;
+			return i;
+		}
+
+		int AddConnection(int SocketDescriptor)
+		{
+			if(IsUseQuerUrl)
+				return -1;
+			unsigned i = Count.CountSockets, j = i + 1;
+			void * New = realloc(Count.pfd, j * sizeof(Count.pfd[0]));
+			if(New == nullptr)
+				return -1;
+			Count.pfd = (pollfd*)New;
+			Count.pfd[i].fd = SocketDescriptor;
+			Count.pfd[i].events = 0;
+			Count.pfd[i].revents = 0;
+			Count.CountSockets = j;
+			return i;
+		}
+
+		void UpdateDescriptor()
+		{
+			if(IsUseQuerUrl)
+				for(unsigned i = 0, m = Count;i < m;i++)
+					Count.pfd[i].fd = Count.Elements[i].RemoteIp.hSocket;
+		}
+
+		void UpdateDescriptor(unsigned Index)
+		{
+			if(!IsUseQuerUrl || (Index >= Count))
+				return;
+			Count.pfd[Index].fd = Count.Elements[Index].RemoteIp.hSocket;
+		}
+
+		inline INTERATOR operator[](unsigned Index)
+		{
+			if(Index >= Count)
+				throw "CHECK_EVENTS_POL::operator[] : Out of bound";
+		    return INTERATOR(this, Index);
+		}
+
+		int Check(unsigned WaitTime = 0)
+		{
+			if((Count == 0) || (Count.pfd == nullptr))
+				return 0;
+			return poll(Count.pfd, Count, WaitTime);
+		}
+	};
+
+	/*
+	Close socket descriptor.
+	*/
 	bool Close()
 	{
 		if(RemoteIp.hSocket == -1)
@@ -3377,31 +3836,119 @@ public:
 		{
 			RemoteIp.hSocket = -1;
 			return true;
-		}
+		}	
 		return false;
 	}
 
-	bool SendQuery(const void * QueryBuf, unsigned SizeBuf)
+	/*
+	Shutdown session.
+	*/
+	inline bool ShutdownSend()
 	{
+		return shutdown(RemoteIp.hSocket, SHUT_WR) == 0; 
+	}
+
+	inline bool ShutdownRecive()
+	{
+		return shutdown(RemoteIp.hSocket, SHUT_RD) == 0; 
+	}
+
+	inline bool ShutdownSendRecive()
+	{
+		return shutdown(RemoteIp.hSocket, SHUT_RDWR) == 0; 
+	}
+
+	/*
+	  Send data via system call to descriptor.
+	  @Buf - Sending data
+	  @SizeBuf  - Count byte in @Buf
+
+	  @return - on succesful, count writed bytes to socket, on error, -1 is returned. 
+	*/
+	int Write(const void * Buf, size_t SizeBuf)
+	{
+#ifdef _WIN32
+		DWORD Written;
+		OVERLAPPED Overlap = {0};
+		if(!WriteFile((HANDLE)RemoteIp.hSocket, Buf, SizeBuf, &Written, &Overlap))
+		{
+			URL_SET_LAST_ERR_VAL(EFAULT);
+			return -1;
+		}
+		return Written;
+#else
+		ssize_t Written = write(RemoteIp.hSocket, Buf, SizeBuf);
+		if(Written == -1)
+			URL_SET_LAST_ERR;
+		return Written;
+#endif
+	}
+
+	/*
+	  Recive data via system call to descriptor.
+	  @Buf - Buf for getted data
+	  @SizeBuf  - Count byte in @Buf
+
+	  @return - on succesful, count readed bytes from socket buffer, on error, -1 is returned. 
+	*/
+	int Read(void * Buf, size_t SizeBuf)
+	{
+#ifdef _WIN32
+		DWORD Readed;
+		OVERLAPPED Overlap = {0};
+		if(!ReadFile((HANDLE)RemoteIp.hSocket, Buf, SizeBuf, &Readed, &Overlap))
+		{
+			URL_SET_LAST_ERR_VAL(EFAULT);
+			return -1;
+		}
+		return Readed;
+#else
+		ssize_t Readed = read(RemoteIp.hSocket, Buf, SizeBuf);
+		if(Readed == -1)
+			URL_SET_LAST_ERR;
+		return Readed;
+#endif
+	}
+
+	/*
+	 Send via send socket function.
+	 @QueryBuf - Sending data
+	 @SizeBuf  - Count byte in @QueryBuf
+	 @Flags   - Additional flags: MSG_DONTROUTE or MSG_OOB
+
+	 @return - on succesful, count writed bytes to socket, on error, -1 is returned.
+	*/
+	int Send(const void * QueryBuf, size_t SizeBuf, int Flags = 0)
+	{
+		int WritenSize;
 		if(IsEnableSSL)
 		{ 
 #ifdef	IS_HAVE_OPEN_SSL
-			if(SSL_write(ssl, QueryBuf, SizeBuf) < 0)
+			if((WritenSize = SSL_write(ssl, QueryBuf, SizeBuf)) < 0)
 			{
 				URL_SET_LAST_ERR;
-				return false;
+				return -1;
 			}
 #endif
-		}else if(send(RemoteIp.hSocket, (char*)QueryBuf, SizeBuf, 0) < 0)
-		{
+		}else if((WritenSize = send(RemoteIp.hSocket, (const char*)QueryBuf, SizeBuf, Flags)) == -1)
 			URL_SET_LAST_ERR;
-			return false;
-		}
-		return true;
+		return WritenSize;
 	}
 
+	inline int Send(const std::basic_string<char> & InQuery)
+	{
+		return Send((const void*)InQuery.c_str(), InQuery.length());
+	}
 
-	bool TakeResponse(void * Buf, unsigned SizeBuf, unsigned * SizeReaded = nullptr)
+	/*
+	 Recive via recv socket function.
+	 @Buf - Buf for getted data
+	 @SizeBuf  - Size @Buf in bytes
+	 @Flags   - Additional flags: MSG_PEEK or MSG_OOB or MSG_WAITALL
+
+	 @return - on succesful, count readed bytes from socket buffer, on error, -1 is returned.
+	*/
+	int Recive(void * Buf, size_t SizeBuf, int Flags = 0)
 	{
 		int ReadedSize;
 		if(IsEnableSSL)
@@ -3410,20 +3957,15 @@ public:
 			if((ReadedSize = SSL_read(ssl, Buf, SizeBuf)) < 0)
 			{
 				URL_SET_LAST_ERR;
-				return false;
+				return -1;
 			}
 #endif
-		}else if((ReadedSize = recv(RemoteIp.hSocket, (char*)Buf, SizeBuf, 0)) == -1)
-		{
+		}else if((ReadedSize = recv(RemoteIp.hSocket, (char*)Buf, SizeBuf, Flags)) == -1)
 			URL_SET_LAST_ERR;
-			return false;
-		}
-		if(SizeReaded != nullptr)
-			*SizeReaded = ReadedSize;
-		return true;
+		return ReadedSize;
 	}
 
-	bool TakeResponse(std::basic_string<char> & StrBuf)
+	int Recive(std::basic_string<char> & StrBuf, int Flags = 0)
 	{
 		if(StrBuf.capacity() < RemoteIp.PortionSize)
 			StrBuf.resize(RemoteIp.PortionSize);
@@ -3455,11 +3997,11 @@ public:
 		{
 			while(true)
 			{
-				int ReadedSize = recv(RemoteIp.hSocket, Buf, RemoteIp.PortionSize, 0);
+				int ReadedSize = recv(RemoteIp.hSocket, Buf, RemoteIp.PortionSize, Flags);
 				if(ReadedSize == -1)
 				{
 					URL_SET_LAST_ERR;
-					return false;
+					return -1;
 				}else if(ReadedSize == 0)
 					break;
 				else
@@ -3473,52 +4015,102 @@ public:
 			}
 		}
 		*Buf = '\0';
-		return true;
+		return CurSize;
 	}
 
-	inline bool SendAndTakeQuery(void * SendBuf, unsigned SizeSendBuf, void * Buf, unsigned SizeBuf, unsigned * SizeReaded = nullptr)
-	{
-		if(!SendQuery(SendBuf,SizeSendBuf))
-			return false;
-		return TakeResponse(Buf,SizeBuf,SizeReaded);
+	/*
+	@Flags:
+	MSG_PEEK - Peeks at the incoming data. 
+	MSG_OOB  - Processes Out Of Band (OOB) data.
+	*/
+	int ReciveFrom(void * Buffer, size_t LenBuff, SOCKET_ADDR& AddressSender, int Flags = 0)
+	{ 
+		int Len = sizeof(SOCKET_ADDR);
+		int CountRecived;
+		if((CountRecived = recvfrom(RemoteIp.hSocket, (char*)Buffer, LenBuff, Flags, AddressSender, &Len)) == -1)
+			URL_SET_LAST_ERR;
+		return CountRecived;
 	}
 
-	inline bool SendAndTakeQuery(std::basic_string<char> & strQuery, void * Buf, unsigned SizeBuf, unsigned * SizeReaded = nullptr)
+	inline int ReciveFrom(void * Buffer, size_t LenBuff, typename ADDRESS_INFO::ADDRESS_INTERATOR& AddressSender, int Flags = 0)
 	{
-		if(!SendQuery((void*)strQuery.c_str(), strQuery.length()))
-			return false;
-		return TakeResponse(Buf, SizeBuf, SizeReaded);
+		return ReciveFrom(Buffer, LenBuff, AddressSender.GetSocketAddr(), Flags);
 	}
 
-	inline bool SendAndTakeQuery(void * SendBuf, unsigned SizeSendBuf, std::basic_string<char> & Result)
-	{
-		if(!SendQuery(SendBuf,SizeSendBuf))
-			return false;
-		return TakeResponse(Result);
+	/*
+	@Flags:
+	MSG_PEEK - Peeks at the incoming data. 
+	MSG_OOB  - Processes Out Of Band (OOB) data.
+	MSG_DONTROUTE - Not use routing.
+	*/
+	int SendTo(const void * Buffer, size_t LenBuff, SOCKET_ADDR& AddressReciver, int Flags = 0)
+	{ 
+		int CountSending;
+		if((CountSending = sendto(RemoteIp.hSocket, (const char*)Buffer, LenBuff, Flags, AddressReciver, sizeof(SOCKET_ADDR))) != 0)
+			URL_SET_LAST_ERR;
+		return CountSending;
 	}
 
-	inline bool SendAndTakeQuery(char * SendStr, std::basic_string<char> & Result)
+	inline int SendTo(const void * Buffer, size_t LenBuff, typename ADDRESS_INFO::ADDRESS_INTERATOR& AddressSender, int Flags = 0)
 	{
-		if(!SendQuery(SendStr,strlen(SendStr)))
-			return false;
-		return TakeResponse(Result);
+		return SendTo(Buffer, LenBuff, AddressSender.GetSocketAddr(), Flags);
 	}
 
-	inline bool SendAndTakeQuery(char * SendStr, void * Buf, unsigned SizeBuf, unsigned * SizeReaded = nullptr)
+	/*
+	 Send and receive immediately.
+	 @SendBuf - Data for send
+	 @SizeSendBuf  - Size @SendBuf in bytes
+	 @ReciveBuf   - Buffer for recive data
+	 @SizeReciveBuf  - Size @ReciveBuf in bytes
+
+	 @return - on succesful, count readed bytes from socket buffer, on error, -1 is returned.
+	*/
+
+	inline int SendAndRecive(const void* SendBuf, size_t SizeSendBuf, void* ReciveBuf, unsigned SizeReciveBuf)
 	{
-		if(!SendQuery(SendStr,strlen(SendStr)))
-			return false;
-		return TakeResponse(Buf,SizeBuf,SizeReaded);
+		if(!Send(SendBuf, SizeSendBuf))
+			return -1;
+		return Recive(Buf, SizeReciveBuf);
 	}
 
-	inline bool SendAndTakeQuery(std::basic_string<char> & strQuery, std::basic_string<char> & Result)
+	inline int SendAndRecive(std::basic_string<char>& strQuery, void* Buf, size_t SizeBuf)
 	{
-		if(!SendQuery((void*)strQuery.c_str(), strQuery.length()))
-			return false;
-		return TakeResponse(Result);
+		if(!Send((void*)strQuery.c_str(), strQuery.length()))
+			return -1;
+		return Recive(Buf, SizeBuf);
+	}
+
+	inline int SendAndRecive(const void* SendBuf, unsigned SizeSendBuf, std::basic_string<char>& Result)
+	{
+		if(!Send(SendBuf, SizeSendBuf))
+			return -1;
+		return Recive(Result);
+	}
+
+	inline int SendAndRecive(const char* SendStr, std::basic_string<char>& Result)
+	{
+		if(!Send(SendStr, strlen(SendStr)))
+			return -1;
+		return Recive(Result);
+	}
+
+	inline int SendAndRecive(const char* SendStr, void* Buf, unsigned SizeBuf)
+	{
+		if(!Send(SendStr, strlen(SendStr)))
+			return -1;
+		return Recive(Buf, SizeBuf);
+	}
+
+	inline int SendAndRecive(std::basic_string<char>& strQuery, std::basic_string<char>& Result)
+	{
+		if(!Send((void*)strQuery.c_str(), strQuery.length()))
+			return -1;
+		return Recive(Result);
 	}
 
 };
+
+#undef socket
 
 typedef __QUERY_URL<true> QUERY_URL;
 
