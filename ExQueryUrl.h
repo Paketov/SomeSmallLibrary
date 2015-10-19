@@ -9,6 +9,7 @@
 #	include <io.h>
 #	include <fcntl.h>
 
+
 #	ifndef WSA_VERSION
 #		define WSA_VERSION MAKEWORD(2, 2)
 #	endif
@@ -211,6 +212,7 @@ namespace winsock
 #else
 			break;
 #endif
+		case ERROR_IO_PENDING:
 		case WSAEWOULDBLOCK:
 #ifdef EWOULDBLOCK
 			return EWOULDBLOCK;
@@ -444,6 +446,7 @@ typedef UINT32 socklen_t;
 #	define sockaddr_storage winsock::sockaddr_storage
 #	define sockaddr_dl winsock::sockaddr_dl
 #	define inet_pton winsock::inet_pton
+//Should disable overlapped, when you want use OpenAsFile
 //#	define socket(ProtFamily, SockType, Protocol) winsock::WSASocketA((ProtFamily), (SockType), (Protocol), NULL, 0, 0)
 #	define poll winsock::WSAPoll
 #	define pollfd winsock::pollfd
@@ -492,6 +495,7 @@ typedef UINT32 socklen_t;
 #   include <arpa/inet.h>
 #   include <netdb.h>
 #	include <unistd.h>
+#	include <poll.h>
 #	include <fcntl.h>
 #	include <errno.h>
 #	define closesocket(socket)  close(socket)
@@ -516,6 +520,13 @@ typedef UINT32 socklen_t;
 #define IS_HAVE_SSL 0
 #endif
 
+#ifndef INVALID_SOCKET
+#	define INVALID_SOCKET (-1)
+#endif
+
+#ifndef SOCKET_ERROR
+#	define SOCKET_ERROR (-1)
+#endif
 
 #define ERR_ARG(Str) Str, L ## Str
 
@@ -528,6 +539,7 @@ class __QUERY_URL
 
 public:
 	typedef decltype(std::declval<sockaddr_in>().sin_port) TPORT;
+	typedef decltype(socket(std::variant_arg(), std::variant_arg(), std::variant_arg())) TDESCR;
 
 	struct SOCKET_ADDR
 	{
@@ -1396,9 +1408,8 @@ private:
 #ifdef _WIN32
 		RemoteIp.IsNonBlocket = false;
 #endif
-		RemoteIp.hSocket = -1;
+		RemoteIp.hSocket = INVALID_SOCKET;
 		RemoteIp.IsEnableSSLLayer = false;
-		RemoteIp.PortionSize = 500;
 		LastError.Clear();
 	}
 
@@ -1495,11 +1506,10 @@ SSLErrOut:
 
 #define _QUERY_URL_FIELDS1_															\
 	struct{																			\
-	int				hSocket;														\
-	unsigned		PortionSize;													\
+	TDESCR			hSocket;														\
 	int				ProtocolType;													\
-	bool			IsEnableSSLLayer;												\
 	int				iError;															\
+	bool			IsEnableSSLLayer;												\
 	ADDITIONAL_FIELDS																\
 	}
 
@@ -1931,6 +1941,26 @@ public:
 			}
 		} IsNonBlocket;
 
+		class 
+		{
+			_QUERY_URL_FIELDS1_;
+		public:
+
+			operator int() const
+			{
+#ifdef _WIN32
+				u_long res = -1;
+				if(ioctlsocket(hSocket, FIONREAD, &res) == -1)
+					URL_SET_LAST_ERR;
+				return res;
+#else
+				int res;
+				if((res = fcntl(hSocket, FIONREAD, 0)) == -1)
+					URL_SET_LAST_ERR;
+				return res;
+#endif
+			}
+		} CountPandingData;
 
 		class
 		{			
@@ -1938,9 +1968,20 @@ public:
 		public:
 			inline operator bool()
 			{
-				return hSocket != -1;
+				return hSocket != INVALID_SOCKET;
 			}
 		} IsOpen;
+
+
+		class
+		{
+		_QUERY_URL_FIELDS1_;
+		public:
+			inline operator TDESCR()
+			{
+			   return hSocket;
+			}
+		} Descriptor;
 
 		/*
 		Is remote host send fin flag in packet.
@@ -1956,10 +1997,25 @@ public:
 				pfd.revents = 0;
 				pfd.fd = hSocket;
 				if(poll(&pfd, 1, 0) == -1)
+				{
+					URL_SET_LAST_ERR;
 					return false;
+				}
 				return pfd.revents & POLLHUP;
 			}
 		} IsRecivedFin;
+
+
+		class
+		{			
+			_QUERY_URL_FIELDS1_;
+		public:
+			inline operator bool() const
+			{
+				return (((__QUERY_URL*)this)->CountPandingData <= 0) && ((__QUERY_URL*)this)->IsRecivedFin;
+			}
+		} IsNotHaveRecvData;
+
 
 		/*
 		This field specifies the preferred socket type, for
@@ -3005,17 +3061,17 @@ public:
 	bool Connect(typename ADDRESS_INFO::ADDRESS_INTERATOR& Address)
 	{
 		INIT_WSA;
-		if(RemoteIp.hSocket != -1)
+		if(IsOpen)
 		{
 			ShutdownSendRecive();
 			Close();
 		}
 		addrinfo *i = Address;
-		if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == -1)
+		if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == INVALID_SOCKET)
 		{
 			URL_SET_LAST_ERR;
 			return false;
-		}else if (connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) == -1)
+		}else if (connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) == SOCKET_ERROR)
 		{
 			URL_SET_LAST_ERR;
 			Close();
@@ -3034,7 +3090,7 @@ public:
 	bool Connect(ADDRESS_INFO& AddrInfo)
 	{
 		INIT_WSA;
-		if(RemoteIp.hSocket != -1)
+		if(IsOpen)
 		{
 			ShutdownSendRecive();
 			Close();
@@ -3042,16 +3098,15 @@ public:
 		addrinfo *i = AddrInfo;
 		for (; i != nullptr; i = i->ai_next) 
 		{
-			if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == -1)
+			if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == INVALID_SOCKET)
 				continue;
-			if (connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) != -1)
+			if (connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) != SOCKET_ERROR)
 				break;
 			Close();
 		}
 		if(i == nullptr)
 		{
 			URL_SET_LAST_ERR;
-			RemoteIp.hSocket = -1;
 			return false;
 		}
 		RemoteIp.ProtocolType = i->ai_protocol;
@@ -3075,7 +3130,7 @@ public:
 	)
 	{	
 		INIT_WSA;
-		if(RemoteIp.hSocket != -1)
+		if(IsOpen)
 		{
 			ShutdownSendRecive();
 			Close();
@@ -3094,17 +3149,15 @@ public:
 
 		for (i = ah; i != nullptr; i = i->ai_next) 
 		{
-			if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == -1)
+			if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == INVALID_SOCKET)
 				continue;
-			if (connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) != -1)
+			if (connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) != SOCKET_ERROR)
 				break;
 			Close();
 		}
-
 		if(i == nullptr)
 		{
 			URL_SET_LAST_ERR;
-			RemoteIp.hSocket = -1;
 			if(ah != nullptr)
 				freeaddrinfo(ah);
 			return false;
@@ -3124,26 +3177,24 @@ public:
 	bool Bind(typename ADDRESS_INFO::ADDRESS_INTERATOR& Address, int MaxConnection = SOMAXCONN)
 	{	
 		INIT_WSA;
-		if(RemoteIp.hSocket != -1)
+		if(IsOpen)
 		{
 			ShutdownSendRecive();
 			Close();
 		}
 		addrinfo *i = Address;
-		if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == -1)
+		if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == INVALID_SOCKET)
 		{
 			URL_SET_LAST_ERR;
 			return false;
-		}else if(bind(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) == -1)
+		}else if(bind(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) == SOCKET_ERROR)
 		{
 			Close();
-			RemoteIp.hSocket = -1;
 			URL_SET_LAST_ERR;
 			return false;
-		}else if(listen(RemoteIp.hSocket, MaxConnection) == -1)
+		}else if(listen(RemoteIp.hSocket, MaxConnection) == SOCKET_ERROR)
 		{
 			Close();
-			RemoteIp.hSocket = -1;
 			URL_SET_LAST_ERR;
 			return false;
 		}
@@ -3160,7 +3211,7 @@ public:
 	bool Bind(ADDRESS_INFO& AddrInfo, int MaxConnection = SOMAXCONN)
 	{	
 		INIT_WSA;
-		if(RemoteIp.hSocket != -1)
+		if(IsOpen)
 		{
 			ShutdownSendRecive();
 			Close();
@@ -3168,18 +3219,16 @@ public:
 		addrinfo *i = AddrInfo;
 		for (;i != nullptr; i = i->ai_next) 
 		{
-			if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == -1)
+			if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == INVALID_SOCKET)
 				continue;
-			if(bind(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) == -1)
+			if(bind(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) == SOCKET_ERROR)
 			{
 				Close();
-				RemoteIp.hSocket = -1;
 				continue;
 			}
-			if(listen(RemoteIp.hSocket, MaxConnection) == -1)
+			if(listen(RemoteIp.hSocket, MaxConnection) == SOCKET_ERROR)
 			{
 				Close();
-				RemoteIp.hSocket = -1;
 				continue;
 			}
 			break;
@@ -3205,7 +3254,7 @@ public:
 	)
 	{	
 		INIT_WSA;
-		if(RemoteIp.hSocket != -1)
+		if(IsOpen)
 		{
 			ShutdownSendRecive();
 			Close();
@@ -3223,18 +3272,16 @@ public:
 
 		for (i = ah; i != nullptr; i = i->ai_next) 
 		{
-			if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == -1)
+			if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == INVALID_SOCKET)
 				continue;
-			if(bind(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) == -1)
+			if(bind(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) == SOCKET_ERROR)
 			{
 				Close();
-				RemoteIp.hSocket = -1;
 				continue;
 			}
-			if(listen(RemoteIp.hSocket, MaxConnection) == -1)
+			if(listen(RemoteIp.hSocket, MaxConnection) == SOCKET_ERROR)
 			{
 				Close();
-				RemoteIp.hSocket = -1;
 				continue;
 			}
 			break;
@@ -3248,13 +3295,15 @@ public:
 		return true; 
 	}
 
-
+	/*
+	Accepting incoming client.
+	*/
 	bool AcceptClient(__QUERY_URL & DestCoonection)
 	{
 		SOCKET_ADDR SockAddr;
 		int ClientAddressSize = sizeof(SockAddr);
-		int ConnectedSocket = accept(RemoteIp.hSocket, SockAddr, &ClientAddressSize);
-		if((ConnectedSocket == -1) || (SockAddr.Len != ClientAddressSize))
+		TDESCR ConnectedSocket = accept(RemoteIp.hSocket, SockAddr, &ClientAddressSize);
+		if((ConnectedSocket == INVALID_SOCKET) || (SockAddr.Len != ClientAddressSize))
 		{
 			URL_SET_LAST_ERR;
 			return false;
@@ -3269,7 +3318,12 @@ public:
 		return true;
 	}
 
-
+	/*
+	Open as standart file.
+	NOTE: On windows for correct use, socket descriptor should be opened without OVERLAPED function.
+	@mode - Mode for open as file.
+	@return - FILE structure.
+	*/
 	FILE* OpenAsFile(const char * mode = "w+")
 	{
 		FILE* File;
@@ -3303,13 +3357,12 @@ public:
 		}
 		File = _fdopen(fd, m);
 #else
-		File = fdopen(RemoteIp.hSocket, TypeOpen);
+		File = fdopen(RemoteIp.hSocket, mode);
 #endif
 		if(File == nullptr)
 			URL_SET_LAST_ERR;
 		return File;
 	}
-
 
 	__QUERY_URL()
 	{
@@ -3326,7 +3379,7 @@ public:
 	{
 		if(IsEnableSSL)
 			UninitSSL();
-		if(RemoteIp.hSocket != -1)
+		if(IsOpen)
 		{
 			ShutdownSendRecive();
 			Close();
@@ -3338,13 +3391,13 @@ public:
 	*/
 	bool OnlyCreate(int iSocktype = SOCK_DGRAM, int iProtocol = IPPROTO_UDP, int iFamily = AF_INET)
 	{
-		if(RemoteIp.hSocket != -1)
+		if(IsOpen)
 		{
 			ShutdownSendRecive();
 			Close();
 		}
 
-		if((RemoteIp.hSocket = socket(iFamily, iSocktype, iProtocol)) != 0)
+		if((RemoteIp.hSocket = socket(iFamily, iSocktype, iProtocol)) == INVALID_SOCKET)
 		{
 			URL_SET_LAST_ERR;
 			return false;
@@ -3359,12 +3412,12 @@ public:
 		struct ELEM_DESCR
 		{
 			unsigned char f;
-			int           d;
-			inline int GetDescriptor()
+			TDESCR        d;
+			inline TDESCR GetDescriptor()
 			{
 			   return d;
 			}
-			inline void SetDescriptor(int nd)
+			inline void SetDescriptor(TDESCR nd)
 			{
 				d = nd;
 			}
@@ -3383,11 +3436,11 @@ public:
 		{
 			unsigned char f;
 			__QUERY_URL*   s;
-			inline int GetDescriptor()
+			inline TDESCR GetDescriptor()
 			{
 			   return s->RemoteIp.hSocket;
 			}
-			inline void SetDescriptor(int nd)
+			inline void SetDescriptor(TDESCR nd)
 			{
 				s->RemoteIp.hSocket = nd;
 			}
@@ -3458,7 +3511,7 @@ public:
 			   {
 				    __INTERATOR_FIELDS__;
 			   public:
-				   inline operator int() const
+				   inline operator TDESCR() const
 				   {
 					   return This->Count.e[Index].GetDescriptor();
 				   }
@@ -3545,7 +3598,7 @@ public:
 			return i;
 		}
 
-		int AddConnection(int SocketDescriptor)
+		int AddConnection(TDESCR SocketDescriptor)
 		{
 			unsigned i = Count.CountSockets, j = i + 1;
 			void * New = realloc(Count.e, j * sizeof(Count.e[0]));
@@ -3780,7 +3833,7 @@ public:
 			return i;
 		}
 
-		int AddConnection(int SocketDescriptor)
+		int AddConnection(decltype(std::declval<pollfd>().fd) SocketDescriptor)
 		{
 			if(IsUseQuerUrl)
 				return -1;
@@ -3826,15 +3879,115 @@ public:
 	};
 
 	/*
+	Check event on this socket.
+	@InEventFlags - POLL.. flags for check. For example POLLIN for check incoming data.
+	@Timeout - Time for check. On default set 0 for only check without waiting.
+	@return - -1 on error, on another case flag with event POLL.. . For example POLLHUP on disconnect.
+	*/
+	int CheckEvents(decltype(std::declval<pollfd>().events) InEventFlags, int Timeout = 0)
+	{
+		pollfd pfd;
+		pfd.events = InEventFlags;
+		pfd.revents = 0;
+		pfd.fd = RemoteIp.hSocket;
+		if(poll(&pfd, 1, Timeout) == -1)
+		{
+			URL_SET_LAST_ERR;
+			return -1;
+		}
+		return pfd.revents;
+	}
+
+	/*
+	Send file to remote host.
+	{
+		@InSocket - Soket buffer for send
+		@InFileDescriptor - file descriptor for sendsanding data.
+	}
+	@Count - Size of sending data
+	@Offset - Offsen data in file descriptor
+	*/
+	inline long long SendFile(__QUERY_URL& InSocket, size_t Count)
+	{
+	  return SendFile(InSocket.RemoteIp.hSocket, Count, 0);
+	}
+
+	long long SendFile(TDESCR InFileDescriptor, size_t Count, off_t Offset = 0)
+	{
+#ifdef _WIN32
+#pragma comment(lib, "Mswsock.lib")
+
+		WSAOVERLAPPED Overlap = {0};
+		DWORD ResFlag, WritedCount = 0;
+		if((Overlap.hEvent = winsock::WSACreateEvent()) == NULL)
+		{
+			URL_SET_LAST_ERR_VAL(EFAULT);
+			return -1;
+		}
+		Overlap.OffsetHigh = ((Overlap.Offset = Offset) >> 32);
+		if(!TransmitFile(RemoteIp.hSocket, (HANDLE)InFileDescriptor, Count, 0, &Overlap, nullptr, 0))
+		{
+			if(winsock::WSAGetLastError() == ERROR_IO_PENDING)
+			{
+				if(winsock::WSAGetOverlappedResult(RemoteIp.hSocket, &Overlap, &WritedCount, !IsNonBlocket, &ResFlag))
+				{
+					winsock::WSACloseEvent(Overlap.hEvent);
+					return WritedCount;
+				}
+			}
+		}
+		winsock::WSACloseEvent(Overlap.hEvent);
+		URL_SET_LAST_ERR;
+		return -1;
+#elif defined(__FreeBSD__)
+		off_t sbytes = 0;
+		int r = sendfile(RemoteIp.hSocket, InFileDescriptor, Offset, Count, 0, &sbytes, 0);
+		if (r == -1)
+		{
+			if(errno == EAGAIN)
+				return (sbytes?sbytes:-1);
+			URL_SET_LAST_ERR;
+			return -1;
+		}
+		return Count;
+#elif defined(__linux__) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) 
+		off_t o = Offset;
+		long long done = 0;
+		while (Count)
+		{
+			off_t todo = (Count > 0x7fffffff)? 0x7fffffff: Count;
+			off_t i = sendfile(RemoteIp.hSocket, InFileDescriptor, &o, todo);
+			if (i == todo) 
+			{
+				done += todo;
+				Count -= todo;
+				if (Count == 0) 
+					return done;
+				continue;
+			} else if (i == -1) 
+			{
+				URL_SET_LAST_ERR;
+				return -1;
+			} else
+				return done + i;
+		}
+		return 0;
+#else
+		URL_SET_LAST_ERR_VAL(EOPNOTSUPP);
+		return -1;
+#endif
+	}
+	
+	/*
 	Close socket descriptor.
 	*/
 	bool Close()
 	{
-		if(RemoteIp.hSocket == -1)
+		if(RemoteIp.hSocket == INVALID_SOCKET)
 			return true;
-		if(closesocket(RemoteIp.hSocket) == 0)
+		if(closesocket(RemoteIp.hSocket) != SOCKET_ERROR)
 		{
-			RemoteIp.hSocket = -1;
+			RemoteIp.hSocket = INVALID_SOCKET;
 			return true;
 		}	
 		return false;
@@ -3845,17 +3998,17 @@ public:
 	*/
 	inline bool ShutdownSend()
 	{
-		return shutdown(RemoteIp.hSocket, SHUT_WR) == 0; 
+		return shutdown(RemoteIp.hSocket, SHUT_WR) != SOCKET_ERROR; 
 	}
 
 	inline bool ShutdownRecive()
 	{
-		return shutdown(RemoteIp.hSocket, SHUT_RD) == 0; 
+		return shutdown(RemoteIp.hSocket, SHUT_RD) != SOCKET_ERROR; 
 	}
 
 	inline bool ShutdownSendRecive()
 	{
-		return shutdown(RemoteIp.hSocket, SHUT_RDWR) == 0; 
+		return shutdown(RemoteIp.hSocket, SHUT_RDWR) != SOCKET_ERROR; 
 	}
 
 	/*
@@ -3869,12 +4022,40 @@ public:
 	{
 #ifdef _WIN32
 		DWORD Written;
-		OVERLAPPED Overlap = {0};
-		if(!WriteFile((HANDLE)RemoteIp.hSocket, Buf, SizeBuf, &Written, &Overlap))
+		OVERLAPPED Overlap = {0}, *ovlp = nullptr;
+lblTryAgain:
+		if(!WriteFile((HANDLE)RemoteIp.hSocket, Buf, SizeBuf, &Written, ovlp))
 		{
+			DWORD LastErr = GetLastError();
+			if((LastErr == ERROR_INVALID_PARAMETER) && (ovlp == nullptr))
+			{
+				if(!IsNonBlocket)
+					Overlap.hEvent = CreateEventW(nullptr, true, false, nullptr); 
+				ovlp = &Overlap; 
+				goto lblTryAgain;
+			}else if(LastErr == ERROR_IO_PENDING)
+			{
+				if(Overlap.hEvent != NULL)
+				{
+					WaitForSingleObject(Overlap.hEvent, INFINITE);	
+					if(GetOverlappedResult((HANDLE)RemoteIp.hSocket, ovlp, &Written, TRUE))
+					{
+						CloseHandle(Overlap.hEvent);
+						return Written;
+					}
+				}else
+				{
+				   URL_SET_LAST_ERR_VAL(EWOULDBLOCK);
+				   return -1;
+				}
+			}
 			URL_SET_LAST_ERR_VAL(EFAULT);
+			if(Overlap.hEvent != NULL)
+				CloseHandle(Overlap.hEvent);
 			return -1;
 		}
+		if(Overlap.hEvent != NULL)
+			CloseHandle(Overlap.hEvent);
 		return Written;
 #else
 		ssize_t Written = write(RemoteIp.hSocket, Buf, SizeBuf);
@@ -3895,12 +4076,40 @@ public:
 	{
 #ifdef _WIN32
 		DWORD Readed;
-		OVERLAPPED Overlap = {0};
-		if(!ReadFile((HANDLE)RemoteIp.hSocket, Buf, SizeBuf, &Readed, &Overlap))
+		OVERLAPPED Overlap = {0}, *ovlp = nullptr;
+lblTryAgain:
+		if(!ReadFile((HANDLE)RemoteIp.hSocket, Buf, SizeBuf, &Readed, &ovlp))
 		{
+			DWORD LastErr = GetLastError();
+			if((LastErr == ERROR_INVALID_PARAMETER) && (ovlp == nullptr))
+			{
+				if(!IsNonBlocket)
+					Overlap.hEvent = CreateEventW(nullptr, true, false, nullptr); 
+				ovlp = &Overlap; 
+				goto lblTryAgain;
+			}else if(LastErr == ERROR_IO_PENDING)
+			{
+				if(Overlap.hEvent != NULL)
+				{
+					WaitForSingleObject(Overlap.hEvent, INFINITE);	
+					if(GetOverlappedResult((HANDLE)RemoteIp.hSocket, ovlp, &Readed, TRUE))
+					{
+						CloseHandle(Overlap.hEvent);
+						return Readed;
+					}
+				}else
+				{
+				   URL_SET_LAST_ERR_VAL(EWOULDBLOCK);
+				   return -1;
+				}
+			}
 			URL_SET_LAST_ERR_VAL(EFAULT);
+			if(Overlap.hEvent != NULL)
+				CloseHandle(Overlap.hEvent);
 			return -1;
 		}
+		if(Overlap.hEvent != NULL)
+			CloseHandle(Overlap.hEvent);
 		return Readed;
 #else
 		ssize_t Readed = read(RemoteIp.hSocket, Buf, SizeBuf);
@@ -3930,7 +4139,7 @@ public:
 				return -1;
 			}
 #endif
-		}else if((WritenSize = send(RemoteIp.hSocket, (const char*)QueryBuf, SizeBuf, Flags)) == -1)
+		}else if((WritenSize = send(RemoteIp.hSocket, (const char*)QueryBuf, SizeBuf, Flags)) == SOCKET_ERROR)
 			URL_SET_LAST_ERR;
 		return WritenSize;
 	}
@@ -3960,45 +4169,26 @@ public:
 				return -1;
 			}
 #endif
-		}else if((ReadedSize = recv(RemoteIp.hSocket, (char*)Buf, SizeBuf, Flags)) == -1)
+		}else if((ReadedSize = recv(RemoteIp.hSocket, (char*)Buf, SizeBuf, Flags)) == SOCKET_ERROR)
 			URL_SET_LAST_ERR;
 		return ReadedSize;
 	}
 
 	int Recive(std::basic_string<char> & StrBuf, int Flags = 0)
 	{
-		if(StrBuf.capacity() < RemoteIp.PortionSize)
-			StrBuf.resize(RemoteIp.PortionSize);
-
-		char * Buf = (char*)StrBuf.c_str();
-		unsigned CurSize = 0;
-
+		char * Buf;
+		unsigned CurSize = 0, CountBytesInBuff;
 		if(IsEnableSSL)
 		{
 #ifdef	IS_HAVE_OPEN_SSL
+			CountBytesInBuff = SSL_pending(ssl);
+			if(StrBuf.capacity() < (CountBytesInBuff + 2))
+				StrBuf.resize(CountBytesInBuff + 2);
+			Buf = (char*)StrBuf.c_str();
 			while(true)
 			{
-				int ReadedSize = SSL_read(ssl, Buf, PortionSize);
+				int ReadedSize = SSL_read(ssl, Buf, CountBytesInBuff);
 				if(ReadedSize < 0)
-				{
-					URL_SET_LAST_ERR;
-					return false;
-				}else if(ReadedSize == 0)
-					break;
-				else
-				{
-					CurSize += ReadedSize;
-					StrBuf.resize(CurSize + PortionSize);
-					Buf = (char*)StrBuf.c_str() + CurSize;  
-				}
-			}
-#endif
-		}else
-		{
-			while(true)
-			{
-				int ReadedSize = recv(RemoteIp.hSocket, Buf, RemoteIp.PortionSize, Flags);
-				if(ReadedSize == -1)
 				{
 					URL_SET_LAST_ERR;
 					return -1;
@@ -4007,16 +4197,44 @@ public:
 				else
 				{
 					CurSize += ReadedSize;
-					StrBuf.resize(CurSize + RemoteIp.PortionSize);
+					CountBytesInBuff = SSL_pending(ssl);
+					if(CountBytesInBuff == 0)
+						CountBytesInBuff = 50;
+					StrBuf.resize(CurSize + CountBytesInBuff);
 					Buf = (char*)StrBuf.c_str() + CurSize;
-					if(ReadedSize < RemoteIp.PortionSize)
-						break;
+				}
+			}
+#endif
+		}else
+		{
+			CountBytesInBuff = CountPandingData + 2;
+			if(StrBuf.capacity() < (CountBytesInBuff))
+				StrBuf.resize(CountBytesInBuff );
+			Buf = (char*)StrBuf.c_str();
+			while(true)
+			{
+				int ReadedSize = recv(RemoteIp.hSocket, Buf, CountBytesInBuff, Flags);
+				if(ReadedSize == SOCKET_ERROR)
+				{
+					URL_SET_LAST_ERR;
+					return -1;
+				}else if(ReadedSize == 0)
+					break;
+				else
+				{
+					CurSize += ReadedSize;
+					CountBytesInBuff = CountPandingData;
+					if(CountBytesInBuff == 0)
+						CountBytesInBuff = 50;
+					StrBuf.resize(CurSize + CountBytesInBuff);
+					Buf = (char*)StrBuf.c_str() + CurSize;
 				}
 			}
 		}
 		*Buf = '\0';
 		return CurSize;
 	}
+
 
 	/*
 	@Flags:
@@ -4027,7 +4245,7 @@ public:
 	{ 
 		int Len = sizeof(SOCKET_ADDR);
 		int CountRecived;
-		if((CountRecived = recvfrom(RemoteIp.hSocket, (char*)Buffer, LenBuff, Flags, AddressSender, &Len)) == -1)
+		if((CountRecived = recvfrom(RemoteIp.hSocket, (char*)Buffer, LenBuff, Flags, AddressSender, &Len)) == SOCKET_ERROR)
 			URL_SET_LAST_ERR;
 		return CountRecived;
 	}
@@ -4046,7 +4264,7 @@ public:
 	int SendTo(const void * Buffer, size_t LenBuff, SOCKET_ADDR& AddressReciver, int Flags = 0)
 	{ 
 		int CountSending;
-		if((CountSending = sendto(RemoteIp.hSocket, (const char*)Buffer, LenBuff, Flags, AddressReciver, sizeof(SOCKET_ADDR))) != 0)
+		if((CountSending = sendto(RemoteIp.hSocket, (const char*)Buffer, LenBuff, Flags, AddressReciver, sizeof(SOCKET_ADDR))) == SOCKET_ERROR)
 			URL_SET_LAST_ERR;
 		return CountSending;
 	}
@@ -4070,14 +4288,14 @@ public:
 	{
 		if(!Send(SendBuf, SizeSendBuf))
 			return -1;
-		return Recive(Buf, SizeReciveBuf);
+		return Recive(ReciveBuf, SizeReciveBuf);
 	}
 
-	inline int SendAndRecive(std::basic_string<char>& strQuery, void* Buf, size_t SizeBuf)
+	inline int SendAndRecive(std::basic_string<char>& strQuery, void* ReciveBuf, size_t SizeBuf)
 	{
 		if(!Send((void*)strQuery.c_str(), strQuery.length()))
 			return -1;
-		return Recive(Buf, SizeBuf);
+		return Recive(ReciveBuf, SizeBuf);
 	}
 
 	inline int SendAndRecive(const void* SendBuf, unsigned SizeSendBuf, std::basic_string<char>& Result)
@@ -4094,11 +4312,11 @@ public:
 		return Recive(Result);
 	}
 
-	inline int SendAndRecive(const char* SendStr, void* Buf, unsigned SizeBuf)
+	inline int SendAndRecive(const char* SendStr, void* ReciveBuf, unsigned SizeBuf)
 	{
 		if(!Send(SendStr, strlen(SendStr)))
 			return -1;
-		return Recive(Buf, SizeBuf);
+		return Recive(ReciveBuf, SizeBuf);
 	}
 
 	inline int SendAndRecive(std::basic_string<char>& strQuery, std::basic_string<char>& Result)
