@@ -7,6 +7,10 @@
 #include "ExTypeTraits.h"
 
 /*
+	ExHashTable
+	Paketov
+	2015
+
 Example:
 
 	typedef struct HASH_ELEMENT
@@ -56,7 +60,7 @@ template
 <
 	typename TElementStruct,
 	bool Type = false,
-	typename TIndex = decltype(TElementStruct::IndexByKey(std::variant_arg, std::variant_arg)),
+	typename TIndex = decltype(TElementStruct::IndexByKey(std::variant_arg(), std::variant_arg())),
 	TIndex NothingIndex = TIndex(-1)
 >
 class HASH_TABLE
@@ -127,7 +131,7 @@ public:
 			}
 		} MaxCount;
 
-		class
+		class ___MAX_SIZE
 		{
 			EXHASH_TABLE_FIELDS;
 		public:
@@ -323,10 +327,10 @@ public:
 	LPCELL Remove(T SearchKey)
 	{
 		LPCELL p;
-		for(TINDEX * i = &ElementByHash(Key)->iStart; *i != NothingIndex; i = &p->iNext)
+		for(TINDEX * i = &ElementByHash(SearchKey)->iStart; *i != NothingIndex; i = &p->iNext)
 		{
 			p = GetTable() + *i;
-			if(p->Cmp(Key))
+			if(p->Cmp(SearchKey))
 			{
 				TINDEX j = *i;
 				*i = p->iNext;
@@ -429,7 +433,7 @@ public:
 		}else
 		{
 			HASH_TABLE * NewTable;
-			if(!(NewTable = (HASH_TABLE*)realloc(*Val, MaxSize.ByCount(NewCount))))
+			if(!(NewTable = (HASH_TABLE*)realloc(*Val, ___MAX_SIZE::ByCount(NewCount))))
 				return false;
 			Val = NewTable;
 		}
@@ -458,7 +462,7 @@ public:
 				return false;
 		}else
 		{	
-			if(!(NewTable = (HASH_TABLE*)malloc(MaxSize.ByCount(NewCount))))
+			if(!(NewTable = (HASH_TABLE*)malloc(___MAX_SIZE::ByCount(NewCount))))
 				return false;
 		}
 		Val = NewTable;
