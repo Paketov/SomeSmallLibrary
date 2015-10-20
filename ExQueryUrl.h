@@ -1431,30 +1431,32 @@ private:
 	bool InitSSL()
 	{
 #ifdef IS_HAVE_OPEN_SSL			
-		ctx = nullptr;
-		ssl = nullptr;
+		RemoteIp.ctx = nullptr;
+		RemoteIp.ssl = nullptr;
 		SSL_load_error_strings();
 		SSL_library_init();
 
-		ctx = SSL_CTX_new(SSLv23_client_method());
-		ssl = SSL_new(ctx);
+		RemoteIp.ctx = SSL_CTX_new(SSLv23_client_method());
+		RemoteIp.ssl = SSL_new(RemoteIp.ctx);
 
-		if(SSL_set_fd(ssl, Ip.hSocket) == 0)
+		if(SSL_set_fd(RemoteIp.ssl, RemoteIp.hSocket) == 0)
 		{
-			LastError.SetError(ERR_ARG("SSL not connect with socket"), 14);
+			//LastError.SetError(ERR_ARG("SSL not connect with socket"), 14);
+			URL_SET_LAST_ERR_VAL(EFAULT);
 			goto SSLErrOut;
 		}
-		if(SSL_connect(ssl) < 0)
+		if(SSL_connect(RemoteIp.ssl) < 0)
 		{
-			LastError.SetError(ERR_ARG("SSL not connect with socket"), 5);
+			URL_SET_LAST_ERR_VAL(EFAULT);
+			//LastError.SetError(ERR_ARG("SSL not connect with socket"), 5);
 SSLErrOut:
-			SSL_shutdown(ssl);
-			SSL_free(ssl);
+			SSL_shutdown(RemoteIp.ssl);
+			SSL_free(RemoteIp.ssl);
 			ssl = nullptr;
-			SSL_CTX_free(ctx);
+			SSL_CTX_free(RemoteIp.ctx);
 			ctx = nullptr;
 			Close();
-			hSocket = -1;
+			RemoteIp.hSocket = -1;
 			return false;
 		}
 #endif
@@ -1465,13 +1467,13 @@ SSLErrOut:
 	void UninitSSL()
 	{
 #ifdef IS_HAVE_OPEN_SSL	
-		if(ssl)
+		if(RemoteIp.ssl)
 		{
-			SSL_shutdown(ssl);
-			SSL_free(ssl);
+			SSL_shutdown(RemoteIp.ssl);
+			SSL_free(RemoteIp.ssl);
 		}
-		if(ctx)
-			SSL_CTX_free(ctx);
+		if(RemoteIp.ctx)
+			SSL_CTX_free(RemoteIp.ctx);
 #endif
 	}
 
@@ -4217,7 +4219,7 @@ lblTryAgain:
 		if(IsEnableSSL)
 		{ 
 #ifdef	IS_HAVE_OPEN_SSL
-			if((WritenSize = SSL_write(ssl, QueryBuf, SizeBuf)) < 0)
+			if((WritenSize = SSL_write(RemoteIp.ssl, QueryBuf, SizeBuf)) < 0)
 			{
 				URL_SET_LAST_ERR;
 				return -1;
@@ -4247,7 +4249,7 @@ lblTryAgain:
 		if(IsEnableSSL)
 		{
 #ifdef	IS_HAVE_OPEN_SSL
-			if((ReadedSize = SSL_read(ssl, Buf, SizeBuf)) < 0)
+			if((ReadedSize = SSL_read(RemoteIp.ssl, Buf, SizeBuf)) < 0)
 			{
 				URL_SET_LAST_ERR;
 				return -1;
@@ -4265,13 +4267,13 @@ lblTryAgain:
 		if(IsEnableSSL)
 		{
 #ifdef	IS_HAVE_OPEN_SSL
-			CountBytesInBuff = SSL_pending(ssl);
+			CountBytesInBuff = SSL_pending(RemoteIp.ssl);
 			if(StrBuf.capacity() < (CountBytesInBuff + 2))
 				StrBuf.resize(CountBytesInBuff + 2);
 			Buf = (char*)StrBuf.c_str();
 			while(true)
 			{
-				int ReadedSize = SSL_read(ssl, Buf, CountBytesInBuff);
+				int ReadedSize = SSL_read(RemoteIp.ssl, Buf, CountBytesInBuff);
 				if(ReadedSize < 0)
 				{
 					URL_SET_LAST_ERR;
@@ -4281,7 +4283,7 @@ lblTryAgain:
 				else
 				{
 					CurSize += ReadedSize;
-					CountBytesInBuff = SSL_pending(ssl);
+					CountBytesInBuff = SSL_pending(RemoteIp.ssl);
 					if(CountBytesInBuff == 0)
 						CountBytesInBuff = 50;
 					StrBuf.resize(CurSize + CountBytesInBuff);
