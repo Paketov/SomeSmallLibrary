@@ -669,7 +669,7 @@ namespace std
 	>::type 
 	val_copy(DestType & Dest, SourceType & Source)
 	{
-		struct COP_STRUCT{DestType __val;};
+		struct COP_STRUCT{char __val[sizeof(DestType)];};
 		(COP_STRUCT&)valueof(Dest) = (COP_STRUCT&)valueof(Source);
 	}
 
@@ -712,6 +712,19 @@ namespace std
 		typedef typename remove_modifiers<DestType, rem_mod::POI_POICONST_VOLA_REF_RVREF>::type DEST_TYPE;
 		valueof(Dest) = DEST_TYPE(valueof(Source));
 	}
+
+	template<typename DestType>
+	inline typename enable_if
+	<
+		 !is_const<DestType>::value
+	>::type
+	zero_val(DestType & DestVal)
+	{
+		const unsigned char __zeroval[sizeof(DestType)] = {0};
+		typedef typename remove_modifiers<DestType, rem_mod::POI_POICONST_VOLA_REF_RVREF>::type DEST_TYPE;
+		valueof(DestVal) = *((DEST_TYPE*)__zeroval);
+	}
+
 
 	/*
 	*arr_copy_cast
