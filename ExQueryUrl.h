@@ -1,6 +1,16 @@
 #ifndef __QUERYURL_H_HAS_INCLUDED__
 #define __QUERYURL_H_HAS_INCLUDED__
 
+/*
+     ExQueryUrl
+	 Paketov
+	 2015.
+
+	 Library for optimize work with socket functions.
+	 For Windows, Linux and another unix like systems.
+*/
+
+
 #include "ExString.h"
 
 #ifdef _WIN32
@@ -487,7 +497,7 @@ typedef UINT32 socklen_t;
 
 #else
 
-//For unix like operation sistem
+//For unix like os
 #	include <stdio.h>
 #   include <sys/types.h>
 #   include <sys/socket.h>
@@ -498,6 +508,11 @@ typedef UINT32 socklen_t;
 #	include <poll.h>
 #	include <fcntl.h>
 #	include <errno.h>
+#	if defined(__linux__)
+#		include <sys/sendfile.h>
+#   elif defined(__FreeBSD__)
+#		include <sys/uio.h>
+#	endif
 #	define closesocket(socket)  close(socket)
 #	define LAST_ERR_SOCKET errno
 #	define INIT_WSA   
@@ -3420,7 +3435,6 @@ public:
 			ShutdownSendRecive();
 			Close();
 		}
-
 		if((RemoteIp.hSocket = socket(iFamily, iSocktype, iProtocol)) == INVALID_SOCKET)
 		{
 			URL_SET_LAST_ERR;
@@ -3940,7 +3954,6 @@ public:
 	{
 #ifdef _WIN32
 #pragma comment(lib, "Mswsock.lib")
-
 		WSAOVERLAPPED Overlap = {0};
 		DWORD ResFlag, WritedCount = 0;
 		if((Overlap.hEvent = winsock::WSACreateEvent()) == NULL)
@@ -3974,7 +3987,7 @@ public:
 			return -1;
 		}
 		return Count;
-#elif defined(__linux__) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) 
+#elif defined(__linux__)
 		off_t o = Offset;
 		long long done = 0;
 		while (Count)
@@ -3997,8 +4010,55 @@ public:
 		}
 		return 0;
 #else
-		URL_SET_LAST_ERR_VAL(EOPNOTSUPP);
-		return -1;
+		if(Count == 0)
+			return 0;
+		if(Offset != 0)
+			if(lseek(RemoteIp.hSocket, Offset, SEEK_SET))
+			{
+			   URL_SET_LAST_ERR;
+			   return -1;
+			}
+		unsigned long long SizeBuf;
+		int r, wr, w = 0;
+		void* Buf;
+#	ifdef SO_SNDBUF
+		SizeBuf = SockOptions.SendSizeBuffer;
+#	else
+		SizeBuf = 0xffff;
+#	endif
+		SizeBuf = (SizeBuf < Count)?SizeBuf: Count;
+		Buf = malloc(SizeBuf);
+		if(Buf == nullptr)
+		{
+			URL_SET_LAST_ERR;
+			return -1;
+		}
+		while(true)
+		{
+			if((r = read(InFileDescriptor, Buf, SizeBuf)) == -1)
+			{
+				if(w > 0)
+					return w;
+				URL_SET_LAST_ERR;
+				free(Buf);
+			   return -1;
+			}
+			if((wr = write(RemoteIp.hSocket, Buf, r)) == -1)
+			{
+				URL_SET_LAST_ERR;
+				free(Buf);
+				return -1;
+			}
+			if(r < SizeBuf)
+			{
+				free(Buf);
+				return wr;
+			}
+			w += wr;
+			SizeBuf = ((Count - w) < SizeBuf)?(Count - w): SizeBuf;
+		}
+		free(Buf);
+		return 0;
 #endif
 	}
 	
