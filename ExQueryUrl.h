@@ -3322,7 +3322,24 @@ public:
 		return true;
 	}
 
-
+	/*
+	Duplicate for sharing in new process.
+	*/
+	bool Duplicate(int TargetProcessHandle)
+	{
+	
+#ifdef _WIN32
+		WSAPROTOCOL_INFOA ProtInfo;
+		if(winsock::WSADuplicateSocketA(RemoteIp.hSocket, TargetProcessHandle, &ProtInfo) == SOCKET_ERROR)
+		{
+			URL_SET_LAST_ERR;
+			return false;
+		}
+		return true;
+#else
+		return true;
+#endif
+	}
 
 
 	/*
