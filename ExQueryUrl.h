@@ -3321,10 +3321,8 @@ public:
 	*/
 	bool AcceptClient(__QUERY_URL & DestCoonection)
 	{
-		SOCKET_ADDR SockAddr;
-		int ClientAddressSize = sizeof(SockAddr);
-		TDESCR ConnectedSocket = accept(RemoteIp.hSocket, SockAddr, &ClientAddressSize);
-		if((ConnectedSocket == INVALID_SOCKET) || (SockAddr.Len != ClientAddressSize))
+		TDESCR ConnectedSocket;
+		if((ConnectedSocket = accept(RemoteIp.hSocket, nullptr, nullptr)) == INVALID_SOCKET)
 		{
 			URL_SET_LAST_ERR;
 			return false;
