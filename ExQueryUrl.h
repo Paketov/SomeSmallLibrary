@@ -1406,7 +1406,7 @@ private:
 		RemoteIp.ssl = nullptr;
 #endif
 #ifdef _WIN32
-		RemoteIp.IsNonBlocket = false;
+		RemoteIp.IsNonBlocked = false;
 #endif
 		RemoteIp.hSocket = INVALID_SOCKET;
 		RemoteIp.IsEnableSSLLayer = false;
@@ -1492,7 +1492,7 @@ SSLErrOut:
 
 #ifdef _WIN32
 #	define ADDITIONAL_FIELDS														\
-	bool			IsNonBlocket;
+	bool			IsNonBlocked;
 #else
 #	define ADDITIONAL_FIELDS  
 #endif
@@ -1918,11 +1918,11 @@ public:
 			bool operator=(bool NewVal)
 			{
 #ifdef _WIN32
-				DWORD nonBlocking = NewVal;
-				if (ioctlsocket(hSocket, FIONBIO, &nonBlocking) != NO_ERROR)
+				u_long nonBlocking = NewVal;
+				if (ioctlsocket(hSocket, FIONBIO, &nonBlocking) == SOCKET_ERROR)
 					URL_SET_LAST_ERR
 				else
-					IsNonBlocket = NewVal;
+					IsNonBlocked = NewVal;
 #else
 				int nonBlocking = NewVal;
 				if (fcntl(hSocket, F_SETFL, O_NONBLOCK, nonBlocking) == -1)
@@ -1934,12 +1934,12 @@ public:
 			operator bool() const
 			{
 #ifdef _WIN32
-				return IsNonBlocket;
+				return IsNonBlocked;
 #else
 				return fcntl(hSocket, F_GETFL, 0) & O_NONBLOCK;
 #endif
 			}
-		} IsNonBlocket;
+		} IsNonBlocked;
 
 		class 
 		{
@@ -1950,8 +1950,11 @@ public:
 			{
 #ifdef _WIN32
 				u_long res = -1;
-				if(ioctlsocket(hSocket, FIONREAD, &res) == -1)
+				if(ioctlsocket(hSocket, FIONREAD, &res) == SOCKET_ERROR)
+				{
 					URL_SET_LAST_ERR;
+					return -1;
+				}
 				return res;
 #else
 				int res;
@@ -1962,6 +1965,8 @@ public:
 			}
 		} CountPandingData;
 
+
+
 		class
 		{			
 			_QUERY_URL_FIELDS1_;
@@ -1971,7 +1976,6 @@ public:
 				return hSocket != INVALID_SOCKET;
 			}
 		} IsOpen;
-
 
 		class
 		{
@@ -3311,12 +3315,15 @@ public:
 		DestCoonection.RemoteIp.hSocket = ConnectedSocket;
 		DestCoonection.RemoteIp.ProtocolType = RemoteIp.ProtocolType;
 #ifdef _WIN32
-		DestCoonection.RemoteIp.IsNonBlocket = false;
+		DestCoonection.RemoteIp.IsNonBlocked = false;
 #endif
 		DestCoonection.RemoteIp.IsEnableSSLLayer = RemoteIp.IsEnableSSLLayer;
 		DestCoonection.LastError.Clear();
 		return true;
 	}
+
+
+
 
 	/*
 	Open as standart file.
@@ -3929,7 +3936,7 @@ public:
 		{
 			if(winsock::WSAGetLastError() == ERROR_IO_PENDING)
 			{
-				if(winsock::WSAGetOverlappedResult(RemoteIp.hSocket, &Overlap, &WritedCount, !IsNonBlocket, &ResFlag))
+				if(winsock::WSAGetOverlappedResult(RemoteIp.hSocket, &Overlap, &WritedCount, !IsNonBlocked, &ResFlag))
 				{
 					winsock::WSACloseEvent(Overlap.hEvent);
 					return WritedCount;
@@ -4029,7 +4036,7 @@ lblTryAgain:
 			DWORD LastErr = GetLastError();
 			if((LastErr == ERROR_INVALID_PARAMETER) && (ovlp == nullptr))
 			{
-				if(!IsNonBlocket)
+				if(!IsNonBlocked)
 					Overlap.hEvent = CreateEventW(nullptr, true, false, nullptr); 
 				ovlp = &Overlap; 
 				goto lblTryAgain;
@@ -4083,7 +4090,7 @@ lblTryAgain:
 			DWORD LastErr = GetLastError();
 			if((LastErr == ERROR_INVALID_PARAMETER) && (ovlp == nullptr))
 			{
-				if(!IsNonBlocket)
+				if(!IsNonBlocked)
 					Overlap.hEvent = CreateEventW(nullptr, true, false, nullptr); 
 				ovlp = &Overlap; 
 				goto lblTryAgain;
