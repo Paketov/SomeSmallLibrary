@@ -3737,7 +3737,6 @@ public:
 #ifdef _WIN32
 		DestCoonection.RemoteIp.IsNonBlocked = false;
 #endif
-		DestCoonection.RemoteIp.IsEnableSSLLayer = RemoteIp.IsEnableSSLLayer;
 		DestCoonection.LastError.Clear();
 		return EvntAcceptClient(ConnectedSocket);
 	}
