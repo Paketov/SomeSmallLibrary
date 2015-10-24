@@ -524,7 +524,7 @@ public:
 	bool SetLocalCertificate
 	(	
 		const char * CertFile, 
-		const char * PrivateKeyFile, 
+		const char * PrivateKeyFile = nullptr, 
 		int TypeCertFile = SSL_FILETYPE_PEM, 
 		int TypeKeyFile = SSL_FILETYPE_PEM,
 		const SSL_METHOD* MethodSSL = SSLv23_server_method(),
@@ -546,6 +546,8 @@ lblErrOut:
 			QUERY_URL::SetLastErr(EFAULT);
 			return false;
 		}
+		if(PrivateKeyFile == nullptr)
+			PrivateKeyFile = CertFile;
 		if(SSL_CTX_use_PrivateKey_file(SSLLastError.ctx, PrivateKeyFile, TypeKeyFile) <= 0)
 			goto lblErrOut;
 
