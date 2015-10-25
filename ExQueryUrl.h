@@ -3555,14 +3555,21 @@ public:
 
 	/*
 	Connect with server.
+		@Port - number or type protocol. Example: "http" or "80".
+		@HostAddr - Address of host. Example "117.134.75.32" or "example.com".
+		@Protocol - Type of protocol.
+		@Family - Famaly of using protocol.
+		@Flags - Flags used in "hints" argument to getaddrinfo().
+
+		@return - true is success and false at error.
 	*/
 	bool Connect
 	(
-		const char * Port, 
+		const char* Port, 
 		const char* HostAddr = nullptr, 
-		int iSocktype = SOCK_STREAM, 
-		int iProtocol = IPPROTO_TCP, 
-		int iFamily = AF_UNSPEC, 
+		int Socktype = SOCK_STREAM, 
+		int Protocol = IPPROTO_TCP, 
+		int Family = AF_UNSPEC, 
 		int Flags = 0
 	)
 	{	
@@ -3572,13 +3579,13 @@ public:
 			ShutdownSendRecive();
 			Close();
 		}
-		addrinfo host_info = {0}, *ah = nullptr, *i;
-		host_info.ai_socktype = iSocktype;
-		host_info.ai_family = iFamily;
-		host_info.ai_protocol = iProtocol;
-		host_info.ai_flags = Flags;                   //AI_PASSIVE
+		addrinfo hi = {0}, *ah = nullptr, *i;
+		hi.ai_socktype = Socktype;
+		hi.ai_family = Family;
+		hi.ai_protocol = Protocol;
+		hi.ai_flags = Flags;                   //AI_PASSIVE
 
-		if(getaddrinfo(HostAddr, Port, &host_info, &ah) != 0)
+		if(getaddrinfo(HostAddr, Port, &hi, &ah) != 0)
 		{
 			URL_SET_LAST_ERR;
 			return false;
@@ -3638,7 +3645,7 @@ public:
 	}
 
 	/*
-	Create waiting client on port by address info.
+	Create waiting connection on port by address info.
 	*/
 	bool Bind(ADDRESS_INFO& AddrInfo, int MaxConnection = SOMAXCONN)
 	{	
@@ -3670,15 +3677,22 @@ public:
 	}
 
 	/*
-	Create waiting client on port.
+	Create waiting connection on port.
+		@Port - number or type protocol. Example: "http" or "80".
+		@MaxConnection - argument defines the maximum length to which the queue of pending connections for sockfd may grow.
+		@Protocol - Type of protocol.
+		@Family - Famaly of using protocol.
+		@Flags - Flags used in "hints" argument to getaddrinfo().
+
+		@return - true is success and false at error.
 	*/
 	bool Bind
 	(
 		const char * Port, 
 		int MaxConnection = SOMAXCONN, 
-		int iSocktype = SOCK_STREAM, 
-		int iProtocol = IPPROTO_TCP,
-		int iFamily = AF_INET, 
+		int Socktype = SOCK_STREAM, 
+		int Protocol = IPPROTO_TCP,
+		int Family = AF_INET, 
 		int Flags = AI_PASSIVE
 	)
 	{	
@@ -3689,9 +3703,9 @@ public:
 			Close();
 		}
 		addrinfo host_info = {0},*ah = nullptr, *i;
-		host_info.ai_socktype = iSocktype;
-		host_info.ai_family = iFamily;
-		host_info.ai_protocol = iProtocol;
+		host_info.ai_socktype = Socktype;
+		host_info.ai_family = Family;
+		host_info.ai_protocol = Protocol;
 		host_info.ai_flags = Flags;                   //AI_PASSIVE
 		if(getaddrinfo(nullptr, Port, &host_info, &ah) != 0)
 		{
