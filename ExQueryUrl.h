@@ -309,7 +309,7 @@ lblOut:
 	template<bool>
 	::netent * getnetbyname__(const char *name)
 	{
-		for(::netent * gn = GetNetworksInfo();gn->n_name;gn++)
+		for(::netent * gn = GetNetworksInfo<true>();gn->n_name;gn++)
 			if(StringCompare(name, gn->n_name) == 0)
 				return gn;
 		return NULL;
@@ -318,7 +318,7 @@ lblOut:
 	template<bool>
 	::netent * getnetbyaddr__(long net, int type)
 	{
-		for(::netent * gn = GetNetworksInfo();gn->n_name;gn++)
+		for(::netent * gn = GetNetworksInfo<true>();gn->n_name;gn++)
 			if((gn->n_net == net) && (gn->n_addrtype == type))
 				return gn;
 		return NULL;
@@ -388,13 +388,13 @@ lblOut:
 	}
 
 	template<bool>
-	::servent * GetServiceInfo(){ static struct ::servent * gn = readservicelist(); return gn;}
+	::servent * GetServiceInfo(){ static struct ::servent * gn = readservicelist<true>(); return gn;}
 
 	template<bool>
 	::servent * getservbyport__(int port, const char * proto)
 	{
 
-		for(::servent * gn = GetServiceInfo();gn->s_name;gn++)
+		for(::servent * gn = GetServiceInfo<true>(); gn->s_name; gn++)
 			if(gn->s_port == port)
 			{
 				if(proto == NULL)
@@ -408,7 +408,7 @@ lblOut:
 	template<bool>
 	::servent * getservbyname__(const char * Name, const char * proto)
 	{
-		for(::servent * gn = GetServiceInfo();gn->s_name;gn++)
+		for(::servent * gn = GetServiceInfo<true>();gn->s_name;gn++)
 			if(StringICompare(Name, gn->s_name) == 0)
 			{
 				if(proto == NULL)
@@ -521,6 +521,10 @@ typedef UINT32 socklen_t;
 #endif
 
 
+#ifndef INVALID_PORT
+#define INVALID_PORT 0
+#endif
+
 #ifndef INVALID_SOCKET
 #	define INVALID_SOCKET (-1)
 #endif
@@ -540,7 +544,7 @@ typedef UINT32 socklen_t;
 	struct{																			\
 	TDESCR			hSocket;														\
 	int				ProtocolType;													\
-	int				iError;															\
+	mutable int		iError;															\
 	ADDITIONAL_FIELDS																\
 	}
 
@@ -1035,7 +1039,12 @@ public:
 			HostName.HostName = Host;
 			Update();
 		}
-
+				
+		ADDRESS_INFO()
+		{
+			InitFields();
+			Update();
+		}
 
 		~ADDRESS_INFO()
 		{
@@ -2104,27 +2113,27 @@ public:
 			{
 				SOCKET_ADDR sa;
 				if(!__QUERY_URL_PROPERTY_THIS->RemoteIp.GetRemoteAddress(sa))
-					return 0;
+					return INVALID_PORT;
 				return sa.Port.Readeble;
 			}
 			//As c string
 			char* operator()(char * Dest, size_t Len = 0xffff) const
 			{
-				NumberToString(operator unsigned short(), Dest, Len);
+				NumberToString(operator TPORT(), Dest, Len);
 				return Dest;
 			}
 			//As stl string
 			std::basic_string<char> operator()() const
 			{
 				std::basic_string<char> Buf("", 6);
-				NumberToString(operator unsigned short(), (char*)Buf.c_str(), 6);
+				NumberToString(operator TPORT(), (char*)Buf.c_str(), 6);
 				return Buf;
 			}
 
 			//Get more info about remote port
 			inline PORT_SERVICE_INTERATOR GetInfo() const
 			{
-				return GetSystemService(operator unsigned short());
+				return GetSystemService(operator TPORT());
 			}
 		} RemotePort;
 
@@ -2213,26 +2222,26 @@ public:
 			{
 				SOCKET_ADDR sa;
 				if(!__QUERY_URL_PROPERTY_THIS->LocalIp.GetLocalAddress(sa))
-					return 0;
+					return INVALID_PORT;
 				return sa.Port.Readeble;
 			}
-
-			char* operator()(char * Dest, size_t Len = 0xffff) const
+			
+			char* operator()(char* Dest, size_t Len = 0xffff) const
 			{
-				NumberToString(operator unsigned short(), Dest, Len);
+				NumberToString(operator TPORT(), Dest, Len);
 				return Dest;
 			}
 
 			std::basic_string<char> operator()() const
 			{
 				std::basic_string<char> Buf("", 6);
-				NumberToString(operator unsigned short(), (char*)Buf.c_str(), 6);
+				NumberToString(operator TPORT(), (char*)Buf.c_str(), 6);
 				return Buf;
 			}
 
 			inline PORT_SERVICE_INTERATOR GetInfo() const
 			{
-				return GetSystemService(operator unsigned short());
+				return GetSystemService(operator TPORT());
 			}
 		} LocalPort;
 
@@ -2261,7 +2270,7 @@ public:
 				return sa.Ip.GetData();
 			}
 
-			char* operator()(char * Dest, size_t Len = 0xffff) const
+			char* operator()(char* Dest, size_t Len = 0xffff) const
 			{
 				SOCKET_ADDR sa;
 				if(GetLocalAddress(sa))
@@ -4189,9 +4198,9 @@ lblTryAgain:
 		return ReadedSize;
 	}
 
-	virtual int Recive(std::basic_string<char> & StrBuf, int Flags = 0)
+	virtual int Recive(std::basic_string<char>& StrBuf, int Flags = 0)
 	{
-		char * Buf;
+		char* Buf;
 		unsigned CurSize = 0, CountBytesInBuff;
 		CountBytesInBuff = CountPandingData + 2;
 		if(CountBytesInBuff < 50)
