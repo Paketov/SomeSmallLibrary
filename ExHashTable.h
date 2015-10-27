@@ -11,6 +11,7 @@
 	Paketov
 	2015
 
+	Low level hash table.
 Example:
 
 	typedef struct HASH_ELEMENT
@@ -22,6 +23,11 @@ Example:
 		unsigned Key()    
 		{
 			return vKey;
+		}
+
+		bool SetKey(double nKey)
+		{
+			Val = nKey;
 		}
 
 		//Get index in hash array by key value
@@ -82,6 +88,7 @@ public:
 	} CELL, *LPCELL;
 
 protected:
+
 	struct
 	{
 		LPCELL	   Table;
@@ -206,12 +213,14 @@ public:
 		return GetTable() + Index;
 	}
 
-
-	inline LPCELL AddElement(LPCELL HashCell)
-	{
-		CountUsed.CountUsed++;
+	template<typename TKey>
+	inline LPCELL AddElement(LPCELL HashCell, TKey InitKey)
+	{	
 		TINDEX iRetElem;
 		LPCELL lpRetElem = GetTable() + (iRetElem = IsFull.LastEmpty);
+		if(!lpRetElem->SetKey(InitKey))
+			return nullptr;
+		CountUsed.CountUsed++;
 		IsFull.LastEmpty = lpRetElem->iNext;
 		lpRetElem->iNext = HashCell->iStart;
 		HashCell->iStart = iRetElem;
@@ -255,10 +264,12 @@ public:
 	{		
 		if(IsFull)
 			return NULL;
-		LPCELL HashCell = ElementByHash(TElementStruct::GenKey(SearchKey));
-		CountUsed++;
+		LPCELL HashCell = ElementByHash(TElementStruct::GenKey(SearchKey));	
 		TINDEX iRetElem;
 		LPCELL lpRetElem = GetTable() + (iRetElem = IsFull.LastEmpty);
+		if(!lpRetElem->SetKey(SearchKey))
+			return nullptr;
+		CountUsed++;
 		IsFull.LastEmpty = lpRetElem->iNext;
 		lpRetElem->iNext = HashCell->iStart;
 		HashCell->iStart = iRetElem;
@@ -274,9 +285,12 @@ public:
 				return p;
 		if(IsFull)
 			return NULL;
-		CountUsed++;
+		
 		TINDEX iRetElem;
 		LPCELL lpRetElem = GetTable() + (iRetElem = IsFull.LastEmpty);
+		if(!lpRetElem->SetKey(SearchKey))
+			return nullptr;
+		CountUsed++;
 		IsFull.LastEmpty = lpRetElem->iNext;
 		lpRetElem->iNext = HashCell->iStart;
 		HashCell->iStart = iRetElem;
@@ -296,11 +310,11 @@ public:
 		{
 			TINDEX NewSize = (TINDEX)(MaxCount * 1.61803398875f);
 			if(!Realloc(*this, NewSize))
-				return NULL;
+				return nullptr;
 			IncreaseTable(NewSize);
 			lpStart = ElementByHash(Hash);
 		}
-		return AddElement(lpStart);
+		return AddElement(lpStart, SearchKey);
 	}
 
 	template<typename T>
@@ -310,7 +324,7 @@ public:
 		for(TINDEX i = StartIndexByHash(TElementStruct::GenKey(SearchKey)); i != NothingIndex; i = p->iNext)
 			if((p = GetTable() + i)->Cmp(SearchKey))
 				return p;
-		return NULL;
+		return nullptr;
 	}
 
 	template<typename T>
@@ -320,7 +334,7 @@ public:
 		for(TINDEX i = CurElem->iNext; i != NothingIndex; i = p->iNext)
 			if((p = GetTable() + i)->Cmp(SearchKey))
 				return p;
-		return NULL;
+		return nullptr;
 	}
 
 	template<typename T>
@@ -342,7 +356,6 @@ public:
 		}		
 		return NULL;
 	}
-
 
 	void IncreaseTable(TINDEX NewSize)
 	{
@@ -502,5 +515,115 @@ public:
 	}
 };
 
+template <typename CharType, typename DataType>
+struct HASH_ELEMENT_STRING
+{
+	CharType* KeyVal;
+	DataType  Val;
+
+	//Get key value
+	unsigned Key()    
+	{
+		return GenKey(KeyVal);
+	}
+
+	bool SetKey(CharType* vKey)
+	{
+		KeyVal = StringDuplicate(vKey);
+		if(KeyVal != nullptr)
+			return true;
+		return false;
+	}
+
+	void DeleteKey()
+	{
+		free(KeyVal);
+	}
+
+	//Get index in hash array by key value
+	static unsigned short IndexByKey(unsigned Key, unsigned char MaxCount)
+	{
+		return Key % MaxCount;
+	}	
+
+	//Get key by value
+	inline static unsigned GenKey(CharType* vKey)	
+	{
+		unsigned h = 0;
+		for (unsigned s = 0; vKey[s] != CHAR_TYPE(CharType, '\0'); s++) 
+			h = 31 * h + vKey[s];
+		return h;
+	}
+
+	//Compare values
+	inline bool Cmp(CharType* EnotherKeyVal)
+	{
+		if(EnotherKeyVal == KeyVal)
+			return true;
+		return StringCompare(EnotherKeyVal, KeyVal) == 0;
+	}
+};
+
+
+/*
+Hi level hash table for using string as key.
+*/
+template<typename CharType, typename DataType>
+class HASH_TABLE_STRING_KEY: private HASH_TABLE<HASH_ELEMENT_STRING<CharType, DataType>, false, unsigned short>
+{
+	typedef HASH_TABLE<HASH_ELEMENT_STRING<CharType, DataType>, false, unsigned short> PARENT;
+public:
+
+	PARENT::CountUsed;
+
+	HASH_TABLE_STRING_KEY(unsigned NewSize = 10)
+	{
+		PARENT::New(*this, NewSize);
+		Init(NewSize);
+	}
+
+	~HASH_TABLE_STRING_KEY()
+	{			
+		auto Elements = GetTable();
+		decltype(Elements) m = Elements + MaxCount;
+		decltype(Elements) l;
+		for(auto p = Elements; p < m; p++)
+			for(auto i = p->iStart; i != PARENT::EmptyElement; i = l->iNext)
+			{
+				//Если элемент существует
+				l = Elements + i;
+				//l->vKey-> .MarkAsUsed();
+				l->DeleteKey();
+			}
+		PARENT::Free();
+	}
+
+	DataType* Insert(CharType* NewKey)
+	{
+		auto Cell = PARENT::Insert(NewKey);
+		if(Cell == nullptr)
+			return nullptr;
+		return &(Cell->Val);
+	}
+
+	void Remove(CharType* SrchKey)
+	{
+		auto Res = PARENT::Remove(SrchKey);
+		if(Res == nullptr)
+			return;
+		Res->DeleteKey();
+		if(MaxCount < (unsigned)(CountUsed *  1.61803398875f))
+			PARENT::DecreaseTable(CountUsed);
+	}
+
+	DataType* operator [](CharType* SearchKey)
+	{
+	     auto Cell = Search(SearchKey);
+		 if(Cell == nullptr)
+			 return nullptr;
+		 return &(Cell->Val);
+	}
+
+};
 
 #endif
