@@ -577,7 +577,7 @@ struct HASH_ELEMENT_STRING
 template<typename CharType, typename DataType, bool IsDynamicKey = true>
 class HASH_TABLE_STRING_KEY: private HASH_TABLE<HASH_ELEMENT_STRING<CharType, DataType, IsDynamicKey>, false, unsigned short>
 {
-	typedef HASH_TABLE<HASH_ELEMENT_STRING<CharType, DataType>, false, unsigned short> PARENT;
+	typedef HASH_TABLE<HASH_ELEMENT_STRING<CharType, DataType, IsDynamicKey>, false, unsigned short> PARENT;
 public:
 
 	PARENT::CountUsed;
