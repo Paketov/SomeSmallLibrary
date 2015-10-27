@@ -578,6 +578,7 @@ template<typename CharType, typename DataType, bool IsDynamicKey = true>
 class HASH_TABLE_STRING_KEY: private HASH_TABLE<HASH_ELEMENT_STRING<CharType, DataType, IsDynamicKey>, false, unsigned short>
 {
 	typedef HASH_TABLE<HASH_ELEMENT_STRING<CharType, DataType, IsDynamicKey>, false, unsigned short> PARENT;
+
 public:
 
 	PARENT::CountUsed;
@@ -610,6 +611,25 @@ public:
 		if(Cell == nullptr)
 			return nullptr;
 		return &(Cell->Val);
+	}
+
+	void Clear()
+	{
+		if(IsDynamicKey)
+		{
+			auto Elements = GetTable();
+			decltype(Elements) m = Elements + MaxCount;
+			decltype(Elements) l;
+			for(auto p = Elements; p < m; p++)
+				for(auto i = p->iStart; i != PARENT::EmptyElement; i = l->iNext)
+				{
+					//Если элемент существует
+					l = Elements + i;
+					l->DeleteKey();
+				}
+		}
+
+		Init(PARENT::MaxCount);
 	}
 
 	void Remove(CharType* SrchKey)
