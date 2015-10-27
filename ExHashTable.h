@@ -575,6 +575,7 @@ class HASH_TABLE_STRING_KEY: private HASH_TABLE<HASH_ELEMENT_STRING<CharType, Da
 public:
 
 	PARENT::CountUsed;
+	PARENT::QualityInfo;
 
 	HASH_TABLE_STRING_KEY(unsigned NewSize = 10)
 	{
