@@ -566,7 +566,7 @@ struct HASH_ELEMENT_STRING
 
 
 /*
-Hi level hash table for using string as key.
+	Hi level hash table using with key as string.
 */
 template<typename CharType, typename DataType>
 class HASH_TABLE_STRING_KEY: private HASH_TABLE<HASH_ELEMENT_STRING<CharType, DataType>, false, unsigned short>
