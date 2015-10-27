@@ -341,7 +341,7 @@ public:
 	LPCELL Remove(T SearchKey)
 	{
 		LPCELL p;
-		for(TINDEX * i = &ElementByHash(SearchKey)->iStart; *i != NothingIndex; i = &p->iNext)
+		for(LPTINDEX i = &(ElementByHash(TElementStruct::GenKey(SearchKey))->iStart); *i != NothingIndex; i = &(p->iNext))
 		{
 			p = GetTable() + *i;
 			if(p->Cmp(SearchKey))
@@ -350,11 +350,11 @@ public:
 				*i = p->iNext;
 				p->iNext = IsFull.LastEmpty;
 				IsFull.LastEmpty = j;
-				CountUsed--;
+				IsFull.CountUsed--;
 				return p;
 			}
 		}		
-		return NULL;
+		return nullptr;
 	}
 
 	void IncreaseTable(TINDEX NewSize)
