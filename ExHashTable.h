@@ -515,7 +515,7 @@ public:
 	}
 };
 
-template <typename CharType, typename DataType>
+template <typename CharType, typename DataType, bool IsDynamicKey = true>
 struct HASH_ELEMENT_STRING
 {
 	CharType* KeyVal;
@@ -529,6 +529,11 @@ struct HASH_ELEMENT_STRING
 
 	bool SetKey(CharType* vKey)
 	{
+		if(!IsDynamicKey)
+		{
+			KeyVal = vKey;
+			return true;
+		}
 		KeyVal = StringDuplicate(vKey);
 		if(KeyVal != nullptr)
 			return true;
@@ -537,7 +542,8 @@ struct HASH_ELEMENT_STRING
 
 	void DeleteKey()
 	{
-		free(KeyVal);
+		if(IsDynamicKey)
+			free(KeyVal);
 	}
 
 	//Get index in hash array by key value
@@ -568,8 +574,8 @@ struct HASH_ELEMENT_STRING
 /*
 	Hi level hash table using with key as string.
 */
-template<typename CharType, typename DataType>
-class HASH_TABLE_STRING_KEY: private HASH_TABLE<HASH_ELEMENT_STRING<CharType, DataType>, false, unsigned short>
+template<typename CharType, typename DataType, bool IsDynamicKey = true>
+class HASH_TABLE_STRING_KEY: private HASH_TABLE<HASH_ELEMENT_STRING<CharType, DataType, IsDynamicKey>, false, unsigned short>
 {
 	typedef HASH_TABLE<HASH_ELEMENT_STRING<CharType, DataType>, false, unsigned short> PARENT;
 public:
@@ -593,7 +599,6 @@ public:
 			{
 				//Если элемент существует
 				l = Elements + i;
-				//l->vKey-> .MarkAsUsed();
 				l->DeleteKey();
 			}
 		PARENT::Free();
