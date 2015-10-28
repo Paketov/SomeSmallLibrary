@@ -20,7 +20,7 @@ Example:
 		double   Val;
 
 		//Get key value
-		unsigned Key()    
+		unsigned HashKey()    
 		{
 			return vKey;
 		}
@@ -31,9 +31,9 @@ Example:
 		}
 
 		//Get index in hash array by key value
-		static unsigned char IndexByKey(unsigned Key, unsigned char MaxCount)
+		static unsigned char IndexByHashKey(unsigned HashKey, unsigned char MaxCount)
 		{
-			return (unsigned)Key % MaxCount;
+			return (unsigned)HashKey % MaxCount;
 		}	
 
 		//Get key by value
@@ -46,7 +46,7 @@ Example:
 		}
 
 		//Compare values
-		inline bool Cmp(double EnotherVal)
+		inline bool CmpKey(double EnotherVal)
 		{
 			return EnotherVal == Val;
 		}
@@ -66,14 +66,14 @@ template
 <
 	typename TElementStruct,
 	bool Type = false,
-	typename TIndex = decltype(TElementStruct::IndexByKey(std::variant_arg(), std::variant_arg())),
+	typename TIndex = decltype(TElementStruct::IndexByHashKey(std::variant_arg(), std::variant_arg())),
 	TIndex NothingIndex = TIndex(-1)
 >
 class HASH_TABLE
 {	
 public:
 	typedef TIndex											TINDEX,		      *LPTINDEX;
-	typedef decltype(std::declval<TElementStruct>().Key())	TKEY,			  *LPTKEY;
+	typedef decltype(std::declval<TElementStruct>().HashKey())	TKEY,			  *LPTKEY;
 	typedef TElementStruct									TPROPERTY_STRUCT, *LPTPROPERTY_STRUCT;
 
 
@@ -193,19 +193,19 @@ public:
 		return pCell->iNext != NothingIndex;
 	}
 
-	inline TINDEX IndexByHash(TKEY Key)
+	inline TINDEX IndexByHash(TKEY HashKey)
 	{
-		return TElementStruct::IndexByKey(Key, MaxCount);
+		return TElementStruct::IndexByHashKey(HashKey, MaxCount);
 	}
 
-	inline TINDEX StartIndexByHash(TKEY Key)
+	inline TINDEX StartIndexByHash(TKEY HashKey)
 	{
-		return (GetTable() + TElementStruct::IndexByKey(Key, MaxCount))->iStart;
+		return (GetTable() + TElementStruct::IndexByHashKey(HashKey, MaxCount))->iStart;
 	}
 
-	inline LPCELL ElementByHash(TKEY Key)
+	inline LPCELL ElementByHash(TKEY HashKey)
 	{
-		return GetTable() + TElementStruct::IndexByKey(Key, MaxCount);
+		return GetTable() + TElementStruct::IndexByHashKey(HashKey, MaxCount);
 	}
 
 	inline LPCELL operator[](TINDEX Index)
@@ -237,7 +237,7 @@ public:
 		for(TINDEX i = 0;i < Count; i++)
 		{
 			LPCELL CurCell = GetTable() + i;
-			LPCELL HashCell = ElementByHash(CurCell->Key());
+			LPCELL HashCell = ElementByHash(CurCell->HashKey());
 			CurCell->iNext = HashCell->iStart;
 			HashCell->iStart = i;
 		}
@@ -264,7 +264,7 @@ public:
 	{		
 		if(IsFull)
 			return NULL;
-		LPCELL HashCell = ElementByHash(TElementStruct::GenKey(SearchKey));	
+		LPCELL HashCell = ElementByHash(TElementStruct::GenHashKey(SearchKey));	
 		TINDEX iRetElem;
 		LPCELL lpRetElem = GetTable() + (iRetElem = IsFull.LastEmpty);
 		if(!lpRetElem->SetKey(SearchKey))
@@ -279,9 +279,9 @@ public:
 	template<typename T>
 	inline LPCELL InitInsertEx(T SearchKey)
 	{
-		LPCELL p, HashCell = ElementByHash(TElementStruct::GenKey(SearchKey));
+		LPCELL p, HashCell = ElementByHash(TElementStruct::GenHashKey(SearchKey));
 		for(TINDEX i = HashCell->iStart; i != NothingIndex; i = p->iNext)
-			if((p = GetTable() + i)->Cmp(SearchKey))
+			if((p = GetTable() + i)->CmpKey(SearchKey))
 				return p;
 		if(IsFull)
 			return NULL;
@@ -300,11 +300,11 @@ public:
 	template<typename T>
 	inline LPCELL Insert(T SearchKey)
 	{
-		TKEY Hash = TElementStruct::GenKey(SearchKey);
+		TKEY Hash = TElementStruct::GenHashKey(SearchKey);
 		LPCELL lpStart, p;
 
 		for(TINDEX i = (lpStart = ElementByHash(Hash))->iStart; i != NothingIndex; i = p->iNext)
-			if((p = GetTable() + i)->Cmp(SearchKey))
+			if((p = GetTable() + i)->CmpKey(SearchKey))
 				return p;
 		if(IsFull)
 		{
@@ -321,8 +321,8 @@ public:
 	inline LPCELL Search(T SearchKey)
 	{
 		LPCELL p;
-		for(TINDEX i = StartIndexByHash(TElementStruct::GenKey(SearchKey)); i != NothingIndex; i = p->iNext)
-			if((p = GetTable() + i)->Cmp(SearchKey))
+		for(TINDEX i = StartIndexByHash(TElementStruct::GenHashKey(SearchKey)); i != NothingIndex; i = p->iNext)
+			if((p = GetTable() + i)->CmpKey(SearchKey))
 				return p;
 		return nullptr;
 	}
@@ -332,19 +332,34 @@ public:
 	{
 		LPCELL p;
 		for(TINDEX i = CurElem->iNext; i != NothingIndex; i = p->iNext)
-			if((p = GetTable() + i)->Cmp(SearchKey))
+			if((p = GetTable() + i)->CmpKey(SearchKey))
 				return p;
 		return nullptr;
+	}
+
+
+	bool EnumValues(bool (*EnumFunc)(void* UserData, TElementStruct* Element), void* UserData = nullptr)
+	{
+		auto Elements = GetTable();
+		decltype(Elements) l, m = Elements + MaxCount;
+		for(auto p = Elements; p < m; p++)
+			for(auto i = p->iStart; i != EmptyElement; i = l->iNext)
+			{
+				l = Elements + i;
+				if(!EnumFunc(UserData, l))
+					return false;
+			}
+		return true;
 	}
 
 	template<typename T>
 	LPCELL Remove(T SearchKey)
 	{
 		LPCELL p;
-		for(LPTINDEX i = &(ElementByHash(TElementStruct::GenKey(SearchKey))->iStart); *i != NothingIndex; i = &(p->iNext))
+		for(LPTINDEX i = &(ElementByHash(TElementStruct::GenHashKey(SearchKey))->iStart); *i != NothingIndex; i = &(p->iNext))
 		{
 			p = GetTable() + *i;
-			if(p->Cmp(SearchKey))
+			if(p->CmpKey(SearchKey))
 			{
 				TINDEX j = *i;
 				*i = p->iNext;
@@ -365,7 +380,7 @@ public:
 		TINDEX i, m = MaxCount;
 		for(i = 0; i < m; i++)
 		{
-			LPCELL p = GetTable() + TElementStruct::IndexByKey(GetTable()[i].Key(), NewSize);
+			LPCELL p = GetTable() + TElementStruct::IndexByHashKey(GetTable()[i].HashKey(), NewSize);
 			GetTable()[i].iNext = p->iStart;
 			p->iStart = i;
 		}
@@ -401,7 +416,7 @@ public:
 		TINDEX i;
 		for(i = 0;i < CountUsed;i++)
 		{
-			LPCELL p = GetTable() + TElementStruct::IndexByKey(GetTable()[i].Key(), NewSize);
+			LPCELL p = GetTable() + TElementStruct::IndexByHashKey(GetTable()[i].HashKey(), NewSize);
 			GetTable()[i].iNext = p->iStart;
 			p->iStart = i;
 		}
@@ -483,6 +498,8 @@ public:
 	}
 
 
+
+
 	unsigned QualityInfo(char * Buffer, unsigned LenBuf)
 	{
 		unsigned CurLen = LenBuf, Len2, CurIndex = 0;
@@ -521,12 +538,15 @@ struct HASH_ELEMENT_STRING
 	CharType* KeyVal;
 	DataType  Val;
 
-	//Get key value
-	unsigned Key()    
+	//Get hash key
+	unsigned HashKey()    
 	{
-		return GenKey(KeyVal);
+		return GenHashKey(KeyVal);
 	}
 
+	/*
+		Set key value for Insert() function
+	*/
 	bool SetKey(CharType* vKey)
 	{
 		if(!IsDynamicKey)
@@ -540,20 +560,23 @@ struct HASH_ELEMENT_STRING
 		return false;
 	}
 
-	void DeleteKey()
+	/*
+	 For Remove function.
+	*/
+	inline void DeleteKey()
 	{
 		if(IsDynamicKey)
 			free(KeyVal);
 	}
 
 	//Get index in hash array by key value
-	static unsigned short IndexByKey(unsigned Key, unsigned char MaxCount)
+	static unsigned short IndexByHashKey(unsigned k, unsigned char MaxCount)
 	{
-		return Key % MaxCount;
+		return k % MaxCount;
 	}	
 
 	//Get key by value
-	inline static unsigned GenKey(CharType* vKey)	
+	inline static unsigned GenHashKey(CharType* vKey)	
 	{
 		unsigned h = 0;
 		for (unsigned s = 0; vKey[s] != CHAR_TYPE(CharType, '\0'); s++) 
@@ -562,7 +585,7 @@ struct HASH_ELEMENT_STRING
 	}
 
 	//Compare values
-	inline bool Cmp(CharType* EnotherKeyVal)
+	inline bool CmpKey(CharType* EnotherKeyVal)
 	{
 		if(EnotherKeyVal == KeyVal)
 			return true;
@@ -592,17 +615,36 @@ public:
 
 	~HASH_TABLE_STRING_KEY()
 	{			
-		auto Elements = GetTable();
-		decltype(Elements) m = Elements + MaxCount;
-		decltype(Elements) l;
-		for(auto p = Elements; p < m; p++)
-			for(auto i = p->iStart; i != PARENT::EmptyElement; i = l->iNext)
-			{
-				//Если элемент существует
-				l = Elements + i;
-				l->DeleteKey();
-			}
+		if(IsDynamicKey)
+		{
+			EnumValues
+			(
+				[](void*, HASH_ELEMENT_STRING<CharType, DataType, IsDynamicKey>* El) 
+				{
+					El->DeleteKey();
+					return true;
+				}
+			);
+		}
 		PARENT::Free();
+	}
+
+	bool Enum(bool (*EnumFunc)(void* UserData, CharType * Key, DataType* Value), void* UserData = nullptr)
+	{
+		struct DAT
+		{ 
+			  decltype(EnumFunc) func;
+			  void* data;
+		};
+		DAT Cur = {EnumFunc, UserData};
+		return EnumValues
+		(
+			[](void* Data, HASH_ELEMENT_STRING<CharType, DataType, IsDynamicKey>* El)
+			{
+				return ((DAT*)Data)->func(((DAT*)Data)->data, El->KeyVal, &(El->Val));
+			},
+			&Cur
+		);
 	}
 
 	DataType* Insert(CharType* NewKey)
@@ -615,20 +657,18 @@ public:
 
 	void Clear()
 	{
+
 		if(IsDynamicKey)
 		{
-			auto Elements = GetTable();
-			decltype(Elements) m = Elements + MaxCount;
-			decltype(Elements) l;
-			for(auto p = Elements; p < m; p++)
-				for(auto i = p->iStart; i != PARENT::EmptyElement; i = l->iNext)
+			EnumValues
+			(
+				[](void*, HASH_ELEMENT_STRING<CharType, DataType, IsDynamicKey>* El) 
 				{
-					//Если элемент существует
-					l = Elements + i;
-					l->DeleteKey();
+					El->DeleteKey();
+					return true;
 				}
+			);
 		}
-
 		Init(PARENT::MaxCount);
 	}
 
@@ -644,10 +684,10 @@ public:
 
 	DataType* operator [](CharType* SearchKey)
 	{
-	     auto Cell = Search(SearchKey);
-		 if(Cell == nullptr)
-			 return nullptr;
-		 return &(Cell->Val);
+		auto Cell = Search(SearchKey);
+		if(Cell == nullptr)
+			return nullptr;
+		return &(Cell->Val);
 	}
 
 };
