@@ -628,7 +628,7 @@ public:
 		Len2 = sprintf_s(
 			Buffer, 
 			CurLen, 
-			"Count elements: %u\nAlloc count elements: %u\nSize in byte: %u\nHash quality:\n", 
+			"Count elements: %u\nAlloc count elements: %u\nSize(in bytes): %u\nHash quality:\n", 
 			unsigned(CountUsed), 
 			unsigned(MaxCount), 
 			MaxCount * sizeof(CELL));
