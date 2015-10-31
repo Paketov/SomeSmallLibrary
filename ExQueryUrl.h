@@ -4201,6 +4201,8 @@ lblTryAgain:
 	virtual int Recive(std::basic_string<char>& StrBuf, int Flags = 0)
 	{
 		char* Buf;
+		//Ignore MSG_PEEK
+		Flags &= ~MSG_PEEK;
 		unsigned CurSize = 0, CountBytesInBuff;
 		CountBytesInBuff = CountPandingData + 2;
 		if(CountBytesInBuff < 50)
@@ -4224,8 +4226,6 @@ lblTryAgain:
 					CountBytesInBuff = 50;
 				StrBuf.append("", CountBytesInBuff);
 				Buf = (char*)StrBuf.c_str() + CurSize;
-				if(Flags & MSG_PEEK)
-					return CurSize;
 			}
 		}
 		*Buf = '\0';
