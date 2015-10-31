@@ -1,7 +1,7 @@
 #ifndef __QUERYURLOPENSSL_H_HAS_INCLUDED__
 #define __QUERYURLOPENSSL_H_HAS_INCLUDED__
 
-#include "ExQueryUrl.h"
+#	include "ExQueryUrl.h"
 
 #	include <openssl/crypto.h>
 #	include <openssl/x509.h>
@@ -619,7 +619,8 @@ lblErr:
 		if(SSLLastError.ssl == nullptr)
 			goto lblErr;
 		int ReadedSize;
-		if((ReadedSize = SSL_read(SSLLastError.ssl, Buf, SizeBuf)) < 0)
+		
+		if((ReadedSize = ((Flags == MSG_PEEK)? SSL_peek: SSL_read)(SSLLastError.ssl, Buf, SizeBuf)) < 0)
 		{
 			SSLLastError.Set();
 lblErr:
