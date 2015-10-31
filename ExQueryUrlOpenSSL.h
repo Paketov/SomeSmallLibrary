@@ -620,7 +620,7 @@ lblErr:
 			goto lblErr;
 		int ReadedSize;
 		
-		if((ReadedSize = ((Flags == MSG_PEEK)? SSL_peek: SSL_read)(SSLLastError.ssl, Buf, SizeBuf)) < 0)
+		if((ReadedSize = ((Flags & MSG_PEEK)? SSL_peek: SSL_read)(SSLLastError.ssl, Buf, SizeBuf)) < 0)
 		{
 			SSLLastError.Set();
 lblErr:
