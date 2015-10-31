@@ -4224,6 +4224,8 @@ lblTryAgain:
 					CountBytesInBuff = 50;
 				StrBuf.append("", CountBytesInBuff);
 				Buf = (char*)StrBuf.c_str() + CurSize;
+				if(Flags == MSG_PEEK)
+					return CurSize;
 			}
 		}
 		*Buf = '\0';
