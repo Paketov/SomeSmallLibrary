@@ -488,6 +488,7 @@ typedef UINT32 socklen_t;
 
 #	pragma comment(lib, "Ws2_32.lib")
 
+#undef max
 #	define INIT_WSA							\
 	if(winsock::GetWsa<true>() == nullptr)	\
 	{										\
@@ -1050,6 +1051,8 @@ public:
 		{
 			if(HostName.ai != nullptr)
 				freeaddrinfo(HostName.ai);
+			HostName.PortName->~basic_string();
+			HostName.HostName->~basic_string();
 		}
 
 
@@ -4198,20 +4201,29 @@ lblTryAgain:
 		return ReadedSize;
 	}
 
-	virtual int Recive(std::basic_string<char>& StrBuf, int Flags = 0)
+	virtual int Recive
+	(
+		std::basic_string<char>& StrBuf, 
+		std::basic_string<char>::size_type MaxLen = std::numeric_limits<std::basic_string<char>::size_type>::max(), 
+		int Flags = 0
+	)
 	{
 		char* Buf;
 		//Ignore MSG_PEEK
 		Flags &= ~MSG_PEEK;
-		unsigned CurSize = 0, CountBytesInBuff;
+		unsigned CurSize = 0, CountBytesInBuff, ReadedSize = 0;
 		CountBytesInBuff = CountPandingData + 2;
 		if(CountBytesInBuff < 50)
 			CountBytesInBuff = 50;
 		StrBuf.resize(CountBytesInBuff);
 		Buf = (char*)StrBuf.c_str();
 		while(true)
-		{
-			int ReadedSize = Recive(Buf, CountBytesInBuff, Flags);
+		{				
+			if(CurSize >= MaxLen)
+					break;
+			if(CountBytesInBuff > (MaxLen - CurSize))
+				CountBytesInBuff = MaxLen - CurSize; 
+			ReadedSize = Recive(Buf, CountBytesInBuff, Flags);
 			if(ReadedSize == SOCKET_ERROR)
 			{
 				URL_SET_LAST_ERR;
