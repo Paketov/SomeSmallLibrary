@@ -70,6 +70,8 @@ namespace std
 	private:
 	    char _Data[sizeof(TypeHaveConstructor)];
 	public:
+		typedef TypeHaveConstructor TVAL;
+
 		inline TypeHaveConstructor * operator->()
 		{
 		   return (TypeHaveConstructor*)_Data;
@@ -722,7 +724,7 @@ namespace std
 	{
 		const unsigned char __zeroval[sizeof(DestType)] = {0};
 		typedef typename remove_modifiers<DestType, rem_mod::POI_POICONST_VOLA_REF_RVREF>::type DEST_TYPE;
-		valueof(DestVal) = *((DEST_TYPE*)__zeroval);
+		((DEST_TYPE&)valueof(DestVal)) = *((DEST_TYPE*)__zeroval);
 	}
 
 
