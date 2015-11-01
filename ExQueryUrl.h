@@ -12,7 +12,7 @@
 
 
 #include "ExString.h"
-
+#include <limits>
 #ifdef _WIN32
 
 #	include <winsock.h>
@@ -1984,7 +1984,7 @@ protected:
 		return res;
 #else
 		int res;
-		if((res = ioctl(hSocket, FIONREAD, 0)) == -1)
+		if((res = fcntl(RemoteIp.hSocket, FIONREAD, 0)) == -1)
 			URL_SET_LAST_ERR;
 		return res;
 #endif
@@ -3864,7 +3864,6 @@ public:
 			return false;
 		}
 		RemoteIp.ProtocolType = iProtocol;
-		IsEnableSSL = false;
 	}
 
 
@@ -4236,7 +4235,7 @@ lblTryAgain:
 				CountBytesInBuff = CountPandingData;
 				if(CountBytesInBuff == 0)
 					CountBytesInBuff = 50;
-				StrBuf.append("", CountBytesInBuff);
+				StrBuf.resize(CurSize + CountBytesInBuff + 2);
 				Buf = (char*)StrBuf.c_str() + CurSize;
 			}
 		}
