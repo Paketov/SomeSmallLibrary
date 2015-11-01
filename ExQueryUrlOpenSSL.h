@@ -662,7 +662,7 @@ lblErr:
 				CountBytesInBuff = SSL_pending(SSLLastError.ssl);
 				if(CountBytesInBuff == 0)
 					CountBytesInBuff = 50;
-				StrBuf.append("", CountBytesInBuff);
+				StrBuf.resize(CurSize + CountBytesInBuff + 2);
 				Buf = (char*)StrBuf.c_str() + CurSize;
 			}
 		}
