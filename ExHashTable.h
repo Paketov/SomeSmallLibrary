@@ -449,9 +449,14 @@ public:
 			} IsEnd;
 		};
 
-		TINTER()
+		void StartAgain()
 		{
 			IsEnd.CurStartList = EmptyElement;
+		}
+
+		TINTER()
+		{
+			StartAgain();
 		}
 	} TINTER, *LPTINTER;
 
@@ -567,6 +572,8 @@ public:
 		else
 			free(this);
 	}
+
+
 
 	static bool Realloc(HASH_TABLE & Val, TINDEX NewSize)
 	{
@@ -719,11 +726,12 @@ struct HASH_ELEMENT_STRING
 /*
 	Hi level hash table using with key as string.
 */
-template<typename CharType, typename DataType, bool IsDynamicKey = true>
-class HASH_TABLE_STRING_KEY: private HASH_TABLE<HASH_ELEMENT_STRING<CharType, DataType, IsDynamicKey>, false, unsigned short>
+template<typename CharType, typename DataType, bool IsDynamicKey = true, typename IndexType = unsigned short>
+class HASH_TABLE_STRING_KEY: private HASH_TABLE<HASH_ELEMENT_STRING<CharType, DataType, IsDynamicKey>, false, IndexType>
 {
-	typedef HASH_TABLE<HASH_ELEMENT_STRING<CharType, DataType, IsDynamicKey>, false, unsigned short> PARENT;
 	typedef HASH_ELEMENT_STRING<CharType, DataType, IsDynamicKey> HASH_ELEMENT;
+	typedef HASH_TABLE<HASH_ELEMENT, false, IndexType> PARENT;
+	
 public:
 
 	PARENT::CountUsed;
@@ -809,7 +817,6 @@ public:
 
 	void Clear()
 	{
-
 		if(IsDynamicKey)
 		{
 			EnumValues
@@ -821,7 +828,12 @@ public:
 				}
 			);
 		}
-		Init(PARENT::MaxCount);
+		if(PARENT::MaxCount > 10)
+		{
+			Realloc(*this, 10);
+			Init(10);
+		}else
+			Init(PARENT::MaxCount);
 	}
 
 	void Remove(CharType* SrchKey)
@@ -834,7 +846,7 @@ public:
 			PARENT::DecreaseTable(CountUsed);
 	}
 
-	DataType* operator [](CharType* SearchKey)
+	DataType* operator [](const CharType* SearchKey)
 	{
 		auto Cell = Search(SearchKey);
 		if(Cell == nullptr)
