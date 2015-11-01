@@ -739,7 +739,7 @@ public:
 	PARENT::Interate;
 	PARENT::InteratorByKey;
 
-	typedef PARENT::TINTER TINTER, *LPTINTER;
+	typedef typename PARENT::TINTER TINTER, *LPTINTER;
 
 
 	HASH_TABLE_STRING_KEY(unsigned NewSize = 10)
@@ -779,7 +779,7 @@ public:
 	*/
 	CharType* In(CharType* Key = nullptr)
 	{
-		LPCELL Cell;
+		typename PARENT::LPCELL Cell;
 		if(Key == nullptr)
 			Cell = PARENT::GetStartCell();
 		else
@@ -842,7 +842,7 @@ public:
 		if(Res == nullptr)
 			return;
 		Res->DeleteKey();
-		if(MaxCount < (unsigned)(CountUsed *  1.61803398875f))
+		if(PARENT::MaxCount < (unsigned)(CountUsed *  1.61803398875f))
 			PARENT::DecreaseTable(CountUsed);
 	}
 
