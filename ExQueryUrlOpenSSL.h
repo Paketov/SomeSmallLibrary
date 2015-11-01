@@ -85,11 +85,6 @@ SSLErrOut:
 		}
 	}
 
-	virtual int EvntGetCountPandingData()
-	{
-		return SSL_pending(SSLLastError.ssl);
-	}
-
 
 	void InitFields()
 	{
@@ -630,12 +625,17 @@ lblErr:
 		return ReadedSize;
 	}
 
-	virtual int Recive(std::basic_string<char> & StrBuf, int Flags = 0)
+	virtual int Recive
+	(
+		std::basic_string<char>& StrBuf, 
+		std::basic_string<char>::size_type MaxLen = std::numeric_limits<std::basic_string<char>::size_type>::max(), 
+		int Flags = 0
+	)
 	{
 		if(SSLLastError.ssl == nullptr)
 			goto lblErr;
 		char * Buf;
-		unsigned CurSize = 0, CountBytesInBuff = 0;
+		unsigned CurSize = 0, CountBytesInBuff, ReadedSize = 0;
 		CountBytesInBuff = SSL_pending(SSLLastError.ssl);
 		if(CountBytesInBuff < 50)
 			CountBytesInBuff = 50;
@@ -643,6 +643,10 @@ lblErr:
 		Buf = (char*)StrBuf.c_str();
 		while(true)
 		{
+			if(CurSize >= MaxLen)
+					break;
+			if(CountBytesInBuff > (MaxLen - CurSize))
+				CountBytesInBuff = MaxLen - CurSize; 
 			int ReadedSize = SSL_read(SSLLastError.ssl, Buf, CountBytesInBuff);
 			if(ReadedSize < 0)
 			{
