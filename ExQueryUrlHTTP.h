@@ -413,7 +413,7 @@ public:
 			{
 				return SizeHeader;
 			}
-		} SizeHeader;
+		} Size;
 
 		class _HEADERS
 		{
