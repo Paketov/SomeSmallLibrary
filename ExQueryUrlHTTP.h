@@ -40,13 +40,13 @@ class __HTTP_RECIVE_QUERY
 	{
 		if(NewSize >= TypeMethod.MaxSizeBuffer)
 		{
-			TypeMethod.iLastErr = OUT_OF_MAX_SIZE_BUFFER;
+			TypeMethod.iLastErr = ERRORS::OUT_OF_MAX_SIZE_BUFFER;
 			return false;
 		}
 		void* NewBuf = realloc(TypeMethod.Buf, NewSize);
 		if(NewBuf == nullptr)
 		{
-			TypeMethod.iLastErr = NOT_ALLOC_MEMORY;
+			TypeMethod.iLastErr = ERRORS::NOT_ALLOC_MEMORY;
 			return false;
 		}
 		TypeMethod.SizeBuf = NewSize;
@@ -63,76 +63,61 @@ class __HTTP_RECIVE_QUERY
 		TypeMethod.Buf = nullptr;
 		TypeMethod.MaxSizeBuffer = 5000;
 		ResizeBuffer(1000);
-
+		TypeMethod.TypeMethod = METHODS::WRONG;
+		TypeMethod.MethodString = nullptr;
 		if(HTTPMethods.CountUsed == 0)
 		{
 			static struct
 			{
 				char* s;
 				unsigned char t;
-			} InitMethods[METHOD_MAX_COUNT] = 
+			} InitMethods[METHODS::WRONG] = 
 			{
-				{"HTTP",	METHOD_RESPONSE},
-				{"GET",		METHOD_GET},
-				{"POST",	METHOD_POST},
-				{"OPTIONS", METHOD_OPTIONS},
-				{"HEAD",	METHOD_HEAD},
-				{"PUT",		METHOD_PUT},
-				{"PATCH",	METHOD_PATCH},
-				{"DELETE",	METHOD_DELETE},
-				{"TRACE",	METHOD_TRACE},
-				{"CONNECT",	METHOD_CONNECT}
+				{"HTTP",	METHODS::RESPONSE},
+				{"GET",		METHODS::GET},
+				{"POST",	METHODS::POST},
+				{"OPTIONS", METHODS::OPT},
+				{"HEAD",	METHODS::HEAD},
+				{"PUT",		METHODS::PUT},
+				{"PATCH",	METHODS::PATCH},
+				{"DELETE",	METHODS::DEL},
+				{"TRACE",	METHODS::TRACE},
+				{"CONNECT",	METHODS::CONN}
 			};
-			for(unsigned i = 0; i < METHOD_MAX_COUNT; i++)
+			for(unsigned i = 0; i < METHODS::WRONG; i++)
 				*HTTPMethods.Insert(InitMethods[i].s) = InitMethods[i].t;
 			
 		}
 	}
 
-	bool ReadStartLine(char* Str, char* EndLine)
+	unsigned char GetTypeMethod(const char* Str, int* Len = nullptr)
+	{
+		int LenMethod = -1;
+		char MethodBuf[20];
+		MethodBuf[0] = '\0';
+		sscanf(Str, "%17[^ \t/]%n", MethodBuf, &LenMethod);
+		unsigned char* CurMethod = HTTPMethods[MethodBuf];
+
+		if(CurMethod == nullptr)
+			return METHODS::WRONG;
+		if(Len != nullptr)
+			*Len = LenMethod;
+		return *CurMethod;
+	}
+
+	bool ReadStartLine()
 	{
 
-		char* s = Str, *ms = TypeMethod.EndHeader, *p;
-
-		while(true)
-		{
-			if(!IsLatter(*s))
-				break;
-			s++;
-		}
-		if(s == Str)
-		{
-			TypeMethod.iLastErr = ERR_NOT_HTTP;
-			return false;
-		}
-
+		char* s = (char*)TypeMethod.Buf, *ms = TypeMethod.EndHeader;
 		/*
 		What is recived method?
 		*/
-		unsigned char* CurMethod;
-		char* EndMethod; 
+		int LenHeader = -1;
+		TypeMethod.TypeMethod = GetTypeMethod(s, &LenHeader);
+		
+		switch(TypeMethod.TypeMethod)
 		{
-			char c = *s;
-			*s = '\0';
-			EndMethod = s;
-			CurMethod = HTTPMethods[Str];
-			*s = c;
-		}
-		/*
-			If not have this method
-		*/
-		if(CurMethod == nullptr)	
-		{
-			TypeMethod.iLastErr = ERR_NOT_HTTP;
-			return false;	
-		}
-
-		TypeMethod.MethodString = Str;
-		TypeMethod.TypeMethod = *CurMethod;
-
-		switch(*CurMethod)
-		{
-		case METHOD_RESPONSE:
+		case METHODS::RESPONSE:
 			{
 				int PosVer = -1, StartNumMessage = -1, EndNumMessage = -1, StartMessage = -1, EndMessage = -1;
 				int r = sscanf
@@ -165,8 +150,8 @@ class __HTTP_RECIVE_QUERY
 				}
 			}
 			break;
-		case METHOD_POST:
-		case METHOD_GET:
+		case METHODS::POST:
+		case METHODS::GET:
 			{							
 				int StartQuery = -1, EndQuery = -1, StartVer = -1, EndVer = -1;
 				int r = sscanf
@@ -185,7 +170,7 @@ class __HTTP_RECIVE_QUERY
 					s[EndQuery] = '\0';
 				}else
 				{
-					TypeMethod.iLastErr = HEADER_NOT_HAVE_QUERY;
+					TypeMethod.iLastErr = ERRORS::HEADER_NOT_HAVE_QUERY;
 					return false;
 				}
 
@@ -198,24 +183,26 @@ class __HTTP_RECIVE_QUERY
 			}
 			break;
 
-		case METHOD_OPTIONS:
+		case METHODS::OPT:
 			break;
-		case METHOD_HEAD:
+		case METHODS::HEAD:
 			break;
-		case METHOD_PUT:
+		case METHODS::PUT:
 			break;
-		case METHOD_PATCH:
+		case METHODS::PATCH:
 			break;
-		case METHOD_DELETE:
+		case METHODS::DEL:
 			break;
-		case METHOD_TRACE:
+		case METHODS::TRACE:
 			break;
-		case METHOD_CONNECT:
+		case METHODS::CONN:
 			break;
-		case METHOD_MAX_COUNT:
-			break;
+		case METHODS::WRONG:
+			TypeMethod.iLastErr = ERRORS::NOT_HTTP;
+			return false;
 		}
-		*EndMethod = '\0';
+		TypeMethod.MethodString = s;
+		s[LenHeader] = '\0';
 		return true;
 	}
 
@@ -234,31 +221,40 @@ public:
 		TypeMethod.MethodData->~THASH_DATA();
 		TypeMethod.Headers->~THASH_DATA();
 	}
-	enum
+
+	struct ERRORS
 	{
-		ERR_NOT_HTTP,
-		NOT_HAVE_VER_PROTOCOL,
-		OUT_OF_MAX_SIZE_BUFFER,
-		NOT_ALLOC_MEMORY,
-		WRONG_GET_METHOD,
-		HEADER_NOT_HAVE_QUERY,
-		NOT_READED_FROM_SOCKET
+		enum
+		{
+			NOT_HTTP,
+			NOT_HAVE_VER_PROTOCOL,
+			OUT_OF_MAX_SIZE_BUFFER,
+			NOT_ALLOC_MEMORY,
+			WRONG_GET_METHOD,
+			HEADER_NOT_HAVE_QUERY,
+			NOT_READED_FROM_SOCKET,
+			NOT_HAVE_DATA_IN_SOCKET
+		};
 	};
 
-	enum 
+	struct METHODS
 	{
-		METHOD_RESPONSE = 0,
-		METHOD_GET,
-		METHOD_POST,
-		METHOD_OPTIONS,
-		METHOD_HEAD,
-		METHOD_PUT,
-		METHOD_PATCH,
-		METHOD_DELETE,
-		METHOD_TRACE,
-		METHOD_CONNECT,
-		METHOD_MAX_COUNT
+		enum 
+		{
+			RESPONSE = 0,	//RESPONSE
+			GET,			//GET
+			POST,			//POST
+			OPT,			//OPTIONS
+			HEAD,			//HEAD
+			PUT,			//PUT
+			PATCH,			//PATCH
+			DEL,			//DELETE
+			TRACE,			//TRACE
+			CONN,			//CONNECT
+			WRONG
+		};
 	};
+
 
 	typedef THASH_DATA::TINTER TINTER;
 
@@ -296,8 +292,7 @@ public:
 			    return Count.MethodData->Interate(Interator);
 			}
 		} MethodData;
-
-				
+	
 		class _HEADERS
 		{
 		public:
@@ -352,7 +347,6 @@ public:
 			}
 		} Method;
 
-
 		class
 		{
 			 __HTTP_RECIVE_QUERY_FIELDS;
@@ -385,12 +379,27 @@ public:
 			return false;
 
 		int CountReaded, r;
-		while(1)
+		while(true)
 		{
-			CountReaded = QueryUrl->Recive(TypeMethod.Buf, TypeMethod.SizeBuf, MSG_PEEK);
+			CountReaded = QueryUrl->Recive(TypeMethod.Buf, TypeMethod.SizeBuf - 2, MSG_PEEK);
+			if(CountReaded == -1)
+			{
+				TypeMethod.iLastErr = ERRORS::NOT_READED_FROM_SOCKET;
+				return false;
+			}else if(CountReaded == 0)
+			{
+				TypeMethod.iLastErr = ERRORS::NOT_HAVE_DATA_IN_SOCKET;
+				return false;
+			}
+			((char*)TypeMethod.Buf)[CountReaded] = '\0';
 			TypeMethod.EndHeader = (char*)StringSearch((char*)TypeMethod.Buf, "\r\n\r\n");
 			if(TypeMethod.EndHeader == nullptr)
 			{
+				if(GetTypeMethod((char*)TypeMethod.Buf) == METHODS::WRONG)
+				{
+					TypeMethod.iLastErr = ERRORS::NOT_HTTP;
+					return false;
+				}
 				if(!ResizeBuffer(TypeMethod.SizeBuf + 300))
 					return false;
 				continue;
@@ -401,11 +410,12 @@ public:
 		TypeMethod.Headers->Clear();
 		TypeMethod.MethodData->Clear();
 		TypeMethod.ContentLength = 0;
+		TypeMethod.TypeMethod = METHODS::WRONG;
 		char* p = (char*)TypeMethod.Buf, *e;
 		e = (char*)StringSearch(p, "\r\n");
 		*e = '\0';
 
-		if(!ReadStartLine(p, e))
+		if(!ReadStartLine())
 			return false;
 
 		while(true)
