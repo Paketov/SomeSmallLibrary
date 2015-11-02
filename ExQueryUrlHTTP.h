@@ -15,17 +15,18 @@ class __HTTP_RECIVE_QUERY
 	typedef HASH_TABLE_STRING_KEY<char, char*, false> THASH_DATA;
 #define __HTTP_RECIVE_QUERY_FIELDS \
 	struct{\
-	void*	Buf;\
-	size_t	SizeBuf;\
-	size_t	SizeData;\
-	size_t	MaxSizeBuffer;\
-	size_t	ReadedSizeData;\
-	int		iLastErr;\
-	char*			EndHeader;\
+	void*			Buf;\
+	size_t			SizeBuf;\
+	size_t			MaxSizeBuffer;\
+	size_t			SizeHeader;\
+	int				iLastErr;\
 	unsigned char	TypeMethod;\
 	char*			MethodString;\
 	size_t			ContentLength;\
-	std::def_var_in_union_with_constructor<THASH_DATA>	MethodData;\
+	char*			Path;\
+	char*			VerProt;\
+	int				Status;\
+	char*			StatusMsg;\
 	std::def_var_in_union_with_constructor<THASH_DATA>	Headers;\
 	}
 
@@ -57,7 +58,6 @@ class __HTTP_RECIVE_QUERY
 	void InitFields()
 	{		
 		LastError.Clear();
-		new(&TypeMethod.MethodData)  THASH_DATA();
 		new(&TypeMethod.Headers)  THASH_DATA();
 		TypeMethod.ContentLength = 0;
 		TypeMethod.Buf = nullptr;
@@ -65,6 +65,12 @@ class __HTTP_RECIVE_QUERY
 		ResizeBuffer(1000);
 		TypeMethod.TypeMethod = METHODS::WRONG;
 		TypeMethod.MethodString = nullptr;
+
+		TypeMethod.Status = 0;
+		TypeMethod.StatusMsg = (char*)GetMsgByStatus(TypeMethod.Status);
+		TypeMethod.Path = "";
+		TypeMethod.VerProt = "";
+
 		if(HTTPMethods.CountUsed == 0)
 		{
 			static struct
@@ -73,21 +79,39 @@ class __HTTP_RECIVE_QUERY
 				unsigned char t;
 			} InitMethods[METHODS::WRONG] = 
 			{
-				{"HTTP",	METHODS::RESPONSE},
-				{"GET",		METHODS::GET},
-				{"POST",	METHODS::POST},
-				{"OPTIONS", METHODS::OPT},
-				{"HEAD",	METHODS::HEAD},
-				{"PUT",		METHODS::PUT},
-				{"PATCH",	METHODS::PATCH},
-				{"DELETE",	METHODS::DEL},
-				{"TRACE",	METHODS::TRACE},
-				{"CONNECT",	METHODS::CONN}
+				{"HTTP",		METHODS::RESPONSE},
+				{"GET",			METHODS::GET},
+				{"POST",		METHODS::POST},
+				{"OPTIONS",		METHODS::OPT},
+				{"HEAD",		METHODS::HEAD},
+				{"PUT",			METHODS::PUT},
+				{"PATCH",		METHODS::PATCH},
+				{"DELETE",		METHODS::DEL},
+				{"TRACE",		METHODS::TRACE},
+				{"CONNECT",		METHODS::CONN},
+				{"MKCOL",		METHODS::MKCOL},
+				{"COPY",		METHODS::COPY},
+				{"MOVE",		METHODS::MOVE},
+				{"PROPFIND",	METHODS::PROPFIND},
+				{"PROPPATCH",	METHODS::PROPPATCH},
+				{"LOCK",		METHODS::LOCK},
+				{"UNLOCK",		METHODS::UNLOCK}
 			};
 			for(unsigned i = 0; i < METHODS::WRONG; i++)
 				*HTTPMethods.Insert(InitMethods[i].s) = InitMethods[i].t;
 			
 		}
+	}
+
+	void ReinitFields()
+	{		
+		TypeMethod.SizeHeader = 0;
+		TypeMethod.TypeMethod = METHODS::WRONG;
+		TypeMethod.Status = 0;
+		TypeMethod.StatusMsg = (char*)GetMsgByStatus(TypeMethod.Status);
+		TypeMethod.MethodString = TypeMethod.VerProt = TypeMethod.Path = "";
+		TypeMethod.Headers->Clear();
+		TypeMethod.ContentLength = 0;
 	}
 
 	unsigned char GetTypeMethod(const char* Str, int* Len = nullptr)
@@ -107,14 +131,14 @@ class __HTTP_RECIVE_QUERY
 
 	bool ReadStartLine()
 	{
-
-		char* s = (char*)TypeMethod.Buf, *ms = TypeMethod.EndHeader;
+		char* s = (char*)TypeMethod.Buf;
 		/*
 		What is recived method?
 		*/
-		int LenHeader = -1;
+		int LenHeader = 0;
 		TypeMethod.TypeMethod = GetTypeMethod(s, &LenHeader);
-		
+		s += LenHeader;
+
 		switch(TypeMethod.TypeMethod)
 		{
 		case METHODS::RESPONSE:
@@ -123,35 +147,42 @@ class __HTTP_RECIVE_QUERY
 				int r = sscanf
 				(
 					s, 
-					"/%*[1234567890.]%n%*[ \t\v\f\r]%n%*[1234567890]%n%*[ \t\v\f\r]%n%*s%n", 
+					"/%*[1234567890.]%n%*[ \t\v\f\r]%n%i%n%*[ \t\v\f\r]%n%*s%n", 
 					&PosVer, 
 					&StartNumMessage, 
+					&TypeMethod.Status,
 					&EndNumMessage,
 					&StartMessage, 
 					&EndMessage
 				);
 				if(PosVer >= 0)
 				{
-					static const char * Key = "ver_prot";
-					*TypeMethod.MethodData->Insert((char*)Key) = s + 1;
+					TypeMethod.VerProt = s + 1;
 					s[PosVer] = '\0';
 				}
-				if(EndNumMessage >= 0)
-				{
-					static const char * Key = "status";
-					*TypeMethod.MethodData->Insert((char*)Key) = s + StartNumMessage;
-					s[EndNumMessage] = '\0';
-				}					
+
 				if(EndMessage >= 0)
-				{
-					static const char * Key = "status_msg";
-					*TypeMethod.MethodData->Insert((char*)Key) = s + StartMessage;
-					s[EndMessage] = '\0';
-				}
+					TypeMethod.StatusMsg = s + StartMessage;
+				else
+					TypeMethod.StatusMsg = (char*)GetMsgByStatus(TypeMethod.Status);
 			}
 			break;
 		case METHODS::POST:
 		case METHODS::GET:
+		case METHODS::MKCOL:
+		case METHODS::COPY:
+		case METHODS::MOVE:
+		case METHODS::DEL:
+		case METHODS::PROPPATCH:
+		case METHODS::PROPFIND:
+		case METHODS::LOCK:
+		case METHODS::UNLOCK:
+		case METHODS::HEAD:
+		case METHODS::PUT:
+		case METHODS::PATCH:
+		case METHODS::TRACE:
+		case METHODS::OPT:
+		case METHODS::CONN:
 			{							
 				int StartQuery = -1, EndQuery = -1, StartVer = -1, EndVer = -1;
 				int r = sscanf
@@ -165,48 +196,56 @@ class __HTTP_RECIVE_QUERY
 				);
 				if(EndQuery >= 0)
 				{
-					static const char * Key = "query";
-					*TypeMethod.MethodData->Insert((char*)Key) = s + StartQuery;
+					TypeMethod.Path = s + StartQuery;
 					s[EndQuery] = '\0';
 				}else
 				{
 					TypeMethod.iLastErr = ERRORS::HEADER_NOT_HAVE_QUERY;
 					return false;
 				}
-
 				if(EndVer >= 0)
 				{
-				   	static const char * Key = "ver_prot";
-					*TypeMethod.MethodData->Insert((char*)Key) = s + StartVer;
+					TypeMethod.VerProt = s + StartVer;
 					s[EndVer] = '\0';
 				}
 			}
-			break;
-
-		case METHODS::OPT:
-			break;
-		case METHODS::HEAD:
-			break;
-		case METHODS::PUT:
-			break;
-		case METHODS::PATCH:
-			break;
-		case METHODS::DEL:
-			break;
-		case METHODS::TRACE:
-			break;
-		case METHODS::CONN:
 			break;
 		case METHODS::WRONG:
 			TypeMethod.iLastErr = ERRORS::NOT_HTTP;
 			return false;
 		}
-		TypeMethod.MethodString = s;
-		s[LenHeader] = '\0';
+		TypeMethod.MethodString = (char*)TypeMethod.Buf;
+		TypeMethod.MethodString[LenHeader] = '\0';
 		return true;
 	}
 
 public:
+
+	static const char * GetMsgByStatus(int Status)
+	{
+		switch(Status)
+		{
+		case 200:	return "OK";
+		case 201:	return "Created";
+		case 202:	return "Accepted";
+		case 204:	return "No Content";
+		case 301:	return "Moved Permanently";
+		case 302:	return "Moved Temporarily";
+		case 304:	return "Not Modified";
+		case 400:	return "Bad Request";
+		case 401:	return "Unauthorized";
+		case 403:	return "Forbidden";
+		case 404:	return "Not Found";
+		case 500:	return "Internal Server Error";
+		case 501:	return "Not Implemented";
+		case 502:	return "Bad Gateway";
+		case 503:	return "Service Unavailable";
+		}
+		return "";
+	}
+
+
+
 	QUERY_URL* QueryUrl;
 
 	__HTTP_RECIVE_QUERY()
@@ -218,7 +257,6 @@ public:
 	{
 		if(TypeMethod.Buf != nullptr)
 			free(TypeMethod.Buf);
-		TypeMethod.MethodData->~THASH_DATA();
 		TypeMethod.Headers->~THASH_DATA();
 	}
 
@@ -244,13 +282,20 @@ public:
 			RESPONSE = 0,	//RESPONSE
 			GET,			//GET
 			POST,			//POST
-			OPT,			//OPTIONS
+			OPT,			//OPTIONS	(Get options for this server)
 			HEAD,			//HEAD
 			PUT,			//PUT
 			PATCH,			//PATCH
 			DEL,			//DELETE
 			TRACE,			//TRACE
-			CONN,			//CONNECT
+			CONN,			//CONNECT	(Connection with proxy server)
+			MKCOL,			//MKCOL		(Create catalog)
+			COPY,			//COPY		(Copy catalog or file)
+			MOVE,			//MOVE		(Move file or catalog)
+			PROPFIND,		//PROPFIND	(Get property of file)
+			PROPPATCH,		//PROPPATCH	(Changing the properties of a file or directory)
+			LOCK,			//LOCK
+			UNLOCK,			//UNLOCK
 			WRONG
 		};
 	};
@@ -260,39 +305,60 @@ public:
 
 	union
 	{
-		class _METHOD_DATA
+
+		class
 		{
+			__HTTP_RECIVE_QUERY_FIELDS;
 		public:
-			class
+			operator const char*()
 			{
-			   friend _METHOD_DATA;
-			   __HTTP_RECIVE_QUERY_FIELDS;
-			public:
-				operator size_t()
-				{
-				   return MethodData->CountUsed;
-				}
-			} Count;
-
-			const char* operator[](const char* Key)
-			{
-				char ** r = Count.MethodData->operator[](Key);
-				if(r == nullptr)
-					return nullptr;
-				return *r;
+				return VerProt;
 			}
+		} ProtVer;
 
-			inline const char* In(const char* Key = nullptr)
+		/*
+		When recived METHODS::POST, METHODS::GET, or another.
+		*/
+		class
+		{
+			__HTTP_RECIVE_QUERY_FIELDS;
+		public:
+			operator const char*()
 			{
-			    return Count.MethodData->In(Key);
+				return Path;
 			}
+		} Path;
 
-			bool Interate(TINTER* Interator)
+		class
+		{
+			__HTTP_RECIVE_QUERY_FIELDS;
+		public:
+			operator const char*()
 			{
-			    return Count.MethodData->Interate(Interator);
+				return Status;
 			}
-		} MethodData;
-	
+		} Status;
+
+		class
+		{
+			__HTTP_RECIVE_QUERY_FIELDS;
+		public:
+			operator const int()
+			{
+				return StatusMsg;
+			}
+		} StatusMsg;
+
+		class
+		{
+			__HTTP_RECIVE_QUERY_FIELDS;
+		public:
+			operator size_t()
+			{
+				return SizeHeader;
+			}
+		} SizeHeader;
+
 		class _HEADERS
 		{
 		public:
@@ -373,12 +439,15 @@ public:
 		} ContentLength;
 	};
 
+
+
 	bool Read()
 	{
 		if(QueryUrl->IsNotHaveRecvData)
 			return false;
-
 		int CountReaded, r;
+		ReinitFields();
+		char* EndHeader;
 		while(true)
 		{
 			CountReaded = QueryUrl->Recive(TypeMethod.Buf, TypeMethod.SizeBuf - 2, MSG_PEEK);
@@ -392,8 +461,8 @@ public:
 				return false;
 			}
 			((char*)TypeMethod.Buf)[CountReaded] = '\0';
-			TypeMethod.EndHeader = (char*)StringSearch((char*)TypeMethod.Buf, "\r\n\r\n");
-			if(TypeMethod.EndHeader == nullptr)
+			EndHeader = (char*)StringSearch((char*)TypeMethod.Buf, "\r\n\r\n");
+			if(EndHeader == nullptr)
 			{
 				if(GetTypeMethod((char*)TypeMethod.Buf) == METHODS::WRONG)
 				{
@@ -405,12 +474,10 @@ public:
 				continue;
 			}
 			break;
-		}
+		}		
+		
+		TypeMethod.SizeHeader = (size_t)EndHeader - (size_t)TypeMethod.Buf + 4;
 
-		TypeMethod.Headers->Clear();
-		TypeMethod.MethodData->Clear();
-		TypeMethod.ContentLength = 0;
-		TypeMethod.TypeMethod = METHODS::WRONG;
 		char* p = (char*)TypeMethod.Buf, *e;
 		e = (char*)StringSearch(p, "\r\n");
 		*e = '\0';
@@ -421,7 +488,7 @@ public:
 		while(true)
 		{
 			p = e + 2;
-			if(p >= TypeMethod.EndHeader)
+			if(p >= EndHeader)
 				break;
 			e = (char*)StringSearch(p, "\r\n");
 			*e = '\0';
@@ -442,8 +509,8 @@ public:
 			TypeMethod.ContentLength = l;
 		}
 
-		size_t LenHeader = ((unsigned long long)TypeMethod.EndHeader - (unsigned long long)TypeMethod.Buf) + 4;
-		{
+		{		
+			size_t LenHeader = TypeMethod.SizeHeader;
 			char RecBuf[1000];
 			do{
 				size_t l = (LenHeader > 1000)?1000:LenHeader;
