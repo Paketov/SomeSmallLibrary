@@ -509,6 +509,7 @@ typedef UINT32 socklen_t;
 #	include <unistd.h>
 #	include <poll.h>
 #	include <fcntl.h>
+#	include <sys/ioctl.h>
 #	include <errno.h>
 #	if defined(__linux__)
 #		include <sys/sendfile.h>
@@ -534,7 +535,7 @@ typedef UINT32 socklen_t;
 #	define SOCKET_ERROR (-1)
 #endif
 
-#define __QUERY_URL_PROPERTY_THIS ((__QUERY_URL*)((char*)this - ((off_t)&((__QUERY_URL*)0)->CountPandingData)))
+#define __QUERY_URL_PROPERTY_THIS ((__QUERY_URL*)((char*)this - ((unsigned)&((__QUERY_URL*)0)->LastError)))
 
 #define URL_SET_LAST_ERR {((__QUERY_URL*)this)->RemoteIp.iError = LAST_ERR_SOCKET;}
 #define URL_SET_LAST_ERR_VAL(Val) {((__QUERY_URL*)this)->RemoteIp.iError = (Val);}
@@ -1984,7 +1985,7 @@ protected:
 		return res;
 #else
 		int res;
-		if((res = fcntl(RemoteIp.hSocket, FIONREAD, 0)) == -1)
+		if(ioctl(RemoteIp.hSocket, FIONREAD, &res) < 0)
 			URL_SET_LAST_ERR;
 		return res;
 #endif
