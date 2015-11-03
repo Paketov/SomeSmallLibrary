@@ -1,5 +1,5 @@
-#ifndef __EX_STRING_H__
-#define __EX_STRING_H__
+#ifndef __EX_STRING_H_HAS_INCLUDED__
+#define __EX_STRING_H_HAS_INCLUDED__
 
 /*
      ExString
@@ -40,7 +40,7 @@
 #include <Windowsx.h>
 #endif
 
-
+#define OFFSET_P(Pointer1, Pointer2) ((off_t)((size_t)(Pointer2) - (size_t)(Pointer1)))
 #define STR_TYPE(_Type,_Str)		((std::is_equal<_Type, wchar_t>::value)?(_Type*)(L ## _Str):(_Type*)(_Str))
 #define CHAR_TYPE(_Type, _Char)		((_Type)((std::is_equal<_Type, char>::value)?(_Char):(L ## _Char)))
 #define NOT_LESS_Z(Num)			 ((0 > std::make_signed<decltype(Num)>::type(Num))?0:Num)
@@ -94,14 +94,22 @@ typedef RET_STAT<size_t> STR_STAT;
 
 
 template<typename OutString>
-void ConvertCodePageString(unsigned InCp, unsigned OutCp, const wchar_t * InStr, OutString & OutStr)
+void StringConvertCodePage(unsigned InCp, unsigned OutCp, const wchar_t * InStr, OutString & OutStr)
 {
 	std::basic_string<wchar_t> TmpStr(InStr);
-	ConvertCodePageString(InCp, OutCp, TmpStr, OutStr);
+	StringConvertCodePage(InCp, OutCp, TmpStr, OutStr);
 }
 
+template<typename OutString>
+void StringConvertCodePage(unsigned InCp, unsigned OutCp, const char * InStr, OutString & OutStr)
+{
+	std::basic_string<char> TmpStr(InStr);
+	StringConvertCodePage(InCp, OutCp, TmpStr, OutStr);
+}
+
+
 template<typename InString, typename OutString>
-void ConvertCodePageString(unsigned InCp, unsigned OutCp, const InString & InStr, OutString & OutStr)
+void StringConvertCodePage(unsigned InCp, unsigned OutCp, const InString & InStr, OutString & OutStr)
 {
 	typedef typename InString::value_type _InCharType;
 	typedef typename OutString::value_type _OutCharType;
@@ -207,12 +215,6 @@ void ConvertCodePageString(unsigned InCp, unsigned OutCp, const InString & InStr
 
 }
 
-template<typename OutString>
-void ConvertCodePageString(unsigned InCp, unsigned OutCp, const char * InStr, OutString & OutStr)
-{
-	std::basic_string<char> TmpStr(InStr);
-	ConvertCodePageString(InCp, OutCp, TmpStr, OutStr);
-}
 
 template<typename T>
 std::basic_string<T> & operator<<(std::basic_string<T> & StrDest, const int Val)
@@ -1242,6 +1244,27 @@ inline int StringICompare(const wchar_t * Str1, const wchar_t * Str2)
 #endif
 }
 
+inline char * StringAppend(char * Dest, const char * Source)
+{
+    return strcat(Dest, Source);
+}
+
+inline wchar_t * StringAppend(wchar_t * Dest, const wchar_t * Source)
+{
+    return wcscat(Dest, Source);
+}
+
+inline char * StringAppend(char * Dest, const char * Source, size_t Count)
+{
+    return strncat(Dest, Source, Count);
+}
+
+inline wchar_t * StringAppend(wchar_t * Dest, const wchar_t * Source, size_t Count)
+{
+    return wcsncat(Dest, Source, Count);
+}
+
+
 inline char * StringCopy(char * Dest, const char * Source, size_t MaxCount)
 {
   return strncpy(Dest, Source, MaxCount);
@@ -1260,6 +1283,17 @@ inline char * StringCopy(char * Dest, const char * Source)
 inline wchar_t * StringCopy(wchar_t * Dest, const wchar_t * Source)
 {
   return wcscpy(Dest, Source);
+}
+
+
+inline char * StringDuplicate(const char * Source)
+{
+   return strdup(Source);
+}
+
+inline wchar_t * StringDuplicate(const wchar_t * Source)
+{
+   return wcsdup(Source);
 }
 
 template<typename TypeChar, typename StreamType, TypeChar (*GetChar)(StreamType), void (*UngetChar)(StreamType, TypeChar)>
@@ -1356,7 +1390,7 @@ void CodeUrl(const InString & InStr, OutString & OutStr, unsigned InCodePage = C
 	if(std::is_equal<_InCharType, wchar_t>::value)
 	{
 		std::string a;
-		ConvertCodePageString(0,CP_UTF8,InStr, a);
+		StringConvertCodePage(0,CP_UTF8,InStr, a);
 		unsigned SizeOutStr = a.length() * 3;
 		OutStr.resize(SizeOutStr);
 		if(std::is_equal<_InCharType, wchar_t>::value)
@@ -1372,7 +1406,7 @@ void CodeUrl(const InString & InStr, OutString & OutStr, unsigned InCodePage = C
 	{
 		std::string a;
 		if(InCodePage != CP_UTF8)
-			ConvertCodePageString(InCodePage,CP_UTF8,InStr, a);
+			StringConvertCodePage(InCodePage,CP_UTF8,InStr, a);
 		else
 			a = (char*)InStr.c_str();
 		unsigned SizeOutStr = a.length() * 3;
