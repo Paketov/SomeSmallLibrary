@@ -21,7 +21,6 @@ template<bool>
 class WND_COMBO__;
 template<bool>
 class WND_LIST__;
-
 template<bool>
 class EX_WND__;
 
