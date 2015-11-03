@@ -17,10 +17,22 @@
 #pragma comment(lib, "comctl32.lib")
 #endif
 
-class WND_COMBO;
-class WND_LIST;
+template<bool>
+class WND_COMBO__;
+template<bool>
+class WND_LIST__;
 
-class EX_WND
+template<bool>
+class EX_WND__;
+
+
+typedef WND_COMBO__<true>	WND_COMBO;
+typedef WND_LIST__<true>	WND_LIST;
+typedef EX_WND__<true>		EX_WND;
+
+
+template<bool>
+class EX_WND__
 {
 public:
 	union
@@ -401,60 +413,60 @@ public:
 
 			inline operator WNDCLASSW()
 			{		
-				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
+				std::basic_string<WCHAR> Name = ((EX_WND__*)this)->NameClass;
 				WNDCLASSW WndClass = {0};
-				GetClassInfoW(((EX_WND*)this)->Instance,Name.c_str(),&WndClass);
+				GetClassInfoW(((EX_WND__*)this)->Instance,Name.c_str(),&WndClass);
 				return WndClass;
 			}
 
 			inline operator WNDCLASSA()
 			{		
-				std::basic_string<CHAR> Name = ((EX_WND*)this)->NameClass;
+				std::basic_string<CHAR> Name = ((EX_WND__*)this)->NameClass;
 				WNDCLASSA WndClass = {0};
-				GetClassInfoA(((EX_WND*)this)->Instance,Name.c_str(),&WndClass);
+				GetClassInfoA(((EX_WND__*)this)->Instance,Name.c_str(),&WndClass);
 				return WndClass;
 			}
 
 			inline operator WNDCLASSEXW()
 			{
-				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
+				std::basic_string<WCHAR> Name = ((EX_WND__*)this)->NameClass;
 				WNDCLASSEXW WndClass = {0};
 				WndClass.cbSize = sizeof(WndClass);
-				GetClassInfoExW(((EX_WND*)this)->Instance, Name.c_str(),&WndClass);
+				GetClassInfoExW(((EX_WND__*)this)->Instance, Name.c_str(),&WndClass);
 				return WndClass;
 			}
 
 			inline operator WNDCLASSEXA()
 			{
-				std::basic_string<CHAR> Name = ((EX_WND*)this)->NameClass;
+				std::basic_string<CHAR> Name = ((EX_WND__*)this)->NameClass;
 				WNDCLASSEXA WndClass = {0};
 				WndClass.cbSize = sizeof(WndClass);
-				GetClassInfoExA(((EX_WND*)this)->Instance, Name.c_str(),&WndClass);
+				GetClassInfoExA(((EX_WND__*)this)->Instance, Name.c_str(),&WndClass);
 				return WndClass;
 			}
 
 			inline bool operator()(LPWNDCLASSW lpWndClass)
 			{		
-				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
-				return GetClassInfoW(((EX_WND*)this)->Instance,Name.c_str(),lpWndClass) != 0;
+				std::basic_string<WCHAR> Name = ((EX_WND__*)this)->NameClass;
+				return GetClassInfoW(((EX_WND__*)this)->Instance,Name.c_str(),lpWndClass) != 0;
 			}
 
 			inline bool operator()(LPWNDCLASSA lpWndClass)
 			{		
-				std::basic_string<CHAR> Name = ((EX_WND*)this)->NameClass;
-				return GetClassInfoA(((EX_WND*)this)->Instance,Name.c_str(),lpWndClass) != 0;
+				std::basic_string<CHAR> Name = ((EX_WND__*)this)->NameClass;
+				return GetClassInfoA(((EX_WND__*)this)->Instance,Name.c_str(),lpWndClass) != 0;
 			}
 
 			inline bool operator()(LPWNDCLASSEXW lpWndClass)
 			{		
-				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
-				return GetClassInfoExW(((EX_WND*)this)->Instance,Name.c_str(),lpWndClass) != 0;
+				std::basic_string<WCHAR> Name = ((EX_WND__*)this)->NameClass;
+				return GetClassInfoExW(((EX_WND__*)this)->Instance,Name.c_str(),lpWndClass) != 0;
 			}
 
 			inline bool operator()(LPWNDCLASSEXA lpWndClass)
 			{		
-				std::basic_string<CHAR> Name = ((EX_WND*)this)->NameClass;
-				return GetClassInfoExA(((EX_WND*)this)->Instance,Name.c_str(),lpWndClass) != 0;
+				std::basic_string<CHAR> Name = ((EX_WND__*)this)->NameClass;
+				return GetClassInfoExA(((EX_WND__*)this)->Instance,Name.c_str(),lpWndClass) != 0;
 			}
 		} Class;
 
@@ -472,7 +484,7 @@ public:
 		} Dc;
 
 		/*
-		*EX_WND, HWND; Get, Set;
+		*EX_WND__, HWND; Get, Set;
 		*Changes the parent window of the specified child window. 
 		*/
 		class
@@ -480,7 +492,7 @@ public:
 			HWND hWnd;
 		public:
 
-			inline operator EX_WND()
+			inline operator EX_WND__()
 			{
 				return ::GetParent(hWnd);
 			}
@@ -490,7 +502,7 @@ public:
 				return ::GetParent(hWnd);
 			}
 
-			inline EX_WND operator=(EX_WND NewStyle)
+			inline EX_WND__ operator=(EX_WND__ NewStyle)
 			{
 				return ::SetParent(hWnd, NewStyle);
 			}
@@ -500,7 +512,7 @@ public:
 				return ::SetParent(hWnd, NewStyle);
 			}
 
-			inline EX_WND operator()()
+			inline EX_WND__ operator()()
 			{
 				return ::GetParent(hWnd);
 			}
@@ -562,10 +574,10 @@ public:
 		} IsIconic;
 
 		/*
-		*WND_COMBO, HWND, EX_WND; Get;
+		*WND_COMBO__, HWND, EX_WND__; Get;
 		*Represet window as ComboBox.
 		*/
-		//WND_COMBO AsCombo;
+		//WND_COMBO__ AsCombo;
 
 	};
 
@@ -574,12 +586,12 @@ public:
 		return hWnd;
 	}
 
-	inline EX_WND()
+	inline EX_WND__()
 	{	
 		hWnd = NULL;
 	}
 
-	inline EX_WND(HWND nhWnd)
+	inline EX_WND__(HWND nhWnd)
 	{
 		hWnd = nhWnd;
 	}
@@ -589,7 +601,7 @@ public:
 		return hWnd != NULL;
 	}
 
-	inline operator EX_WND*()
+	inline operator EX_WND__*()
 	{
 		return this;
 	}
@@ -609,9 +621,9 @@ private:
 			return &hWnd;
 		}
 
-		inline operator EX_WND*()
+		inline operator EX_WND__*()
 		{
-			return (EX_WND*)&hWnd;
+			return (EX_WND__*)&hWnd;
 		}
 	};
 public:
@@ -631,18 +643,18 @@ public:
 		return Wnd != hWnd;
 	}
 
-	inline bool operator==(EX_WND Wnd)
+	inline bool operator==(EX_WND__ Wnd)
 	{
 		return Wnd.hWnd == hWnd;
 	}
 
-	inline bool operator!=(EX_WND Wnd)
+	inline bool operator!=(EX_WND__ Wnd)
 	{
 		return Wnd.hWnd != hWnd;
 	}
 
 	///
-	inline EX_WND operator[](int nIDDlgItem)
+	inline EX_WND__ operator[](int nIDDlgItem)
 	{
 		return GetDlgItem(hWnd, nIDDlgItem);
 	}
@@ -884,14 +896,14 @@ public:
 	}
 	///
 
-	inline EX_WND SetFocus()
+	inline EX_WND__ SetFocus()
 	{
-		return (EX_WND)::SetFocus(hWnd);
+		return (EX_WND__)::SetFocus(hWnd);
 	}
 
-	static inline EX_WND GetFocus()
+	static inline EX_WND__ GetFocus()
 	{
-		return (EX_WND)::GetFocus();
+		return (EX_WND__)::GetFocus();
 	}
 
 	///////
@@ -980,9 +992,9 @@ public:
 
 	//////
 
-	static inline EX_WND ByPoint(LPPOINT Point)
+	static inline EX_WND__ ByPoint(LPPOINT Point)
 	{
-		return  (EX_WND)::WindowFromPoint(*Point);
+		return  (EX_WND__)::WindowFromPoint(*Point);
 	}
 
 	inline bool isChild(HWND Wnd)
@@ -1088,7 +1100,6 @@ public:
 };
 
 
-
 #define EX_WND_FIELD_AND_METHODS \
 	EX_WND::Class;\
 	EX_WND::BringToTop;\
@@ -1099,7 +1110,6 @@ public:
 	EX_WND::Destroy;\
 	EX_WND::EndDialog;\
 	EX_WND::EndPaint;\
-	EX_WND::EX_WND;\
 	EX_WND::GetChildWindows;\
 	EX_WND::GetClientCoord;\
 	EX_WND::GetClientHeight;\
@@ -1144,10 +1154,11 @@ public:
 	EX_WND::operator [];\
 	EX_WND::operator ==;\
 	EX_WND::operator bool;\
-	EX_WND::operator EX_WND*;\
+	EX_WND::operator EX_WND__*;\
 	EX_WND::operator HWND;
 
-class WND_COMBO
+template<bool>
+class WND_COMBO__
 {
 public:
 	class ITEM
@@ -1357,11 +1368,11 @@ public:
 		return Item;
 	}
 
-	WND_COMBO()
+	WND_COMBO__()
 	{
 	};
 
-	WND_COMBO(EX_WND Wnd)
+	WND_COMBO__(EX_WND Wnd)
 	{
 		hWnd = Wnd;
 	}
@@ -1412,9 +1423,21 @@ public:
 	}
 };
 
-class WND_LIST
+template<bool>
+class WND_LIST__
 {
 public:
+	WND_LIST__()
+	{
+	   hWnd = NULL;
+	}
+
+		
+	WND_LIST__(EX_WND Wnd)
+	{
+		hWnd = Wnd;
+	}
+
 	class COLUMN
 	{
 
@@ -2247,4 +2270,6 @@ public:
 
 };
 
+
 #endif
+
