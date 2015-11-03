@@ -488,7 +488,8 @@ typedef UINT32 socklen_t;
 
 #	pragma comment(lib, "Ws2_32.lib")
 
-#undef max
+#	undef max
+
 #	define INIT_WSA							\
 	if(winsock::GetWsa<true>() == nullptr)	\
 	{										\
