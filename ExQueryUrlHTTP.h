@@ -13,21 +13,22 @@ class __HTTP_RECIVE_QUERY
 {
 
 	typedef HASH_TABLE_STRING_KEY<char, char*, false> THASH_DATA;
-#define __HTTP_RECIVE_QUERY_FIELDS \
-	struct{\
-	void*			Buf;\
-	size_t			SizeBuf;\
-	size_t			MaxSizeBuffer;\
-	size_t			SizeHeader;\
-	int				iLastErr;\
-	unsigned char	TypeMethod;\
-	char*			MethodString;\
-	size_t			ContentLength;\
-	char*			Path;\
-	char*			VerProt;\
-	int				Status;\
-	char*			StatusMsg;\
+
+#define __HTTP_RECIVE_QUERY_FIELDS		\
+	struct{								\
+	void*			Buf;				\
+	size_t			SizeBuf;			\
+	size_t			MaxSizeBuffer;		\
+	size_t			SizeHeader;			\
+	size_t			ContentLength;		\
+	char*			Path;				\
+	char*			VerProt;			\
+	char*			StatusMsg;			\
+	char*			MethodString;		\
+	int				iLastErr;			\
+	int				Status;				\
 	std::def_var_in_union_with_constructor<THASH_DATA>	Headers;\
+	unsigned char	TypeMethod;			\
 	}
 
 
@@ -35,7 +36,6 @@ class __HTTP_RECIVE_QUERY
 	Content Header
 	*/
 	static HASH_TABLE_STRING_KEY<char, unsigned char, false, unsigned char> HTTPMethods;
-
 
 	bool ResizeBuffer(size_t NewSize)
 	{
@@ -64,12 +64,12 @@ class __HTTP_RECIVE_QUERY
 		TypeMethod.MaxSizeBuffer = 5000;
 		ResizeBuffer(1000);
 		TypeMethod.TypeMethod = METHODS::WRONG;
-		TypeMethod.MethodString = nullptr;
-
+		
 		TypeMethod.Status = 0;
 		TypeMethod.StatusMsg = (char*)GetMsgByStatus(TypeMethod.Status);
 		TypeMethod.Path = "";
 		TypeMethod.VerProt = "";
+		TypeMethod.MethodString = "";
 
 		if(HTTPMethods.CountUsed == 0)
 		{
@@ -219,6 +219,47 @@ class __HTTP_RECIVE_QUERY
 		return true;
 	}
 
+	void Copy(__HTTP_RECIVE_QUERY& Another)
+	{
+		if(Another.TypeMethod.Buf != nullptr)
+		{
+			void* NewBuf =  malloc(Another.TypeMethod.SizeBuf);
+			if(NewBuf != nullptr)
+			{
+				TypeMethod.Buf = NewBuf;
+				memcpy(TypeMethod.Buf, Another.TypeMethod.Buf, Another.TypeMethod.SizeBuf);
+
+				if(Another.TypeMethod.Path[0] != '\0')
+					TypeMethod.Path = (char*)TypeMethod.Buf + OFFSET_P(Another.TypeMethod.Buf, Another.TypeMethod.Path);
+				if(Another.TypeMethod.VerProt[0] != '\0')
+					TypeMethod.VerProt = (char*)TypeMethod.Buf + OFFSET_P(Another.TypeMethod.Buf, Another.TypeMethod.VerProt);
+				if(Another.TypeMethod.StatusMsg[0] != '\0')
+					TypeMethod.StatusMsg = (char*)TypeMethod.Buf + OFFSET_P(Another.TypeMethod.Buf, Another.TypeMethod.StatusMsg);
+				if(Another.TypeMethod.MethodString[0] != '\0')
+					TypeMethod.MethodString = (char*)TypeMethod.Buf + OFFSET_P(Another.TypeMethod.Buf, Another.TypeMethod.MethodString);
+
+				TypeMethod.MaxSizeBuffer = Another.TypeMethod.MaxSizeBuffer;
+				TypeMethod.SizeHeader = Another.TypeMethod.SizeHeader;
+				TypeMethod.SizeBuf = Another.TypeMethod.SizeBuf;
+				TypeMethod.iLastErr = Another.TypeMethod.iLastErr;
+				TypeMethod.TypeMethod = Another.TypeMethod.TypeMethod;
+				TypeMethod.ContentLength = Another.TypeMethod.ContentLength;
+				TypeMethod.Status = Another.TypeMethod.Status;
+
+				for(THASH_DATA::TINTER Inter; Another.TypeMethod.Headers->Interate(&Inter) && !Inter.IsEnd;)
+				{
+					char* Key, *Val;
+					Another.TypeMethod.Headers->DataByInterator(&Inter, &Key, &Val);
+
+					auto r = TypeMethod.Headers->Insert((char*)TypeMethod.Buf + OFFSET_P(Another.TypeMethod.Buf, Key));
+					if(r != nullptr)
+						*r = (char*)TypeMethod.Buf + OFFSET_P(Another.TypeMethod.Buf, Val);
+				}
+				QueryUrl = Another.QueryUrl;
+			}
+		}
+	}
+
 public:
 
 	static const char * GetMsgByStatus(int Status)
@@ -300,14 +341,24 @@ public:
 		return "";
 	}
 
-
-
 	QUERY_URL* QueryUrl;
 
 	__HTTP_RECIVE_QUERY()
 	{
 		InitFields();
 	}
+
+	__HTTP_RECIVE_QUERY(__HTTP_RECIVE_QUERY& Another)
+	{
+		InitFields();
+		Copy(Another);
+	}
+	__HTTP_RECIVE_QUERY& operator =(__HTTP_RECIVE_QUERY& Another)
+	{
+		Copy(Another);
+		return *this;
+	}
+
 		
 	~__HTTP_RECIVE_QUERY()
 	{
@@ -495,8 +546,6 @@ public:
 		} ContentLength;
 	};
 
-
-
 	bool Read()
 	{
 		if(QueryUrl->IsNotHaveRecvData)
@@ -553,7 +602,9 @@ public:
 			if((EndKey >= 0) && (StartVal >= 0))
 			{
 				p[EndKey] = '\0';
-				*TypeMethod.Headers->Insert(p) = p + StartVal;
+				auto r = TypeMethod.Headers->Insert(p);
+				if(r != nullptr)
+					*r = p + StartVal;
 			}	
 		}
 		
