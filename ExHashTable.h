@@ -143,14 +143,14 @@ public:
 			EXHASH_TABLE_FIELDS;
 		public:
 
-			inline operator TINDEX() const
+			inline operator size_t() const
 			{
 				if(Type)
 					return MaxCount * sizeof(CELL) + sizeof(HASH_TABLE) - sizeof(LPCELL);
 				return MaxCount * sizeof(CELL);
 			}
 
-			inline static unsigned ByCount(TINDEX CountElement)
+			inline static size_t ByCount(TINDEX CountElement)
 			{
 				if(Type)
 					return CountElement * sizeof(CELL) + sizeof(HASH_TABLE) - sizeof(LPCELL);
@@ -556,7 +556,47 @@ public:
 		return nullptr;
 	}
 
+
 	//========================================================
+
+	template<bool TypeAnother>
+	static bool Copy(HASH_TABLE *& This,  HASH_TABLE<TElementStruct, TypeAnother, TIndex, NothingIndex>& Another)
+	{
+		LPCELL Tab = Another.GetTable();
+		if(Tab == nullptr)
+			return false;
+
+		size_t NewSize = Another.MaxSize;
+		size_t NewCount = Another.MaxCount;
+
+		if(!Realloc(This, NewCount))
+			return false;
+		memcpy(This->GetTable(), Tab, NewSize);
+		This->CountUsed.LastEmpty = Another.CountUsed.LastEmpty;
+		This->CountUsed.MaxCount = Another.CountUsed.MaxCount;
+		This->CountUsed.CountUsed = Another.CountUsed.CountUsed;
+		return true;
+	}
+		
+	template<bool TypeAnother>
+	static bool Copy(HASH_TABLE & This,  HASH_TABLE<TElementStruct, TypeAnother, TIndex, NothingIndex>& Another)
+	{
+		LPCELL Tab = Another.GetTable();
+		if(Tab == nullptr)
+			return false;
+
+		size_t NewSize = Another.MaxSize;
+		size_t NewCount = Another.MaxCount;
+
+		if(!Realloc(This, NewCount))
+			return false;
+		memcpy(This.GetTable(), Tab, NewSize);
+		This.CountUsed.LastEmpty = Another.CountUsed.LastEmpty;
+		This.CountUsed.MaxCount = Another.CountUsed.MaxCount;
+		This.CountUsed.CountUsed = Another.CountUsed.CountUsed;
+		return true;
+	}
+
 
 	inline LPCELL GetTable()
 	{
@@ -568,11 +608,12 @@ public:
 	inline void Free()
 	{
 		if(!Type)
+		{
 			free(Table);
-		else
+			Table = nullptr;
+		}else
 			free(this);
 	}
-
 
 
 	static bool Realloc(HASH_TABLE & Val, TINDEX NewSize)
@@ -623,6 +664,35 @@ public:
 		}else
 		{	
 			if(!(NewTable = (HASH_TABLE*)malloc(___MAX_SIZE::ByCount(NewCount))))
+				return false;
+		}
+		Val = NewTable;
+		return true;
+	}
+
+	static bool New(HASH_TABLE & Val)
+	{
+		if(!Type)
+		{
+			Val.Table = nullptr;
+			return true;
+		}
+		else
+			return false;
+	}
+
+	static bool New(HASH_TABLE *& Val)
+	{
+		HASH_TABLE * NewTable;
+		if(!Type)
+		{
+			NewTable = (HASH_TABLE*)malloc(sizeof(HASH_TABLE));
+			if(!NewTable)
+				return false;
+			NewTable->Table = nullptr;
+		}else
+		{	
+			if(NewTable = (HASH_TABLE*)malloc(sizeof(HASH_TABLE)))
 				return false;
 		}
 		Val = NewTable;
@@ -748,6 +818,43 @@ public:
 		Init(NewSize);
 	}
 
+	HASH_TABLE_STRING_KEY(HASH_TABLE_STRING_KEY& Another)
+	{
+		PARENT::New(*this, NewSize);
+		Init(NewSize);
+		Clear();
+		Another.PARENT::EnumValues 
+		(
+			[](void* UsrData, HASH_ELEMENT* El) 
+			{
+				auto r = ((HASH_TABLE_STRING_KEY*)(UsrData))->Insert(El->KeyVal);
+				if(r == nullptr)
+					return false;
+				*r = El->Val;
+				return true;
+			},
+			this
+		);
+	}
+
+	HASH_TABLE_STRING_KEY& operator =(HASH_TABLE_STRING_KEY& Another)
+	{
+		Clear();
+		Another.PARENT::EnumValues 
+		(
+			[](void* UsrData, HASH_ELEMENT* El) 
+			{
+				auto r = ((HASH_TABLE_STRING_KEY*)(UsrData))->Insert(El->KeyVal);
+				if(r == nullptr)
+					return false;
+				*r = El->Val;
+				return true;
+			},
+			this
+		);
+		return *this;
+	}
+
 	~HASH_TABLE_STRING_KEY()
 	{			
 		if(IsDynamicKey)
@@ -777,13 +884,13 @@ public:
 	/*
 	Interete key like in JavaScript.
 	*/
-	CharType* In(CharType* Key = nullptr)
+	CharType* In(const CharType* Key = nullptr)
 	{
 		typename PARENT::LPCELL Cell;
 		if(Key == nullptr)
 			Cell = PARENT::GetStartCell();
 		else
-			Cell = PARENT::GetNextCellByKey(Key);
+			Cell = PARENT::GetNextCellByKey((CharType*)Key);
 		if(Cell == nullptr)
 			return nullptr;
 		return Cell->KeyVal;
@@ -807,7 +914,7 @@ public:
 		);
 	}
 
-	DataType* Insert(CharType* NewKey)
+	DataType* Insert(const CharType* NewKey)
 	{
 		auto Cell = PARENT::Insert(NewKey);
 		if(Cell == nullptr)
@@ -836,7 +943,7 @@ public:
 			Init(PARENT::MaxCount);
 	}
 
-	void Remove(CharType* SrchKey)
+	void Remove(const CharType* SrchKey)
 	{
 		auto Res = PARENT::Remove(SrchKey);
 		if(Res == nullptr)
@@ -853,6 +960,8 @@ public:
 			return nullptr;
 		return &(Cell->Val);
 	}
+
+
 
 };
 
