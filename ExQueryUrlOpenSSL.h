@@ -408,6 +408,7 @@ public:
 			}
 		} Cipher;
 
+
 		class 
 		{
 			__QUERY_URL_OPEN_SSL_FIELDS;
@@ -517,7 +518,7 @@ public:
 	Set certificate info. Use for creating server.
 	*/
 	bool SetLocalCertificate
-	(	
+		(	
 		const char * CertFile, 
 		const char * PrivateKeyFile = nullptr, 
 		int TypeCertFile = SSL_FILETYPE_PEM, 
@@ -528,7 +529,7 @@ public:
 		const char * CAPath = nullptr,
 		int ModeVerify = SSL_VERIFY_PEER,
 		int VerifyDepth = 1
-	)
+		)
 	{
 		if(!InitCTXVersion(MethodSSL))
 			return false;
@@ -562,7 +563,7 @@ lblErrOut:
 	/*
 	Accepting client over ssl.
 	*/
-	bool AcceptClient(__QUERY_URL_OPEN_SSL & DestCoonection)
+	virtual bool AcceptClient(__QUERY_URL_OPEN_SSL & DestCoonection)
 	{
 		DestCoonection.Close();
 		if(!QUERY_URL::AcceptClient(DestCoonection))
@@ -614,7 +615,7 @@ lblErr:
 		if(SSLLastError.ssl == nullptr)
 			goto lblErr;
 		int ReadedSize;
-		
+
 		if((ReadedSize = ((Flags & MSG_PEEK)? SSL_peek: SSL_read)(SSLLastError.ssl, Buf, SizeBuf)) < 0)
 		{
 			SSLLastError.Set();
@@ -626,11 +627,11 @@ lblErr:
 	}
 
 	virtual int Recive
-	(
+		(
 		std::basic_string<char>& StrBuf, 
 		std::basic_string<char>::size_type MaxLen = std::numeric_limits<std::basic_string<char>::size_type>::max(), 
 		int Flags = 0
-	)
+		)
 	{
 		if(SSLLastError.ssl == nullptr)
 			goto lblErr;
@@ -644,7 +645,7 @@ lblErr:
 		while(true)
 		{
 			if(CurSize >= MaxLen)
-					break;
+				break;
 			if(CountBytesInBuff > (MaxLen - CurSize))
 				CountBytesInBuff = MaxLen - CurSize; 
 			int ReadedSize = SSL_read(SSLLastError.ssl, Buf, CountBytesInBuff);
@@ -671,8 +672,161 @@ lblErr:
 	}
 
 
+	virtual long long SendFile(__QUERY_URL& InSocket, size_t Count)
+	{
+		if(Count == 0)
+			return 0;
+		unsigned long long SizeBuf;
+		int r, wr, w = 0;
+		void* Buf;
+#	ifdef SO_SNDBUF
+		SizeBuf = SockOptions.SendSizeBuffer;
+#	else
+		SizeBuf = 0xffff;
+#	endif
+		SizeBuf = (SizeBuf < Count)?SizeBuf: Count;
+		Buf = malloc(SizeBuf);
+		if(Buf == nullptr)
+		{
+			QUERY_URL::SetLastErr(EFAULT);
+			return -1;
+		}
+		while(true)
+		{
+			if((r = InSocket.Recive(Buf, SizeBuf)) == -1)
+			{
+				if(w > 0)
+					return w;
+				goto lblErr;
+			}
+			if((wr = Send(Buf, r)) == -1)
+			{
+lblErr:
+				QUERY_URL::SetLastErr(LAST_ERR_SOCKET);
+				free(Buf);
+				return -1;
+			}
+			if(r < SizeBuf)
+			{
+				free(Buf);
+				return wr;
+			}
+			w += wr;
+			SizeBuf = ((Count - w) < SizeBuf)?(Count - w): SizeBuf;
+		}
+		free(Buf);
+		return 0;
+	}
+
+	virtual long long SendFile(TDESCR InFileDescriptor, size_t Count, off_t Offset = 0)
+	{
+		if(Count == 0)
+			return 0;
+		if(Offset != 0)
+		{
+#ifdef _WIN32
+			if(SetFilePointer((HANDLE)InFileDescriptor, Offset, nullptr, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
+			{
+				QUERY_URL::SetLastErr(LAST_ERR_SOCKET);
+				return -1;
+			}
+#else
+			if(lseek(InFileDescriptor, Offset, SEEK_SET))
+			{
+				URL_SET_LAST_ERR;
+				return -1;
+			}
+#endif
+		}
+		unsigned long long SizeBuf;
+		int r, wr, w = 0;
+		void* Buf;
+#	ifdef SO_SNDBUF
+		SizeBuf = SockOptions.SendSizeBuffer;
+#	else
+		SizeBuf = 0xffff;
+#	endif
+		SizeBuf = (SizeBuf < Count)?SizeBuf: Count;
+		Buf = malloc(SizeBuf);
+		if(Buf == nullptr)
+		{
+			QUERY_URL::SetLastErr(EFAULT);
+			return -1;
+		}
+		OVERLAPPED Overlap = {0}, *ovlp = nullptr;
+		while(true)
+		{
+#ifdef _WIN32
+lblTryAgain:
+			{
+				DWORD rt;
+				if(!ReadFile((HANDLE)InFileDescriptor, Buf, SizeBuf, &rt, &Overlap))
+				{
+					DWORD LastErr = GetLastError();
+					if(LastErr == ERROR_IO_PENDING)
+					{
+						if((LastErr == ERROR_INVALID_PARAMETER) && (ovlp == nullptr))
+						{
+							Overlap.hEvent = CreateEventW(nullptr, true, false, nullptr); 
+							ovlp = &Overlap; 
+							goto lblTryAgain;
+						}else if(LastErr == ERROR_IO_PENDING)
+						{
+							if(Overlap.hEvent != NULL)
+							{
+								WaitForSingleObject(Overlap.hEvent, INFINITE);	
+								if(!GetOverlappedResult((HANDLE)InFileDescriptor, ovlp, &rt, TRUE))
+								{
+									CloseHandle(Overlap.hEvent); 	
+									goto lblErr2;
+								}
+							}else
+							{
+								QUERY_URL::SetLastErr(EWOULDBLOCK);
+								goto lblErr2;
+							}
+						}else
+						{
+							if(Overlap.hEvent != NULL)
+								CloseHandle(Overlap.hEvent); 
+							goto lblErr;
+						}
+					}
+				}
+				r = rt;
+			}
+#else
+			r = read(InFileDescriptor, Buf, SizeBuf);
+#endif
+			if(r == -1)
+			{
+				if(w > 0)
+					return w;
+				goto lblErr;
+			}
+			if((wr = Send(Buf, r)) == -1)
+			{
+lblErr:
+				QUERY_URL::SetLastErr(LAST_ERR_SOCKET);
+lblErr2:
+				free(Buf);
+				return -1;
+			}
+			if(r < SizeBuf)
+			{
+				free(Buf);
+				return wr;
+			}
+			w += wr;
+			SizeBuf = ((Count - w) < SizeBuf)?(Count - w): SizeBuf;
+		}
+		free(Buf);
+		return 0;
+
+	}
 };
 
 typedef __QUERY_URL_OPEN_SSL<true>  QUERY_URL_OPEN_SSL;
+
 
 #endif
