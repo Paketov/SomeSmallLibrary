@@ -538,7 +538,7 @@ typedef UINT32 socklen_t;
 
 #define __QUERY_URL_PROPERTY_THIS ((__QUERY_URL*)((char*)this - ((unsigned)&((__QUERY_URL*)0)->LastError)))
 
-#define URL_SET_LAST_ERR {((__QUERY_URL*)this)->RemoteIp.iError = LAST_ERR_SOCKET;}
+#define URL_SET_LAST_ERR {((__QUERY_URL*)this)->SetLastErr(LAST_ERR_SOCKET);}
 #define URL_SET_LAST_ERR_VAL(Val) {((__QUERY_URL*)this)->RemoteIp.iError = (Val);}
 #define URL_SET_LAST_ERR_IN_PROPERTY {iError = LAST_ERR_SOCKET;}
 #define URL_SET_LAST_ERR_IN_PROPERTY_VAL(Val) {iError = Val;}
@@ -619,6 +619,7 @@ class __QUERY_URL
 
 public:
 	typedef decltype(std::declval<sockaddr_in>().sin_port) TPORT;
+	/*Type of descriptor*/
 	typedef decltype(socket(std::variant_arg(), std::variant_arg(), std::variant_arg())) TDESCR;
 
 	struct SOCKET_ADDR
@@ -3899,7 +3900,7 @@ public:
 	@Count - Size of sending data
 	@Offset - Offsen data in file descriptor
 	*/
-	inline long long SendFile(__QUERY_URL& InSocket, size_t Count)
+	virtual long long SendFile(__QUERY_URL& InSocket, size_t Count)
 	{
 	  return SendFile(InSocket.RemoteIp.hSocket, Count, 0);
 	}
@@ -3967,7 +3968,7 @@ public:
 		if(Count == 0)
 			return 0;
 		if(Offset != 0)
-			if(lseek(RemoteIp.hSocket, Offset, SEEK_SET))
+			if(lseek(InFileDescriptor, Offset, SEEK_SET))
 			{
 			   URL_SET_LAST_ERR;
 			   return -1;
@@ -4156,13 +4157,12 @@ lblTryAgain:
 		}
 		if(Overlap.hEvent != NULL)
 			CloseHandle(Overlap.hEvent);
-		return Readed;
 #else
 		ssize_t Readed = read(RemoteIp.hSocket, Buf, SizeBuf);
 		if(Readed == -1)
 			URL_SET_LAST_ERR;
-		return Readed;
 #endif
+		return Readed;
 	}
 
 	/*
