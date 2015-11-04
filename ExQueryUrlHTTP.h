@@ -5,9 +5,6 @@
 #include "ExHashTable.h"
 
 
-
-
-
 template<bool = true>
 class __HTTP_RECIVE_QUERY
 {
