@@ -726,17 +726,13 @@ lblErr:
 		{
 #ifdef _WIN32
 			if(SetFilePointer((HANDLE)InFileDescriptor, Offset, nullptr, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
+#else
+			if(lseek(InFileDescriptor, Offset, SEEK_SET))
+#endif			
 			{
 				QUERY_URL::SetLastErr(LAST_ERR_SOCKET);
 				return -1;
 			}
-#else
-			if(lseek(InFileDescriptor, Offset, SEEK_SET))
-			{
-				URL_SET_LAST_ERR;
-				return -1;
-			}
-#endif
 		}
 		unsigned long long SizeBuf;
 		int r, wr, w = 0;
