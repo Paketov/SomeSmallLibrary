@@ -447,7 +447,7 @@ public:
 		{
 			__HTTP_RECIVE_QUERY_FIELDS;
 		public:
-			operator const int()
+			operator const char*()
 			{
 				return StatusMsg;
 			}
@@ -463,6 +463,26 @@ public:
 			}
 		} Size;
 
+
+		/*
+		Headers property.
+		get hader val by key/
+		Example get element: 
+			const cahr * ContentLen = RecvQuery.Headers["Content-Length"];
+		Example get count elements:
+			size_t CountHeaders = RecvQuery.Headers.Count;
+		Example interate:
+			for(const char* Key = RecvQuery.Headers.In(); Key; Key = RecvQuery.Headers.In(Key))
+			{
+			     const char * Val = RecvQuery.Headers[Key];
+			}
+			or
+			for(HTTP_RECIVE_QUERY::TINTER Interator;RecvQuery.Headers.Interate(Interator) && !Interator.IsEnd;)
+			{
+				   const char * Key, *Val;
+				   RecvQuery.Headers.DataByInterator(Interator, Key, Val);
+			}
+		*/
 		class _HEADERS
 		{
 		public:
@@ -493,6 +513,11 @@ public:
 			bool Interate(TINTER* Interator)
 			{
 			    return Count.Headers->Interate(Interator);
+			}
+
+			bool DataByInterator(TINTER* Interator, const char** Key, const char** Val)
+			{
+				return Count.Headers->DataByInterator(Interator, Key, Val);
 			}
 		} Headers;
 
