@@ -1393,12 +1393,8 @@ public:
 		std::basic_string<char> ResponseBuf = MethodStr;
 		ResponseBuf.append(" ", 1);
 		ResponseBuf.append(Path);
-		ResponseBuf.append(" ", 1);
-		if(!ProtVer.VerProt->empty())
-		{
-			ResponseBuf.append("HTTP/", sizeof("HTTP/") - 1);
-			ResponseBuf.append(ProtVer.VerProt->c_str());
-		}
+		ResponseBuf.append(" HTTP/", sizeof(" HTTP/") - 1);
+		ResponseBuf.append(ProtVer.VerProt->c_str());
 		ResponseBuf.append("\r\n", sizeof("\r\n") - 1);
 		for(TINTER i; ConstHeaders.Interate(&i) && !i.IsEnd;)
 		{
@@ -1425,12 +1421,8 @@ public:
 		std::basic_string<char> ResponseBuf = MethodStr;
 		ResponseBuf.append(" ", 1);
 		ResponseBuf.append(Path);
-		ResponseBuf.append(" ", 1);
-		if(!ProtVer.VerProt->empty())
-		{
-			ResponseBuf.append("HTTP/", sizeof("HTTP/") - 1);
-			ResponseBuf.append(ProtVer.VerProt->c_str());
-		}
+		ResponseBuf.append(" HTTP/", sizeof(" HTTP/") - 1);
+		ResponseBuf.append(ProtVer.VerProt->c_str());
 		ResponseBuf.append("\r\n", sizeof("\r\n") - 1);
 		for(TINTER i; ConstHeaders.Interate(&i) && !i.IsEnd;)
 		{
