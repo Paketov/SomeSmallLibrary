@@ -193,12 +193,12 @@ public:
 		return pCell->iNext != NothingIndex;
 	}
 
-	inline TINDEX IndexByHash(THASHKEY HashKey)
+	inline TINDEX IndexByHash(THASHKEY HashKey) const
 	{
 		return TElementStruct::IndexByHashKey(HashKey, MaxCount);
 	}
 
-	inline TINDEX StartIndexByHash(THASHKEY HashKey)
+	inline TINDEX StartIndexByHash(THASHKEY HashKey) const
 	{
 		return (GetTable() + TElementStruct::IndexByHashKey(HashKey, MaxCount))->iStart;
 	}
@@ -460,7 +460,7 @@ public:
 		}
 	} TINTER, *LPTINTER;
 
-	bool Interate(LPTINTER SetInterator)
+	bool Interate(LPTINTER SetInterator) const
 	{
 		LPCELL Elements = GetTable();
 		if(SetInterator->IsEnd)
@@ -497,12 +497,17 @@ public:
 		return false;
 	}
 
-	LPCELL CellByInterator(LPTINTER SetInterator)
+	bool CheckInterator(const LPTINTER Interator) const
 	{
-		if(SetInterator->IsEnd)
-			return nullptr;
-		if(SetInterator->IsEnd.CurElementInList >= MaxCount)
+		if(Interator->IsEnd)
 			return false;
+		if(Interator->IsEnd.CurElementInList >= MaxCount)
+			return false;
+		return true;
+	}
+
+	LPCELL CellByInterator(const LPTINTER SetInterator) const
+	{
 		return GetTable() + SetInterator->IsEnd.CurElementInList;
 	}
 
@@ -522,7 +527,7 @@ public:
 	}
 
 	//Interate by key val
-	LPCELL GetStartCell()
+	LPCELL GetStartCell() const
 	{
 		LPCELL Elements = GetTable();
 		for(TINDEX p = 0, m = MaxCount; p < m; p++)
@@ -535,7 +540,7 @@ public:
 
 
 	template<typename TKey>
-	LPCELL GetNextCellByKey(TKey SearchKey)
+	LPCELL GetNextCellByKey(TKey SearchKey) const
 	{
 		LPCELL Elements = GetTable(), p;
 		TINDEX s = IndexByHash(TElementStruct::GenHashKey(SearchKey)), i = Elements[s].iStart;
@@ -598,7 +603,7 @@ public:
 	}
 
 
-	inline LPCELL GetTable()
+	inline LPCELL GetTable() const
 	{
 		if(Type)
 			return (LPCELL)&Table;
@@ -801,7 +806,9 @@ class HASH_TABLE_STRING_KEY: private HASH_TABLE<HASH_ELEMENT_STRING<CharType, Da
 {
 	typedef HASH_ELEMENT_STRING<CharType, DataType, IsDynamicKey> HASH_ELEMENT;
 	typedef HASH_TABLE<HASH_ELEMENT, false, IndexType> PARENT;
-	
+
+	template<typename, typename, bool, typename>
+	friend class HASH_TABLE_STRING_KEY;
 public:
 
 	PARENT::CountUsed;
@@ -818,14 +825,15 @@ public:
 		Init(NewSize);
 	}
 
-	HASH_TABLE_STRING_KEY(HASH_TABLE_STRING_KEY& Another)
+	template<bool isdyn, typename ti>
+	HASH_TABLE_STRING_KEY(HASH_TABLE_STRING_KEY<CharType,DataType,isdyn,ti>& Another)
 	{
-		PARENT::New(*this, NewSize);
-		Init(NewSize);
+		PARENT::New(*this, Another.MaxCount);
+		Init(Another.MaxCount);
 		Clear();
 		Another.PARENT::EnumValues 
 		(
-			[](void* UsrData, HASH_ELEMENT* El) 
+			[](void* UsrData, HASH_TABLE_STRING_KEY<CharType,DataType,isdyn,ti>::HASH_ELEMENT* El) 
 			{
 				auto r = ((HASH_TABLE_STRING_KEY*)(UsrData))->Insert(El->KeyVal);
 				if(r == nullptr)
@@ -837,12 +845,13 @@ public:
 		);
 	}
 
-	HASH_TABLE_STRING_KEY& operator =(HASH_TABLE_STRING_KEY& Another)
+	template<bool isdyn, typename ti>
+	HASH_TABLE_STRING_KEY& operator =(HASH_TABLE_STRING_KEY<CharType,DataType,isdyn,ti>& Another)
 	{
 		Clear();
 		Another.PARENT::EnumValues 
 		(
-			[](void* UsrData, HASH_ELEMENT* El) 
+			[](void* UsrData, HASH_TABLE_STRING_KEY<CharType,DataType,isdyn,ti>::HASH_ELEMENT* El) 
 			{
 				auto r = ((HASH_TABLE_STRING_KEY*)(UsrData))->Insert(El->KeyVal);
 				if(r == nullptr)
@@ -871,11 +880,9 @@ public:
 		PARENT::Free();
 	}
 
-	bool DataByInterator(LPTINTER Interator, CharType** Key, DataType* Value)
+	bool DataByInterator(const LPTINTER Interator, CharType** Key, DataType* Value)
 	{
 		auto Cell = PARENT::CellByInterator(Interator);
-		if(Cell == nullptr)
-			return false;
 		*Key = Cell->KeyVal;
 		*Value = Cell->Val;
 		return true;
@@ -884,7 +891,7 @@ public:
 	/*
 	Interete key like in JavaScript.
 	*/
-	CharType* In(const CharType* Key = nullptr)
+	CharType* In(const CharType* Key = nullptr) const
 	{
 		typename PARENT::LPCELL Cell;
 		if(Key == nullptr)
