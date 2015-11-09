@@ -997,6 +997,18 @@ public:
 				{
 					return HostName->c_str();
 				}
+
+				const char* operator= (const char* New)
+				{
+					HostName->operator=(New);
+					return New;
+				}
+
+				std::basic_string<char>& operator= (std::basic_string<char>& New)
+				{
+					PortName->operator=(New);
+					return New;
+				}
 			} HostName;
 
 			class 
@@ -1007,6 +1019,18 @@ public:
 				operator const char*()
 				{
 					return PortName->c_str();
+				}
+
+				const char* operator= (const char* New)
+				{
+					PortName->operator=(New);
+					return New;
+				}
+
+				std::basic_string<char>& operator= (std::basic_string<char>& New)
+				{
+					PortName->operator=(New);
+					return New;
 				}
 			} PortName;
 
@@ -1039,8 +1063,8 @@ public:
 		ADDRESS_INFO(const char * Host, const char * Port)
 		{
 			InitFields();
-			HostName.PortName = Port;
-			HostName.HostName = Host;
+			PortName = Port;
+			HostName = Host;
 			Update();
 		}
 				
