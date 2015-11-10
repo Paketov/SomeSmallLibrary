@@ -147,218 +147,43 @@ private:
 		TypeMethod.ContentLength = 0;
 	}
 
-	unsigned char GetTypeMethod(const char* Str, int* Len = std::make_default_pointer())
-	{
-		size_t i, j;
-		ReadMethod(Str, &j, &i);
-		if(i >= j)
-			return METHODS::WRONG;
-		char c = Str[i];
-		((char*)Str)[i] = '\0';
-		auto CurMethod = TypeMethod.FilteredMethod->operator[](Str + j);
-		((char*)Str)[i] = c;
-		*Len = i;
-		if(CurMethod == nullptr)
-			return METHODS::WRONG;
-		return *CurMethod;
-	}
-
-	static inline void ReadMethod(const char* Str, size_t* Strt, size_t* End)
+	bool CheckMethod(char* s)
 	{
 		size_t i = 0;
-		for(;(Str[i] == '\r') && (Str[i + 1] == '\n'); i++);
-		*Strt = i;
-		for( ;((Str[i] >= 'A') && (Str[i] <= 'Z')) || (Str[i] == '-'); i++);
-		*End = i;
-	}
-
-	bool ReadStartLine()
-	{
-		char* s = (char*)TypeMethod.Buf;
-		/*
-		What is recived method?
-		*/
-		int LenHeader = 0;
-		TypeMethod.TypeMethod = GetTypeMethod(s, &LenHeader);
-		s += LenHeader;
-
-		switch(TypeMethod.TypeMethod)
-		{
-			//Response from server
-		case METHODS::RESPONSE:
-			{
-				unsigned i = 0;
-
-				if(s[0] == '/')
-				{
-					//Read version
-					for(i = 1 ;((s[i] >= '0') && (s[i] <= '9')) || (s[i] == '.'); i++);
-					if(i > 1)
-					{
-						TypeMethod.VerProt = s + 1;
-						if(s[i] == '\0')
-							break;
-						s[i] = '\0';
-						i++;
-					}
-				}
-
-				//Skip spaces
-				for(;IsSpace(s[i]); i++);
-
-				{
-					unsigned Stat = 0;
-					//Read status number
-					for(unsigned char Digit; (Digit = s[i] - '0') <= 9; i++)
-						Stat = Stat * 10 + Digit;
-					TypeMethod.Status = Stat;
-				}
-				//Skip spaces
-				for(;IsSpace(s[i]); i++);
-
-				//If have message
-				if(
-					((s[i] >= 'A') && (s[i] <= 'Z')) || 
-					((s[i] >= 'a') && (s[i] <= 'z'))
-					)
-					TypeMethod.StatusMsg = s + i;
-				else
-					TypeMethod.StatusMsg = (char*)GetMsgByStatus(TypeMethod.Status);
-			}
-			break;
-			//Wrong recived method
-		case METHODS::WRONG:
-			TypeMethod.iLastErr = ERRORS::NOT_HAVE_METHOD;
+		for(;(s[i] == '\r') && (s[i + 1] == '\n'); i += 2);
+		size_t j = i;
+		for( ;((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-'); i++);
+		if(i <= j)
 			return false;
-			//For another query methods
-		default:
-			{							
-				unsigned i = 0, j;
-
-				//Skip spaces
-				for(;IsSpace(s[i]); i++);
-
-				j = i;
-				//Read query
-				//Go to near space
-				for(;(s[i] != '\0') && !IsSpace(s[i]); i++);
-
-				if(i > j)
-				{
-					TypeMethod.Path = s + j;
-					if(s[i] == '\0')
-						break;
-					s[i] = '\0';
-					i++;
-				}
-				//Skip spaces
-				for(;IsSpace(s[i]); i++);
-				if((s[i] == 'H') && (s[i + 1] == 'T') && (s[i + 2] == 'T') && (s[i + 3] == 'P'))
-				{
-					i += 4;
-					if(s[i] == '/')
-					{
-						//Read version
-						j = ++i;
-						for(;((s[i] >= '0') && (s[i] <= '9')) || (s[i] == '.'); i++);
-						if(i > j)
-						{
-							TypeMethod.VerProt = s + j;
-							s[i] = '\0';
-						}
-					}
-				}
-			}
-		}
-		TypeMethod.MethodString = (char*)TypeMethod.Buf;
-		TypeMethod.MethodString[LenHeader] = '\0';
-		return true;
+		char c = s[i];
+		s[i] = '\0';
+		int CurMethod = MethodFilter[s + j];
+		s[i] = c;
+		if(CurMethod == METHODS::WRONG)
+			return false;
+		if(CurMethod == METHODS::RESPONSE) 
+			return (s[i] == ' ') || (s[i] == '\t') || (s[i] == '/') && IsDigit(s[i]);
+		return (s[i] == ' ') || (s[i] == '\t');
 	}
 
-	template<bool IsDynamicKey, typename IndexType>
-	static int ReadHeaders(char * s, HASH_TABLE_STRING_KEY<char, char*, IsDynamicKey, IndexType>* DestHash)
+	static bool CheckMethodRow(char* s)
 	{
-		unsigned i = 0, j, k;
-		char *Key;
-		while(true)
+		size_t i = 0;
+		for(;(s[i] == '\r') && (s[i + 1] == '\n'); i += 2);
+		size_t j = i;
+		for( ;((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-'); i++);
+
+		if(
+			((i - j) == 4) && 
+			(s[j] == 'H') && 
+			(s[j + 1] == 'T') && 
+			(s[j + 2] == 'T') &&
+			(s[j + 3] == 'P')
+		) 
 		{
-lblMainLoop:
-			for(;;i++)
-			{
-				switch(s[i])
-				{
-				case ' ': case '\t': case '\n': case '\v': case '\f':
-					continue;
-				case ':':
-lblSkip:
-					for(;;i++)
-					{
-						if((s[i] == '\r') && (s[i + 1] == '\n'))
-						{
-							i += 2;
-							goto lblMainLoop;
-						}else if(s[i] == '\0')
-							return i;
-					}
-				case '\r':
-					if(s[i + 1] == '\n')
-					{
-						i += 2;
-						goto lblMainLoop;
-					}
-					continue;
-				case '\0':
-					return i;
-				}
-				if(((s[i] >= 'a') && (s[i] <= 'z')) || ((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-'))
-				   goto lblReadKey;
-			}	
-lblReadKey:
-			Key = s + i;
-			for(;((s[i] >= 'a') && (s[i] <= 'z')) || ((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-');i++);
-			j = i;
-			for(;(s[i] == ' ') || (s[i] == '\t'); i++);
-
-			if((s[i] == '\r') && (s[i + 1] == '\n'))
-			{
-				i += 2;
-				goto lblMainLoop;
-			}
-			else if(s[i] == '\0')
-				return i;
-			else if(s[i] != ':')
-				goto lblSkip;
-
-			for(;(s[i] == ' ') || (s[i] == '\t'); i++);
-			
-
-			for(k = i;;i++)
-			{
-				if((s[i] == '\r') && (s[i + 1] == '\n'))
-				{
-					if(i > k)
-					{
-						s[i] = s[j] = '\0';
-						auto r = DestHash->Insert(Key);
-						if(r != nullptr)
-							*r = s + k;
-					}
-					i += 2;
-					goto lblMainLoop;
-				}else if(s[i] == '\0')
-				{
-					if(i > k)
-					{
-						s[j] = '\0';
-						auto r = DestHash->Insert(Key);
-						if(r != nullptr)
-							*r = s + k;
-					}
-					return i;
-				}
-			}
+		   return (s[i] == ' ') || (s[i] == '\t') || ((s[i] == '/') && IsDigit(s[i + 1]));
 		}
-		return i;
+		return (i > j) && ((s[i] == ' ') || (s[i] == '\t'));
 	}
 	
 	static int ReadStartLineRow
@@ -368,42 +193,44 @@ lblReadKey:
 		unsigned* Status,
 		char** StatusMsg_Uri,
 		char** Ver,
-		bool* IsResponse
+		bool* IsResponse = std::make_default_pointer()
 	)
 	{
-		size_t i, StrtMet, EndMet;
-		ReadMethod(s, &StrtMet, &EndMet);
-		if(StrtMet == EndMet)
-			return -1;
-		i = EndMet;
+		size_t i = 0;
+		for(;(s[i] == '\r') && (s[i + 1] == '\n'); i += 2);
+		size_t j = i;
+		for( ;((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-'); i++);
+		
 		if(
-			((EndMet - StrtMet) == 4) && 
-			(s[StrtMet] == 'H') && 
-			(s[StrtMet + 1] == 'T') && 
-			(s[StrtMet + 2] == 'T') &&
-			(s[StrtMet + 3] == 'P')
+			((i - j) == 4) && 
+			(s[j] == 'H') && 
+			(s[j + 1] == 'T') && 
+			(s[j + 2] == 'T') &&
+			(s[j + 3] == 'P')
 		) 
 		{
-			*IsResponse = true;
-			if((s[i] == '\r') && (s[i + 1] == '\n'))
-				return -1;
-
 			//If get response
+			*IsResponse = true;
+
+			size_t e = i;
 			if(s[i] == '/')
 			{
 				//Read version
 				for(i++ ;((s[i] >= '0') && (s[i] <= '9')) || (s[i] == '.'); i++);
 
-				if(i > (EndMet + 1))
+				if(i > (e + 1))
 				{					
 					if((s[i] == '\r') && (s[i + 1] == '\n'))
 						return -1;
-					*Ver = s + (EndMet + 1);
+					*Ver = s + (e + 1);
 					s[i] = '\0';
 				}
 			}
-			s[EndMet] = '\0';
-			*Method = s; 
+
+			if((s[i] != ' ') && (s[i] != '\t'))
+				return -1;
+			s[e] = '\0';
+			*Method = s + j; 
 			//Skip spaces
 			for(i++; (s[i] == '\t') || (s[i] == ' '); i++);
 			{
@@ -427,10 +254,10 @@ lblReadKey:
 		}else
 		{
 			*IsResponse = false;
-			if((s[i] == '\r') && (s[i + 1] == '\n'))
+			if((i <= j) || (s[i] != ' ') && (s[i] != '\t'))
 				return -1;
-			s[EndMet] = '\0';
-			*Method = s;
+			s[i] = '\0';
+			*Method = s + j;
 			for(i++; (s[i] == '\t') || (s[i] == ' '); i++);
 
 			//Read URI
@@ -570,6 +397,20 @@ lblReadKey:
 			}
 		}
 		return i;
+	}
+
+
+	static size_t SkipInSockBuffer(QUERY_URL* Sock, void* Buf, size_t SizeBuf, size_t CountSkip)
+	{
+		size_t Len = CountSkip;
+		do{
+			size_t l = (Len > SizeBuf)? SizeBuf: Len;
+			int CountReaded = Sock->Recive(Buf, l);
+			if(CountReaded <= 0)
+				break;
+			Len -= CountReaded;
+		} while(Len > 0);
+		return CountSkip - Len;
 	}
 
 	void Copy(__HTTP_RECIVE_QUERY& Another)
@@ -910,7 +751,8 @@ public:
 			NOT_READED_FROM_SOCKET,
 			NOT_HAVE_DATA_IN_SOCKET,
 			INVALID_START_LINE,
-			USER_INTERRUPT
+			USER_INTERRUPT,
+			INVALID_HEADER
 		};
 	};
 
@@ -980,8 +822,6 @@ public:
 			WRONG
 		};
 	};
-
-
 
 	union
 	{
@@ -1066,6 +906,15 @@ public:
 					return FilteredMethod->CountUsed;
 				}
 			} Count;
+
+
+			int operator[](const char * Key)
+			{
+				auto r = Count.FilteredMethod->operator[](Key);
+				if(r == nullptr)
+					return METHODS::WRONG;
+				return *r;
+			}
 
 			bool AddReciveMethod(int KnownMethodIndex)
 			{
@@ -1230,7 +1079,7 @@ public:
 	};
 
 	template<bool IsDynamicKeyInHash, typename TypeIndex>
-	bool Recive(HASH_TABLE_STRING_KEY<char, char*, IsDynamicKeyInHash, TypeIndex>& Headers)
+	bool Recive(HASH_TABLE_STRING_KEY<char, char*, IsDynamicKeyInHash, TypeIndex>& Headers, bool IsPeek = false)
 	{
 		if(QueryUrl->IsNotHaveRecvData)
 			return false;
@@ -1253,7 +1102,7 @@ public:
 			((char*)TypeMethod.Buf)[CountReaded] = '\0';
 			if((EndHeader = (char*)StringSearch((char*)TypeMethod.Buf, "\r\n\r\n")) == nullptr)
 			{
-				if(GetTypeMethod((char*)TypeMethod.Buf) == METHODS::WRONG)
+				if(!CheckMethod((char*)TypeMethod.Buf))
 				{
 					TypeMethod.iLastErr = ERRORS::NOT_HAVE_METHOD;
 					return false;
@@ -1263,15 +1112,46 @@ public:
 				continue;
 			}
 			break;
-		}		
-
+		}
 		TypeMethod.SizeHeader = (size_t)EndHeader - (size_t)TypeMethod.Buf + 4;
-		char* e = (char*)StringSearch((char*)TypeMethod.Buf, "\r\n");
-		*e = '\0';
-		if(!ReadStartLine())
+		EndHeader[4] = '\0';
+		int i;
+		{
+			char *Met = "", *StatMsgURI = "", *Ver = "";
+			unsigned Stat = 0;
+			bool IsResponse = false;
+			
+			if((i = ReadStartLineRow((char*)TypeMethod.Buf, &Met, &Stat, &StatMsgURI, &Ver, &IsResponse)) == -1)
+			{
+				TypeMethod.iLastErr = ERRORS::INVALID_START_LINE;
+				return false;
+			}
+			if(IsResponse)
+			{
+				TypeMethod.StatusMsg = StatMsgURI;
+				TypeMethod.Status = Stat;
+				TypeMethod.VerProt = Ver;
+			}else
+			{
+				TypeMethod.Path = StatMsgURI;
+				TypeMethod.VerProt = Ver;
+			}
+			TypeMethod.MethodString = Met;
+		}
+
+		if(ReadHeadersRow((char*)TypeMethod.Buf + i, &Headers, 
+			[](decltype(&Headers) Headr, const char* Key, const char* Val)
+			{
+				auto r = Headr->Insert(Key);
+				if(r != nullptr)
+					*r = (char*)Val;
+				return true;
+			}
+		) == -1)
+		{
+			TypeMethod.iLastErr = ERRORS::INVALID_HEADER;
 			return false;
-		e += 2;
-		ReadHeaders(e, &Headers);
+		}
 		const char * ContLength = Headers["Content-Length"];
 		if(ContLength != nullptr)
 		{
@@ -1279,21 +1159,16 @@ public:
 			sscanf(ContLength, "%u", &l);
 			TypeMethod.ContentLength = l;
 		}
-		{		
-			size_t LenHeader = TypeMethod.SizeHeader;
-			char RecBuf[1000];
-			do{
-				size_t l = (LenHeader > 1000)?1000:LenHeader;
-				CountReaded = QueryUrl->Recive(RecBuf, l);
-				if(CountReaded <= 0)
-					break;
-				LenHeader -= CountReaded;
-			} while(LenHeader > 0);
+				
+		if(!IsPeek)
+		{
+			char TmpBuf[1024];
+			SkipInSockBuffer(QueryUrl, TmpBuf, sizeof(TmpBuf) - 2, TypeMethod.SizeHeader);
 		}
 		return true;
 	}
 
-	bool Recive()
+	bool Recive(bool IsPeek = false)
 	{
 		if(QueryUrl->IsNotHaveRecvData)
 			return false;
@@ -1316,7 +1191,7 @@ public:
 			((char*)TypeMethod.Buf)[CountReaded] = '\0';
 			if((EndHeader = (char*)StringSearch((char*)TypeMethod.Buf, "\r\n\r\n")) == nullptr)
 			{
-				if(GetTypeMethod((char*)TypeMethod.Buf) == METHODS::WRONG)
+				if(!CheckMethod((char*)TypeMethod.Buf))
 				{
 					TypeMethod.iLastErr = ERRORS::NOT_HAVE_METHOD;
 					return false;
@@ -1326,15 +1201,46 @@ public:
 				continue;
 			}
 			break;
-		}		
-
+		}
 		TypeMethod.SizeHeader = (size_t)EndHeader - (size_t)TypeMethod.Buf + 4;
-		char* e = (char*)StringSearch((char*)TypeMethod.Buf, "\r\n");
-		*e = '\0';
-		if(!ReadStartLine())
+		EndHeader[4] = '\0';
+		int i;
+		{
+			char *Met = "", *StatMsgURI = "", *Ver = "";
+			unsigned Stat = 0;
+			bool IsResponse = false;
+			
+			if((i = ReadStartLineRow((char*)TypeMethod.Buf, &Met, &Stat, &StatMsgURI, &Ver, &IsResponse)) == -1)
+			{
+				TypeMethod.iLastErr = ERRORS::INVALID_START_LINE;
+				return false;
+			}
+			if(IsResponse)
+			{
+				TypeMethod.StatusMsg = StatMsgURI;
+				TypeMethod.Status = Stat;
+				TypeMethod.VerProt = Ver;
+			}else
+			{
+				TypeMethod.Path = StatMsgURI;
+				TypeMethod.VerProt = Ver;
+			}
+			TypeMethod.MethodString = Met;
+		}
+
+		if(ReadHeadersRow<THASH_DATA*>((char*)TypeMethod.Buf + i, &TypeMethod.Headers, 
+			[](THASH_DATA* Headr, const char* Key, const char* Val)
+			{
+				auto r = Headr->Insert(Key);
+				if(r != nullptr)
+					*r = (char*)Val;
+				return true;
+			}
+		) == -1)
+		{
+			TypeMethod.iLastErr = ERRORS::INVALID_HEADER;
 			return false;
-		e += 2;
-		ReadHeaders(e, &TypeMethod.Headers);
+		}
 		const char * ContLength = Headers["Content-Length"];
 		if(ContLength != nullptr)
 		{
@@ -1342,16 +1248,10 @@ public:
 			sscanf(ContLength, "%u", &l);
 			TypeMethod.ContentLength = l;
 		}
-		{		
-			size_t LenHeader = TypeMethod.SizeHeader;
-			char RecBuf[1000];
-			do{
-				size_t l = (LenHeader > 1000)?1000:LenHeader;
-				CountReaded = QueryUrl->Recive(RecBuf, l);
-				if(CountReaded <= 0)
-					break;
-				LenHeader -= CountReaded;
-			} while(LenHeader > 0);
+		if(!IsPeek)
+		{
+			char TmpBuf[1024];
+			SkipInSockBuffer(QueryUrl, TmpBuf, sizeof(TmpBuf) - 2, TypeMethod.SizeHeader);
 		}
 		return true;
 	}
@@ -1365,13 +1265,14 @@ public:
 		bool (*QueryFunc)(TypeUserData UsrData, const char* Method, const char* Path, const char* ProtoVer),
 		bool (*HeadersFunc)(TypeUserData UsrData, const char * Key, const char * Val),
 		size_t* Readed = std::make_default_pointer(),
+		bool IsPeek = false,
 		size_t MaxLenBuf = 4096	
 	)
 	{
 		if(QueryUrl->IsNotHaveRecvData)
 			return false;
 
-		int CountReaded;
+		int CountReaded, Result = ERRORS::SUCCESS, i;
 		char* EndHeader;
 		char TmpBuf[1024];
 
@@ -1383,38 +1284,49 @@ public:
 			CountReaded = QueryUrl->Recive(Buf, CurSizeBuf - 2, MSG_PEEK);
 
 			if(CountReaded == -1)
-				return ERRORS::NOT_READED_FROM_SOCKET;
+			{
+					Result = ERRORS::NOT_READED_FROM_SOCKET;
+					goto lblOut;
+			}
 			else if(CountReaded == 0)
-				return ERRORS::NOT_HAVE_DATA_IN_SOCKET;
-
+			{
+					Result = ERRORS::NOT_HAVE_DATA_IN_SOCKET;
+					goto lblOut;
+			}
 			((char*)Buf)[CountReaded] = '\0';
 			if((EndHeader = (char*)StringSearch((char*)Buf, "\r\n\r\n")) == nullptr)
 			{
-				size_t i, j;
-				ReadMethod((char*)Buf, &i, &j);
-				if((j - i) < 3)
-					return ERRORS::NOT_HAVE_METHOD;
+				if(!CheckMethodRow((char*)Buf))
+				{
+					Result = ERRORS::NOT_HAVE_METHOD;
+					goto lblOut;
+				}
 				if(Buf == TmpBuf)
 				{
 					if((Buf = malloc(CurSizeBuf += 300)) == nullptr)
-						return ERRORS::NOT_ALLOC_MEMORY;
+					{
+						Result = ERRORS::NOT_ALLOC_MEMORY;
+						goto lblOut;
+					}
 				}else
 				{
 					if((Buf = realloc(Buf, CurSizeBuf += 300)) == nullptr)
-						return ERRORS::NOT_ALLOC_MEMORY;
+					{
+						Result = ERRORS::NOT_ALLOC_MEMORY;
+						goto lblOut;
+					}
 				}
 				continue;
 			}
 			break;
 		}		
 
-		int Result = ERRORS::SUCCESS, i;
+		EndHeader[4] = '\0';
 		size_t SizeHeader = (size_t)EndHeader - (size_t)Buf + 4;
 		{
 			char *Met = "", *StatMsgURI = "", *Ver = "";
 			unsigned Stat = 0;
-			bool IsResponse = false;
-			
+			bool IsResponse = false;		
 			if((i = ReadStartLineRow((char*)Buf, &Met, &Stat, &StatMsgURI, &Ver, &IsResponse)) == -1)
 			{
 				Result = ERRORS::INVALID_START_LINE;
@@ -1442,19 +1354,12 @@ public:
 			goto lblOut;
 		}
 
-		{		
-			size_t LenHeader = SizeHeader;
-			do{
-				size_t l = (LenHeader > 1000)?1000:LenHeader;
-				CountReaded = QueryUrl->Recive(TmpBuf, l);
-				if(CountReaded <= 0)
-					break;
-				LenHeader -= CountReaded;
-			} while(LenHeader > 0);
-		}
+		if(!IsPeek)
+			SkipInSockBuffer(QueryUrl, TmpBuf, sizeof(TmpBuf) - 2, SizeHeader);
+
 lblOut:
 		*Readed = SizeHeader;
-		if(Buf != TmpBuf)
+		if((Buf != nullptr) && (Buf != TmpBuf))
 			free(Buf);
 		return Result;
 	}
