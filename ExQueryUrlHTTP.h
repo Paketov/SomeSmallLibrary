@@ -147,20 +147,29 @@ private:
 		TypeMethod.ContentLength = 0;
 	}
 
-	unsigned char GetTypeMethod(const char* Str, int* Len = nullptr)
+	unsigned char GetTypeMethod(const char* Str, int* Len = std::make_default_pointer())
 	{
-		unsigned i = 0;
-		for( ;((Str[i] >= 'A') && (Str[i] <= 'Z')) || (Str[i] == '-'); i++);
-
+		size_t i, j;
+		ReadMethod(Str, &j, &i);
+		if(i >= j)
+			return METHODS::WRONG;
 		char c = Str[i];
 		((char*)Str)[i] = '\0';
-		auto CurMethod = TypeMethod.FilteredMethod->operator[](Str);
+		auto CurMethod = TypeMethod.FilteredMethod->operator[](Str + j);
 		((char*)Str)[i] = c;
-		if(Len != nullptr)
-			*Len = i;
+		*Len = i;
 		if(CurMethod == nullptr)
 			return METHODS::WRONG;
 		return *CurMethod;
+	}
+
+	static inline void ReadMethod(const char* Str, size_t* Strt, size_t* End)
+	{
+		size_t i = 0;
+		for(;(Str[i] == '\r') && (Str[i + 1] == '\n'); i++);
+		*Strt = i;
+		for( ;((Str[i] >= 'A') && (Str[i] <= 'Z')) || (Str[i] == '-'); i++);
+		*End = i;
 	}
 
 	bool ReadStartLine()
@@ -267,65 +276,299 @@ private:
 	}
 
 	template<bool IsDynamicKey, typename IndexType>
-	static int ReadHeaders(char * Str, HASH_TABLE_STRING_KEY<char, char*, IsDynamicKey, IndexType>* DestHash)
+	static int ReadHeaders(char * s, HASH_TABLE_STRING_KEY<char, char*, IsDynamicKey, IndexType>* DestHash)
 	{
-		unsigned i = 0, j;
+		unsigned i = 0, j, k;
 		char *Key;
 		while(true)
 		{
 lblMainLoop:
-			j = i;
 			for(;;i++)
 			{
-				switch(Str[i])
+				switch(s[i])
 				{
-				case ' ': case '\t': case '\n': case '\v': case '\f': case ':':
-					goto lblOut;
+				case ' ': case '\t': case '\n': case '\v': case '\f':
+					continue;
+				case ':':
+lblSkip:
+					for(;;i++)
+					{
+						if((s[i] == '\r') && (s[i + 1] == '\n'))
+						{
+							i += 2;
+							goto lblMainLoop;
+						}else if(s[i] == '\0')
+							return i;
+					}
 				case '\r':
-					if(Str[i + 1] == '\n')
+					if(s[i + 1] == '\n')
 					{
 						i += 2;
 						goto lblMainLoop;
 					}
-					goto lblOut;
-				case '\0':
-					return i;
-				}
-			}
-lblOut:
-			if(i > j)
-			{
-				Key = Str + j;
-				Str[i] = '\0';
-				i++;
-			}
-			for(;IsSpace(Str[i]); i++);
-			j = i;
-			for(;;i++)
-			{							
-				switch(Str[i])
-				{
-				case '\r':
-					if(Str[i + 1] == '\n')
-						goto lblOut2;
 					continue;
 				case '\0':
-					goto lblOut2;
+					return i;
+				}
+				if(((s[i] >= 'a') && (s[i] <= 'z')) || ((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-'))
+				   goto lblReadKey;
+			}	
+lblReadKey:
+			Key = s + i;
+			for(;((s[i] >= 'a') && (s[i] <= 'z')) || ((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-');i++);
+			j = i;
+			for(;(s[i] == ' ') || (s[i] == '\t'); i++);
+
+			if((s[i] == '\r') && (s[i + 1] == '\n'))
+			{
+				i += 2;
+				goto lblMainLoop;
+			}
+			else if(s[i] == '\0')
+				return i;
+			else if(s[i] != ':')
+				goto lblSkip;
+
+			for(;(s[i] == ' ') || (s[i] == '\t'); i++);
+			
+
+			for(k = i;;i++)
+			{
+				if((s[i] == '\r') && (s[i + 1] == '\n'))
+				{
+					if(i > k)
+					{
+						s[i] = s[j] = '\0';
+						auto r = DestHash->Insert(Key);
+						if(r != nullptr)
+							*r = s + k;
+					}
+					i += 2;
+					goto lblMainLoop;
+				}else if(s[i] == '\0')
+				{
+					if(i > k)
+					{
+						s[j] = '\0';
+						auto r = DestHash->Insert(Key);
+						if(r != nullptr)
+							*r = s + k;
+					}
+					return i;
 				}
 			}
-lblOut2:			
-			if(i > j)
+		}
+		return i;
+	}
+	
+	static int ReadStartLineRow
+	(
+		char* s,
+		char** Method,
+		unsigned* Status,
+		char** StatusMsg_Uri,
+		char** Ver,
+		bool* IsResponse
+	)
+	{
+		size_t i, StrtMet, EndMet;
+		ReadMethod(s, &StrtMet, &EndMet);
+		if(StrtMet == EndMet)
+			return -1;
+		i = EndMet;
+		if(
+			((EndMet - StrtMet) == 4) && 
+			(s[StrtMet] == 'H') && 
+			(s[StrtMet + 1] == 'T') && 
+			(s[StrtMet + 2] == 'T') &&
+			(s[StrtMet + 3] == 'P')
+		) 
+		{
+			*IsResponse = true;
+			if((s[i] == '\r') && (s[i + 1] == '\n'))
+				return -1;
+
+			//If get response
+			if(s[i] == '/')
 			{
-				auto r = DestHash->Insert(Key);
-				if(r != nullptr)
-					*r = Str + j;
-				if(Str[i] == '\0')
-					return i;
-				Str[i] = '\0';
-				i += 2;
+				//Read version
+				for(i++ ;((s[i] >= '0') && (s[i] <= '9')) || (s[i] == '.'); i++);
+
+				if(i > (EndMet + 1))
+				{					
+					if((s[i] == '\r') && (s[i + 1] == '\n'))
+						return -1;
+					*Ver = s + (EndMet + 1);
+					s[i] = '\0';
+				}
+			}
+			s[EndMet] = '\0';
+			*Method = s; 
+			//Skip spaces
+			for(i++; (s[i] == '\t') || (s[i] == ' '); i++);
+			{
+				unsigned Stat = 0;
+				//Read status number
+				for(unsigned char Digit; (Digit = s[i] - '0') <= 9; i++)
+					Stat = Stat * 10 + Digit;
+				*Status = Stat;
+			}
+			for(; (s[i] == '\t') || (s[i] == ' '); i++);
+
+			for(size_t j = i; ;i++)
+				if((s[i] == '\r') && (s[i + 1] == '\n'))
+				{
+					if(i > j)
+						*StatusMsg_Uri = s + j;
+					else
+						*StatusMsg_Uri = (char*)GetMsgByStatus(*Status);
+					goto lblOut2;
+				}
+		}else
+		{
+			*IsResponse = false;
+			if((s[i] == '\r') && (s[i + 1] == '\n'))
+				return -1;
+			s[EndMet] = '\0';
+			*Method = s;
+			for(i++; (s[i] == '\t') || (s[i] == ' '); i++);
+
+			//Read URI
+			{
+				size_t StartQuery = i;
+				for(; !IsSpace(s[i]); i++);
+				if(i > StartQuery)
+					*StatusMsg_Uri = s + StartQuery;
+				else
+					return -1;
+			}
+			if((s[i] == '\r') && (s[i + 1] == '\n'))
+				goto lblOut2;
+			s[i] = '\0';
+			for(i++; (s[i] == '\t') || (s[i] == ' '); i++);
+
+			if((s[i] == 'H') && (s[i + 1] == 'T') && (s[i + 2] == 'T') && (s[i + 3] == 'P')) 
+			{
+				i += 4;
+				if(s[i] == '/')
+				{
+					size_t StartVer = ++i;
+					//Read version
+					for(;((s[i] >= '0') && (s[i] <= '9')) || (s[i] == '.'); i++);
+
+					if(i > StartVer)
+					{					
+						*Ver = s + StartVer;
+						if((s[i] == '\r') && (s[i + 1] == '\n'))
+							goto lblOut2;
+						s[i] = '\0';
+						i++;
+					}
+				}
 			}
 		}
 
+		for(; ;i++)
+			if((s[i] == '\r') && (s[i + 1] == '\n'))
+			{
+lblOut2:
+				s[i] = '\0';
+				i += 2;
+				break;
+			}
+
+		return i;
+	}
+
+
+	template<typename TypeUserData>
+	static int ReadHeadersRow
+	(
+		char* s,
+		TypeUserData UsrData,
+		bool (*HeadersFunc)(TypeUserData UsrData, const char * Key, const char * Val)
+	)
+	{
+		unsigned i = 0, j, k;
+		char *Key;
+		while(true)
+		{
+lblMainLoop:
+			for(;;i++)
+			{
+				switch(s[i])
+				{
+				case ' ': case '\t': case '\n': case '\v': case '\f':
+					continue;
+				case ':':
+lblSkip:
+					for(;;i++)
+					{
+						if((s[i] == '\r') && (s[i + 1] == '\n'))
+						{
+							i += 2;
+							goto lblMainLoop;
+						}else if(s[i] == '\0')
+							return i;
+					}
+				case '\r':
+					if(s[i + 1] == '\n')
+					{
+						i += 2;
+						goto lblMainLoop;
+					}
+					continue;
+				case '\0':
+					return i;
+				}
+				if(((s[i] >= 'a') && (s[i] <= 'z')) || ((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-'))
+				   goto lblReadKey;
+			}	
+lblReadKey:
+			Key = s + i;
+			//Read key
+			for(;((s[i] >= 'a') && (s[i] <= 'z')) || ((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-');i++);
+			j = i;
+			for(;(s[i] == ' ') || (s[i] == '\t'); i++);
+
+			if((s[i] == '\r') && (s[i + 1] == '\n'))
+			{
+				i += 2;
+				goto lblMainLoop;
+			}
+			else if(s[i] == '\0')
+				return i;
+			else if(s[i] != ':')
+				goto lblSkip;
+
+			//Skip spaces
+			for(i++;(s[i] == ' ') || (s[i] == '\t'); i++);
+		
+			//Read val
+			for(k = i;;i++)
+			{
+				if((s[i] == '\r') && (s[i + 1] == '\n'))
+				{
+					if(i > k)
+					{
+						s[i] = s[j] = '\0';
+						if(!HeadersFunc(UsrData, Key, s + k))
+							return -1;
+					}
+					i += 2;
+					goto lblMainLoop;
+				}else if(s[i] == '\0')
+				{
+					if(i > k)
+					{
+						s[j] = '\0';
+						if(!HeadersFunc(UsrData, Key, s + k))
+							return -1;
+					}
+					return i;
+				}
+			}
+		}
 		return i;
 	}
 
@@ -665,7 +908,9 @@ public:
 			WRONG_GET_METHOD,
 			HEADER_NOT_HAVE_URI,
 			NOT_READED_FROM_SOCKET,
-			NOT_HAVE_DATA_IN_SOCKET
+			NOT_HAVE_DATA_IN_SOCKET,
+			INVALID_START_LINE,
+			USER_INTERRUPT
 		};
 	};
 
@@ -740,6 +985,20 @@ public:
 
 	union
 	{
+		class
+		{
+			__HTTP_RECIVE_QUERY_FIELDS;
+		public:
+			operator size_t() const
+			{
+				return MaxSizeBuffer;
+			}
+			size_t operator = (size_t New)
+			{
+				return MaxSizeBuffer = New;
+			}
+		} MaxSizeBuffer;
+
 		class
 		{
 			__HTTP_RECIVE_QUERY_FIELDS;
@@ -992,8 +1251,7 @@ public:
 				return false;
 			}
 			((char*)TypeMethod.Buf)[CountReaded] = '\0';
-			EndHeader = (char*)StringSearch((char*)TypeMethod.Buf, "\r\n\r\n");
-			if(EndHeader == nullptr)
+			if((EndHeader = (char*)StringSearch((char*)TypeMethod.Buf, "\r\n\r\n")) == nullptr)
 			{
 				if(GetTypeMethod((char*)TypeMethod.Buf) == METHODS::WRONG)
 				{
@@ -1056,8 +1314,7 @@ public:
 				return false;
 			}
 			((char*)TypeMethod.Buf)[CountReaded] = '\0';
-			EndHeader = (char*)StringSearch((char*)TypeMethod.Buf, "\r\n\r\n");
-			if(EndHeader == nullptr)
+			if((EndHeader = (char*)StringSearch((char*)TypeMethod.Buf, "\r\n\r\n")) == nullptr)
 			{
 				if(GetTypeMethod((char*)TypeMethod.Buf) == METHODS::WRONG)
 				{
@@ -1099,6 +1356,108 @@ public:
 		return true;
 	}
 
+	template<typename TypeUserData>
+	static int ReciveRow
+	(
+		QUERY_URL*  QueryUrl,
+		TypeUserData UsrData,
+		bool (*ResponseFunc)(TypeUserData UsrData, int Status, const char * Msg, const char* ProtoVer),
+		bool (*QueryFunc)(TypeUserData UsrData, const char* Method, const char* Path, const char* ProtoVer),
+		bool (*HeadersFunc)(TypeUserData UsrData, const char * Key, const char * Val),
+		size_t* Readed = std::make_default_pointer(),
+		size_t MaxLenBuf = 4096	
+	)
+	{
+		if(QueryUrl->IsNotHaveRecvData)
+			return false;
+
+		int CountReaded;
+		char* EndHeader;
+		char TmpBuf[1024];
+
+		size_t CurSizeBuf = 1024;
+		void* Buf = TmpBuf;
+
+		while(true)
+		{
+			CountReaded = QueryUrl->Recive(Buf, CurSizeBuf - 2, MSG_PEEK);
+
+			if(CountReaded == -1)
+				return ERRORS::NOT_READED_FROM_SOCKET;
+			else if(CountReaded == 0)
+				return ERRORS::NOT_HAVE_DATA_IN_SOCKET;
+
+			((char*)Buf)[CountReaded] = '\0';
+			if((EndHeader = (char*)StringSearch((char*)Buf, "\r\n\r\n")) == nullptr)
+			{
+				size_t i, j;
+				ReadMethod((char*)Buf, &i, &j);
+				if((j - i) < 3)
+					return ERRORS::NOT_HAVE_METHOD;
+				if(Buf == TmpBuf)
+				{
+					if((Buf = malloc(CurSizeBuf += 300)) == nullptr)
+						return ERRORS::NOT_ALLOC_MEMORY;
+				}else
+				{
+					if((Buf = realloc(Buf, CurSizeBuf += 300)) == nullptr)
+						return ERRORS::NOT_ALLOC_MEMORY;
+				}
+				continue;
+			}
+			break;
+		}		
+
+		int Result = ERRORS::SUCCESS, i;
+		size_t SizeHeader = (size_t)EndHeader - (size_t)Buf + 4;
+		{
+			char *Met = "", *StatMsgURI = "", *Ver = "";
+			unsigned Stat = 0;
+			bool IsResponse = false;
+			
+			if((i = ReadStartLineRow((char*)Buf, &Met, &Stat, &StatMsgURI, &Ver, &IsResponse)) == -1)
+			{
+				Result = ERRORS::INVALID_START_LINE;
+				goto lblOut;
+			}
+			if(IsResponse)
+			{
+				if(!ResponseFunc(UsrData, Stat, StatMsgURI, Ver))
+				{
+					Result = ERRORS::USER_INTERRUPT;
+					goto lblOut;
+				}
+			}else
+			{
+				if(!QueryFunc(UsrData, Met, StatMsgURI, Ver))
+				{
+					Result = ERRORS::USER_INTERRUPT;
+					goto lblOut;
+				}
+			}
+		}
+		if(ReadHeadersRow((char*)Buf + i, UsrData, HeadersFunc) == -1)
+		{
+			Result = ERRORS::USER_INTERRUPT;
+			goto lblOut;
+		}
+
+		{		
+			size_t LenHeader = SizeHeader;
+			do{
+				size_t l = (LenHeader > 1000)?1000:LenHeader;
+				CountReaded = QueryUrl->Recive(TmpBuf, l);
+				if(CountReaded <= 0)
+					break;
+				LenHeader -= CountReaded;
+			} while(LenHeader > 0);
+		}
+lblOut:
+		*Readed = SizeHeader;
+		if(Buf != TmpBuf)
+			free(Buf);
+		return Result;
+	}
 };
 
 
@@ -1240,22 +1599,22 @@ public:
 	};
 
 	bool SendResponse
-		(
+	(
 		int Stat, 
 		const char* StatMsg, 
 		HTTP_RECIVE_QUERY::_HEADERS& Headers
-		) 
+	) 
 	{
 		return SendResponse(Stat, StatMsg, Headers.Count.Headers.operator HTTP_RECIVE_QUERY::THASH_DATA &());
 	}
 
 	template<bool IsDynamicKeyInHash, typename TypeIndex>
 	bool SendResponse
-		(
+	(
 		int Stat, 
 		const char* StatMsg, 
 		HASH_TABLE_STRING_KEY<char, char*, IsDynamicKeyInHash, TypeIndex>& Headers
-		) const
+	) const
 	{
 		if(StatMsg == nullptr)
 			StatMsg = HTTP_RECIVE_QUERY::GetMsgByStatus(Stat);
@@ -1301,10 +1660,10 @@ public:
 	}
 
 	int SendResponse
-		(
-		int Stat, 
+	(
+		int Stat,
 		const char* StatMsg = nullptr
-		) const
+	) const
 	{
 		if(StatMsg == nullptr)
 			StatMsg = HTTP_RECIVE_QUERY::GetMsgByStatus(Stat);
@@ -1359,10 +1718,10 @@ public:
 	}
 
 	int SendQuery
-		(
+	(
 		unsigned char TypeMethod, 
 		const char * Path = "/"
-		) const
+	) const
 	{
 		const char * StrMethod = HTTP_RECIVE_QUERY::GetMethodName(TypeMethod);
 		if(StrMethod[0] == '\0')
@@ -1372,11 +1731,11 @@ public:
 
 	template<bool IsDynamicKeyInHash, typename TypeIndex>
 	int SendQuery
-		(
+	(
 		unsigned char TypeMethod, 
 		const char * Path, 
 		HASH_TABLE_STRING_KEY<char, char*, IsDynamicKeyInHash, TypeIndex>& Headers
-		) const
+	) const
 	{
 		const char * StrMethod = HTTP_RECIVE_QUERY::GetMethodName(TypeMethod);
 		if(StrMethod[0] == '\0')
@@ -1385,10 +1744,10 @@ public:
 	}
 
 	int SendQuery
-		(
+	(
 		const char* MethodStr, 
 		const char* Path = "/"
-		) const
+	) const
 	{
 		std::basic_string<char> ResponseBuf = MethodStr;
 		ResponseBuf.append(" ", 1);
@@ -1412,11 +1771,11 @@ public:
 
 	template<bool IsDynamicKeyInHash, typename TypeIndex>
 	int SendQuery
-		(
+	(
 		const char* MethodStr, 
 		const char* Path, 
 		HASH_TABLE_STRING_KEY<char, char*, IsDynamicKeyInHash, TypeIndex>& Headers
-		) const
+	) const
 	{
 		std::basic_string<char> ResponseBuf = MethodStr;
 		ResponseBuf.append(" ", 1);
@@ -1438,6 +1797,82 @@ public:
 		{
 			char* Key, *Val;
 			Headers.DataByInterator(&i, &Key, &Val);
+			ResponseBuf.append(Key);
+			ResponseBuf.append(": ", sizeof(": ") - 1);
+			ResponseBuf.append(Val);
+			ResponseBuf.append("\r\n", sizeof("\r\n") - 1);
+		}
+		ResponseBuf.append("\r\n", sizeof("\r\n") - 1);
+		return QueryUrl->Send(ResponseBuf);
+	}
+
+	template<typename TypeUserData>
+	static int SendQueryRow
+	(
+		QUERY_URL*  QueryUrl,
+		const char* MethodStr, 
+		const char* Path, 
+		TypeUserData UsrData, 
+		bool (*HeadersEnumFunc)(TypeUserData UsrData, char ** Key, char ** Val),
+		const char* ProtoVersion = "1.1"
+	)
+	{
+		std::basic_string<char> ResponseBuf = MethodStr;
+		ResponseBuf.append(" ", 1);
+		ResponseBuf.append(Path);
+		ResponseBuf.append(" HTTP/", sizeof(" HTTP/") - 1);
+		ResponseBuf.append(ProtoVersion);
+		ResponseBuf.append("\r\n", sizeof("\r\n") - 1);
+		for(char* Key, *Val; HeadersEnumFunc(UsrData, &Key, &Val);)
+		{
+			ResponseBuf.append(Key);
+			ResponseBuf.append(": ", sizeof(": ") - 1);
+			ResponseBuf.append(Val);
+			ResponseBuf.append("\r\n", sizeof("\r\n") - 1);
+		}
+		ResponseBuf.append("\r\n", sizeof("\r\n") - 1);
+		return QueryUrl->Send(ResponseBuf);
+	}
+
+
+	template<typename TypeUserData>
+	static int SendQueryRow
+	(
+		QUERY_URL*  QueryUrl,
+		int TypeMethod, 
+		const char* Path, 
+		TypeUserData UsrData, 
+		bool (*HeadersEnumFunc)(TypeUserData UsrData, char ** Key, char ** Val),
+		const char* ProtoVersion = "1.1"
+	)
+	{
+		const char * StrMethod = HTTP_RECIVE_QUERY::GetMethodName(TypeMethod);
+		if(StrMethod[0] == '\0')
+			return false;
+		return  SendQueryRow(QueryUrl, StrMethod, Path, UsrData, HeadersEnumFunc, ProtoVersion);
+	}
+
+
+	template<typename TypeUserData>
+	static int SendResponseRow
+	(
+		QUERY_URL*  QueryUrl,
+		int Stat, 
+		const char* StatMsg, 
+		TypeUserData UsrData, 
+		bool (*HeadersEnumFunc)(TypeUserData UsrData, char ** Key, char ** Val),
+		const char* ProtoVersion = "1.1"
+	)
+	{
+		if(StatMsg == nullptr)
+			StatMsg = HTTP_RECIVE_QUERY::GetMsgByStatus(Stat);
+		std::basic_string<char> ResponseBuf("", 50);
+		unsigned s = sprintf_s((char*)ResponseBuf.c_str(), 48, "HTTP/%s %i ", ProtoVersion, Stat);
+		ResponseBuf.resize(s);	
+		ResponseBuf.append(StatMsg);
+		ResponseBuf.append("\r\n", sizeof("\r\n") - 1);
+		for(char* Key, *Val; HeadersEnumFunc(UsrData, &Key, &Val);)
+		{
 			ResponseBuf.append(Key);
 			ResponseBuf.append(": ", sizeof(": ") - 1);
 			ResponseBuf.append(Val);
