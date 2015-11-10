@@ -64,6 +64,16 @@
 namespace std
 {		
 
+	struct make_default_pointer
+	{
+		template<typename RetVal>
+		inline operator RetVal*() const
+		{
+			static RetVal v;
+			return &v;
+		} 
+	};
+
 	template<typename TypeHaveConstructor>
 	struct def_var_in_union_with_constructor
 	{
