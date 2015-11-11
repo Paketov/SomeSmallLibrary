@@ -152,7 +152,9 @@ private:
 		size_t i = 0;
 		for(;(s[i] == '\r') && (s[i + 1] == '\n'); i += 2);
 		size_t j = i;
-		for( ;((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-'); i++);
+		if((s[i] < 'A') && (s[i] > 'Z'))
+			return false;
+		for(i++ ;((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-'); i++);
 		if(i <= j)
 			return false;
 		char c = s[i];
@@ -171,7 +173,9 @@ private:
 		size_t i = 0;
 		for(;(s[i] == '\r') && (s[i + 1] == '\n'); i += 2);
 		size_t j = i;
-		for( ;((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-'); i++);
+		if((s[i] < 'A') && (s[i] > 'Z'))
+			return false;
+		for(i++ ;((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-'); i++);
 
 		if(
 			((i - j) == 4) && 
@@ -199,8 +203,13 @@ private:
 		size_t i = 0;
 		for(;(s[i] == '\r') && (s[i + 1] == '\n'); i += 2);
 		size_t j = i;
-		for( ;((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-'); i++);
-		
+
+		//If method started not a letter
+		if((s[i] < 'A') && (s[i] > 'Z'))
+			return -1;
+		//Read method
+		for(i++ ;((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-'); i++);
+
 		if(
 			((i - j) == 4) && 
 			(s[j] == 'H') && 
@@ -254,7 +263,7 @@ private:
 		}else
 		{
 			*IsResponse = false;
-			if((i <= j) || (s[i] != ' ') && (s[i] != '\t'))
+			if((s[i] != ' ') && (s[i] != '\t'))
 				return -1;
 			s[i] = '\0';
 			*Method = s + j;
@@ -264,14 +273,13 @@ private:
 			{
 				size_t StartQuery = i;
 				for(; !IsSpace(s[i]); i++);
-				if(i > StartQuery)
-					*StatusMsg_Uri = s + StartQuery;
-				else
+				if(i <= StartQuery)
 					return -1;
+				*StatusMsg_Uri = s + StartQuery;	
 			}
 			if((s[i] == '\r') && (s[i + 1] == '\n'))
 				goto lblOut2;
-			s[i] = '\0';
+			s[i] = '\0';		
 			for(i++; (s[i] == '\t') || (s[i] == ' '); i++);
 
 			if((s[i] == 'H') && (s[i + 1] == 'T') && (s[i + 2] == 'T') && (s[i + 3] == 'P')) 
@@ -348,13 +356,13 @@ lblSkip:
 				case '\0':
 					return i;
 				}
-				if(((s[i] >= 'a') && (s[i] <= 'z')) || ((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-'))
+				if((s[i] >= 'a') && (s[i] <= 'z') || (s[i] >= 'A') && (s[i] <= 'Z'))
 				   goto lblReadKey;
 			}	
 lblReadKey:
 			Key = s + i;
 			//Read key
-			for(;((s[i] >= 'a') && (s[i] <= 'z')) || ((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-');i++);
+			for(i++ ;((s[i] >= 'a') && (s[i] <= 'z')) || ((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-');i++);
 			j = i;
 			for(;(s[i] == ' ') || (s[i] == '\t'); i++);
 
