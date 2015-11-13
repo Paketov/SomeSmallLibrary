@@ -2,7 +2,7 @@
 #define __QUERYURLHTTP_H_HAS_INCLUDED__
 
 /*
-Warming!
+Warning!
 This library not thread safe!
 You have to manually put the critical section or block in your code.
 This is made to minimize the overhead for thread synchronization.
