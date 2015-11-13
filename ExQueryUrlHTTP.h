@@ -1105,6 +1105,11 @@ public:
 				return false;
 			}
 			((char*)TypeMethod.Buf)[CountReaded] = '\0';
+			if(!CheckMethod((char*)TypeMethod.Buf))
+			{
+				TypeMethod.iLastErr = ERRORS::NOT_HAVE_METHOD;
+				return false;
+			}
 			for(char* c = (char*)TypeMethod.Buf; c[3] != '\0'; c++)
 				if((c[0] == '\r') && (c[1] == '\n') && (c[2] == '\r') && (c[3] == '\n'))
 				{
@@ -1113,11 +1118,6 @@ public:
 				}
 			if(EndHeader == nullptr)
 			{
-				if(!CheckMethod((char*)TypeMethod.Buf))
-				{
-					TypeMethod.iLastErr = ERRORS::NOT_HAVE_METHOD;
-					return false;
-				}
 				if(!ResizeBuffer(TypeMethod.SizeBuf + 300))
 					return false;
 				continue;
@@ -1200,6 +1200,11 @@ public:
 				return false;
 			}
 			((char*)TypeMethod.Buf)[CountReaded] = '\0';
+			if(!CheckMethod((char*)TypeMethod.Buf))
+			{
+				TypeMethod.iLastErr = ERRORS::NOT_HAVE_METHOD;
+				return false;
+			}
 			for(char* c = (char*)TypeMethod.Buf; c[3] != '\0'; c++)
 				if((c[0] == '\r') && (c[1] == '\n') && (c[2] == '\r') && (c[3] == '\n'))
 				{
@@ -1208,11 +1213,6 @@ public:
 				}
 			if(EndHeader == nullptr)
 			{
-				if(!CheckMethod((char*)TypeMethod.Buf))
-				{
-					TypeMethod.iLastErr = ERRORS::NOT_HAVE_METHOD;
-					return false;
-				}
 				if(!ResizeBuffer(TypeMethod.SizeBuf + 300))
 					return false;
 				continue;
@@ -1315,7 +1315,7 @@ public:
 					break;
 				}
 			if(EndHeader == nullptr)
-			{
+			{			
 				if(!CheckMethodRow((char*)Buf))
 				{
 					Result = ERRORS::NOT_HAVE_METHOD;
@@ -1376,7 +1376,6 @@ public:
 
 		if(!IsPeek)
 			SkipInSockBuffer(QueryUrl, TmpBuf, sizeof(TmpBuf) - 2, SizeHeader);
-
 lblOut:
 		*Readed = SizeHeader;
 		if((Buf != nullptr) && (Buf != TmpBuf))
