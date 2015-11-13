@@ -522,14 +522,13 @@ public:
 				return true;
 	}
 
-	static bool WriteGMTTime(char * TimeStr, size_t LenBuf, tm& InTm)
+	static bool WriteGMTTime(char * TimeStr, tm& InTm)
 	{
 		static const char  *Week[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 		static const char  *Months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-		auto r = sprintf_s
+		auto r = sprintf
 			(
 			TimeStr,
-			LenBuf,
 			"%3s, %02i %3s %i %02i:%02i:%02i GMT", 
 			Week[InTm.tm_wday], 
 			InTm.tm_mday, 
@@ -560,7 +559,7 @@ public:
 #ifdef _WIN32
 		return _mkgmtime(&InTm) - GmtAccuracy;
 #else
-		return  timegm(InTm) - GmtAccuracy;
+		return  timegm(&InTm) - GmtAccuracy;
 #endif
 	}
 	/*
@@ -960,8 +959,6 @@ public:
 				return Count.FilteredMethod->In(Key);
 			}
 
-
-
 		} MethodFilter;
 
 
@@ -1108,7 +1105,13 @@ public:
 				return false;
 			}
 			((char*)TypeMethod.Buf)[CountReaded] = '\0';
-			if((EndHeader = (char*)StringSearch((char*)TypeMethod.Buf, "\r\n\r\n")) == nullptr)
+			for(char* c = (char*)TypeMethod.Buf; c[3] != '\0'; c++)
+				if((c[0] == '\r') && (c[1] == '\n') && (c[2] == '\r') && (c[3] == '\n'))
+				{
+					EndHeader = c;
+					break;
+				}
+			if(EndHeader == nullptr)
 			{
 				if(!CheckMethod((char*)TypeMethod.Buf))
 				{
@@ -1125,7 +1128,7 @@ public:
 		EndHeader[4] = '\0';
 		int i;
 		{
-			char *Met = "", *StatMsgURI = "", *Ver = "";
+			char *Met = "", *StatMsgURI = Met, *Ver = Met;
 			unsigned Stat = 0;
 			bool IsResponse = false;
 			
@@ -1197,7 +1200,13 @@ public:
 				return false;
 			}
 			((char*)TypeMethod.Buf)[CountReaded] = '\0';
-			if((EndHeader = (char*)StringSearch((char*)TypeMethod.Buf, "\r\n\r\n")) == nullptr)
+			for(char* c = (char*)TypeMethod.Buf; c[3] != '\0'; c++)
+				if((c[0] == '\r') && (c[1] == '\n') && (c[2] == '\r') && (c[3] == '\n'))
+				{
+					EndHeader = c;
+					break;
+				}
+			if(EndHeader == nullptr)
 			{
 				if(!CheckMethod((char*)TypeMethod.Buf))
 				{
@@ -1214,7 +1223,7 @@ public:
 		EndHeader[4] = '\0';
 		int i;
 		{
-			char *Met = "", *StatMsgURI = "", *Ver = "";
+			char *Met = "", *StatMsgURI = Met, *Ver = Met;
 			unsigned Stat = 0;
 			bool IsResponse = false;
 			
@@ -1281,28 +1290,31 @@ public:
 			return false;
 
 		int CountReaded, Result = ERRORS::SUCCESS, i;
-		char* EndHeader;
+		char* EndHeader = nullptr;
 		char TmpBuf[1024];
-
-		size_t CurSizeBuf = 1024;
 		void* Buf = TmpBuf;
+		size_t CurSizeBuf = 1024, SizeHeader;
 
 		while(true)
 		{
 			CountReaded = QueryUrl->Recive(Buf, CurSizeBuf - 2, MSG_PEEK);
-
 			if(CountReaded == -1)
 			{
 					Result = ERRORS::NOT_READED_FROM_SOCKET;
 					goto lblOut;
-			}
-			else if(CountReaded == 0)
+			}else if(CountReaded == 0)
 			{
 					Result = ERRORS::NOT_HAVE_DATA_IN_SOCKET;
 					goto lblOut;
 			}
 			((char*)Buf)[CountReaded] = '\0';
-			if((EndHeader = (char*)StringSearch((char*)Buf, "\r\n\r\n")) == nullptr)
+			for(char* c = (char*)Buf; c[3] != '\0'; c++)
+				if((c[0] == '\r') && (c[1] == '\n') && (c[2] == '\r') && (c[3] == '\n'))
+				{
+					EndHeader = c;
+					break;
+				}
+			if(EndHeader == nullptr)
 			{
 				if(!CheckMethodRow((char*)Buf))
 				{
@@ -1330,9 +1342,9 @@ public:
 		}		
 
 		EndHeader[4] = '\0';
-		size_t SizeHeader = (size_t)EndHeader - (size_t)Buf + 4;
+		SizeHeader = (size_t)EndHeader - (size_t)Buf + 4;
 		{
-			char *Met = "", *StatMsgURI = "", *Ver = "";
+			char *Met = "", *StatMsgURI = Met, *Ver = Met;
 			unsigned Stat = 0;
 			bool IsResponse = false;		
 			if((i = ReadStartLineRow((char*)Buf, &Met, &Stat, &StatMsgURI, &Ver, &IsResponse)) == -1)
@@ -1483,7 +1495,6 @@ public:
 
 			bool Insert(const char* Key, const char* Val)
 			{
-
 				char ** r = Count.ConstHeaders->operator[](Key);
 				if(r == nullptr)
 				{
@@ -1532,7 +1543,7 @@ public:
 		if(StatMsg == nullptr)
 			StatMsg = HTTP_RECIVE_QUERY::GetMsgByStatus(Stat);
 		std::basic_string<char> ResponseBuf("", 50);
-		unsigned s  = sprintf_s((char*)ResponseBuf.c_str(), 48, "HTTP/%s %i ", (const char*)ProtVer, Stat);
+		unsigned s  = sprintf((char*)ResponseBuf.c_str(), "HTTP/%.20s %i ", (const char*)ProtVer, Stat);
 		ResponseBuf.resize(s);	
 		ResponseBuf.append(StatMsg);
 		ResponseBuf.append("\r\n", sizeof("\r\n") - 1);
@@ -1542,7 +1553,7 @@ public:
 			HTTP_RECIVE_QUERY::GetCurGMT(CurGMT);
 			ResponseBuf.append("Date: ", sizeof("Date: ") - 1);
 			char DateBuf[HTTP_RECIVE_QUERY::MaxTimeLen + 2];
-			HTTP_RECIVE_QUERY::WriteGMTTime(DateBuf, sizeof(DateBuf), CurGMT);
+			HTTP_RECIVE_QUERY::WriteGMTTime(DateBuf, CurGMT);
 			ResponseBuf.append(DateBuf, HTTP_RECIVE_QUERY::MaxTimeLen - 1);
 			ResponseBuf.append("\r\n", sizeof("\r\n") - 1);
 		}
@@ -1581,7 +1592,7 @@ public:
 		if(StatMsg == nullptr)
 			StatMsg = HTTP_RECIVE_QUERY::GetMsgByStatus(Stat);
 		std::basic_string<char> ResponseBuf("", 50);
-		unsigned s = sprintf_s((char*)ResponseBuf.c_str(), 48, "HTTP/%s %i ", (const char*)ProtVer, Stat);
+		unsigned s = sprintf((char*)ResponseBuf.c_str(), "HTTP/%.20s %i ", (const char*)ProtVer, Stat);
 		ResponseBuf.resize(s);	
 		ResponseBuf.append(StatMsg);
 		ResponseBuf.append("\r\n", sizeof("\r\n") - 1);
@@ -1591,7 +1602,7 @@ public:
 			HTTP_RECIVE_QUERY::GetCurGMT(CurGMT);
 			ResponseBuf.append("Date: ", sizeof("Date: ") - 1);
 			char DateBuf[HTTP_RECIVE_QUERY::MaxTimeLen + 2];
-			HTTP_RECIVE_QUERY::WriteGMTTime(DateBuf, sizeof(DateBuf), CurGMT);
+			HTTP_RECIVE_QUERY::WriteGMTTime(DateBuf, CurGMT);
 			ResponseBuf.append(DateBuf, HTTP_RECIVE_QUERY::MaxTimeLen - 1);
 			ResponseBuf.append("\r\n", sizeof("\r\n") - 1);
 		}
@@ -1608,7 +1619,6 @@ public:
 		ResponseBuf.append("\r\n", sizeof("\r\n") - 1);
 		return QueryUrl->Send(ResponseBuf);
 	}
-
 
 	bool SendQuery
 	(
@@ -1747,7 +1757,6 @@ public:
 		return QueryUrl->Send(ResponseBuf);
 	}
 
-
 	template<typename TypeUserData>
 	static int SendQueryRow
 	(
@@ -1765,7 +1774,6 @@ public:
 		return  SendQueryRow(QueryUrl, StrMethod, Path, UsrData, HeadersEnumFunc, ProtoVersion);
 	}
 
-
 	template<typename TypeUserData>
 	static int SendResponseRow
 	(
@@ -1780,7 +1788,7 @@ public:
 		if(StatMsg == nullptr)
 			StatMsg = HTTP_RECIVE_QUERY::GetMsgByStatus(Stat);
 		std::basic_string<char> ResponseBuf("", 50);
-		unsigned s = sprintf_s((char*)ResponseBuf.c_str(), 48, "HTTP/%s %i ", ProtoVersion, Stat);
+		unsigned s = sprintf((char*)ResponseBuf.c_str(), "HTTP/%.20s %i ", ProtoVersion, Stat);
 		ResponseBuf.resize(s);	
 		ResponseBuf.append(StatMsg);
 		ResponseBuf.append("\r\n", sizeof("\r\n") - 1);
