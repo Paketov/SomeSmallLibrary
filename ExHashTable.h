@@ -831,9 +831,9 @@ public:
 		PARENT::New(*this, Another.MaxCount);
 		Init(Another.MaxCount);
 		Clear();
-		Another.PARENT::EnumValues 
+		Another.EnumValues 
 		(
-			[](void* UsrData, HASH_TABLE_STRING_KEY<CharType,DataType,isdyn,ti>::HASH_ELEMENT* El) 
+			[](void* UsrData, typename HASH_TABLE_STRING_KEY<CharType,DataType,isdyn,ti>::HASH_ELEMENT* El) 
 			{
 				auto r = ((HASH_TABLE_STRING_KEY*)(UsrData))->Insert(El->KeyVal);
 				if(r == nullptr)
@@ -849,9 +849,9 @@ public:
 	HASH_TABLE_STRING_KEY& operator =(HASH_TABLE_STRING_KEY<CharType,DataType,isdyn,ti>& Another)
 	{
 		Clear();
-		Another.PARENT::EnumValues 
+		Another.EnumValues 
 		(
-			[](void* UsrData, HASH_TABLE_STRING_KEY<CharType,DataType,isdyn,ti>::HASH_ELEMENT* El) 
+			[](void* UsrData, typename HASH_TABLE_STRING_KEY<CharType,DataType,isdyn,ti>::HASH_ELEMENT* El) 
 			{
 				auto r = ((HASH_TABLE_STRING_KEY*)(UsrData))->Insert(El->KeyVal);
 				if(r == nullptr)
@@ -889,7 +889,7 @@ public:
 	}
 
 	/*
-	Interete key like in JavaScript.
+	Interate key like in JavaScript.
 	*/
 	CharType* In(const CharType* Key = nullptr) const
 	{
