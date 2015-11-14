@@ -905,6 +905,17 @@ public:
 		return (EX_WND__)::GetFocus();
 	}
 
+	static void EnterMainLoop()
+	{
+		for (MSG msg; GetMessage(&msg, NULL, NULL, NULL);) 
+		{  
+			TranslateMessage(&msg); 
+			DispatchMessage(&msg); 
+			if(msg.message == WM_KEYDOWN)
+				MainDlgProc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
+		}
+	}
+
 	///////
 
 	BOOL SetCoord(LPRECT lpRect)
