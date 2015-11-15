@@ -31,9 +31,10 @@
 #           include <iconv.h>
 #       endif
 
+#		define CP_ACP                    4       // default to ANSI code page
 #       define CP_UTF7                   3       // UTF-7 translation
 #       define CP_UTF8                   0       // UTF-8 translation
-#       define CP_1251                   1
+#       define CP_1251                   1       
 #       define CP_KOI8                   2
 #else
 #include <Windows.h>
@@ -43,9 +44,9 @@
 #define OFFSET_P(Pointer1, Pointer2) ((off_t)((size_t)(Pointer2) - (size_t)(Pointer1)))
 #define STR_TYPE(_Type,_Str)		((std::is_equal<_Type, wchar_t>::value)?(_Type*)(L ## _Str):(_Type*)(_Str))
 #define CHAR_TYPE(_Type, _Char)		((_Type)((std::is_equal<_Type, char>::value)?(_Char):(L ## _Char)))
-#define NOT_LESS_Z(Num)			 ((0 > std::make_signed<decltype(Num)>::type(Num))?0:Num)
+#define NOT_LESS_Z(Num)				((0 > std::make_signed<decltype(Num)>::type(Num))?0:Num)
 #define DIGIT_TO_ALPHA(TypeChar, Dig) ((Dig > 9)? (Dig + (CHAR_TYPE(TypeChar,'a') - 10)): (Dig + CHAR_TYPE(TypeChar,'0')))
-#define CMP_I(Val, c)			(((Val) == CHAR_TYPE(decltype(Val), c)) || ((Val) == (CHAR_TYPE(decltype(Val), 'A') + (CHAR_TYPE(decltype(Val), c) - CHAR_TYPE(decltype(Val), 'a')))))
+#define CMP_I(Val, c)				(((Val) == CHAR_TYPE(decltype(Val), c)) || ((Val) == (CHAR_TYPE(decltype(Val), 'A') + (CHAR_TYPE(decltype(Val), c) - CHAR_TYPE(decltype(Val), 'a')))))
 
 
 template <typename ResultType>
@@ -92,7 +93,6 @@ struct RET_STAT
 
 typedef RET_STAT<size_t> STR_STAT;
 
-
 template<typename OutString>
 void StringConvertCodePage(unsigned InCp, unsigned OutCp, const wchar_t * InStr, OutString & OutStr)
 {
@@ -114,51 +114,51 @@ void StringConvertCodePage(unsigned InCp, unsigned OutCp, const InString & InStr
 	typedef typename InString::value_type _InCharType;
 	typedef typename OutString::value_type _OutCharType;
 #ifndef ANDROID
-#ifndef WIN32
-	const char * CodePageStr[] =
+#	ifndef WIN32
+	static const char * CodePageStr[] =
 	{
 		"UTF-8",
 		"CP1251",
 		"KOI-8",
-		"UTF-7"
+		"UTF-7",
+		"ANSI"
 	};
 	iconv_t convert_hnd = (iconv_t)-1;
 	size_t SizeInBuf,  SizeOutBuf;
-#endif
+#	endif
 
-	if((std::is_equal<_InCharType, wchar_t>::value) && (std::is_equal<_OutCharType, wchar_t>::value))
+	if(std::is_equal<_InCharType, wchar_t>::value && std::is_equal<_OutCharType, wchar_t>::value)
 	{
 		OutStr = (_OutCharType*)InStr.c_str();
 		return;
 	}else if(std::is_equal<_InCharType, wchar_t>::value)
 	{
-#ifdef WIN32
-		unsigned utf8_size = WideCharToMultiByte(OutCp, 0, (LPCWSTR)InStr.c_str(),InStr.length(), nullptr, 0, nullptr, nullptr);
-		OutStr.resize(utf8_size);
-		WideCharToMultiByte(OutCp, 0, (LPCWSTR)InStr.c_str(),InStr.length(), (LPSTR)&OutStr[0], utf8_size, nullptr, nullptr);
-#else
+#	ifdef WIN32
+		unsigned NewSize = WideCharToMultiByte(OutCp, 0, (LPCWSTR)InStr.c_str(), InStr.length(), nullptr, 0, nullptr, nullptr);
+		OutStr.resize(NewSize);
+		WideCharToMultiByte(OutCp, 0, (LPCWSTR)InStr.c_str(), InStr.length(), (LPSTR)OutStr.c_str(), NewSize, nullptr, nullptr);
+#	else
 		convert_hnd = iconv_open(CodePageStr[OutCp], "WCHAR_T");
 		if(convert_hnd == (iconv_t)-1)
 			return;
 		SizeInBuf = (SizeOutBuf = InStr.length() + 1) * sizeof(_InCharType);
 		OutStr.resize(SizeOutBuf);
 		SizeOutBuf *= sizeof(_OutCharType);
-#endif
+#	endif
 	}else if(std::is_equal<_OutCharType, wchar_t>::value)
 	{
-
-#ifdef WIN32
-		unsigned size = MultiByteToWideChar(InCp, 0, (LPCSTR)InStr.c_str(),InStr.length(), nullptr, 0);
-		OutStr.resize(size);
-		MultiByteToWideChar(InCp, 0, (LPCSTR)InStr.c_str(), InStr.length(), (LPWSTR)&OutStr[0], size);
-#else
+#	ifdef WIN32
+		unsigned NewSize = MultiByteToWideChar(InCp, 0, (LPCSTR)InStr.c_str(),InStr.length(), nullptr, 0);
+		OutStr.resize(NewSize);
+		MultiByteToWideChar(InCp, 0, (LPCSTR)InStr.c_str(), InStr.length(), (LPWSTR)OutStr.c_str(), NewSize);
+#	else
 		convert_hnd = iconv_open("WCHAR_T", CodePageStr[InCp]);
 		if(convert_hnd == (iconv_t)-1)
 			return;
 		SizeInBuf = (InStr.length() + 1) * sizeof(_InCharType);
 		OutStr.resize(SizeInBuf);
 		SizeOutBuf = SizeInBuf * sizeof(_OutCharType);
-#endif
+#	endif
 	}else
 	{
 		if(InCp == OutCp)
@@ -166,25 +166,25 @@ void StringConvertCodePage(unsigned InCp, unsigned OutCp, const InString & InStr
 			OutStr = (_OutCharType*)InStr.c_str();
 			return;
 		}
-#ifdef WIN32
+#	ifdef WIN32
 		unsigned size = MultiByteToWideChar(InCp, 0, (LPCSTR)InStr.c_str(),InStr.length(), nullptr, 0);
 		std::wstring unicode_str(size, '\0');
 		MultiByteToWideChar(InCp, 0, (LPCSTR)InStr.c_str(), InStr.length(), &unicode_str[0], size);
 
-		int utf8_size = WideCharToMultiByte(OutCp, 0, unicode_str.c_str(),unicode_str.length(), nullptr, 0, nullptr, nullptr);
-		OutStr.resize(utf8_size);
-		WideCharToMultiByte(OutCp, 0, unicode_str.c_str(),unicode_str.length(),(LPSTR)&OutStr[0], utf8_size, nullptr, nullptr);
-#else
+		int NewSize = WideCharToMultiByte(OutCp, 0, unicode_str.c_str(),unicode_str.length(), nullptr, 0, nullptr, nullptr);
+		OutStr.resize(NewSize);
+		WideCharToMultiByte(OutCp, 0, unicode_str.c_str(),unicode_str.length(),(LPSTR)OutStr.c_str(), NewSize, nullptr, nullptr);
+#	else
 		convert_hnd = iconv_open(CodePageStr[OutCp], CodePageStr[InCp]);
 		if(convert_hnd == (iconv_t)-1)
 			return;
 		SizeInBuf = (InStr.length() + 1) * sizeof(_InCharType);
 		OutStr.resize(SizeInBuf);
 		SizeOutBuf = SizeInBuf * sizeof(_OutCharType);
-#endif
+#	endif
 	}
 
-#ifndef WIN32
+#	ifndef WIN32
 	for(char * InBuf = (char*)InStr.c_str(), *OutBuf = (char*)OutStr.c_str(); SizeInBuf != 0;)
 	{
 		if(iconv(convert_hnd, &InBuf, &SizeInBuf, &OutBuf, &SizeOutBuf) == (size_t)-1)
@@ -207,11 +207,10 @@ void StringConvertCodePage(unsigned InCp, unsigned OutCp, const InString & InStr
 	}
 
 	iconv_close(convert_hnd);
-#endif
+#	endif
 #else
 	OutStr = (_OutCharType*)InStr.c_str();
 #endif
-
 }
 
 
@@ -284,6 +283,7 @@ struct __stream_io
 		return !s.write(Str, Len).fail();
 	}	
 };
+
 
 /*
   Decl templates
@@ -1270,7 +1270,6 @@ inline bool IsLatter(char c)
 {
 	return isalpha(c) != 0;
 }
-
 
 template<typename TypeChar>
 inline bool IsSpace(TypeChar c)
