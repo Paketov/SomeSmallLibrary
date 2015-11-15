@@ -16,6 +16,7 @@
 
 #pragma comment(linker, "\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #pragma comment(lib, "comctl32.lib")
+bool ___g = ([](){InitCommonControls(); return true;})();
 #endif
 
 template<bool>
@@ -907,17 +908,17 @@ public:
 	}
 
 
-	static EX_WND CreateDlg(int IdRes, DLGPROC WindowProc, HINSTANCE ProcessHandler = NULL, HWND ParentWindowHandler = NULL)
+	static inline EX_WND CreateDlg(int IdRes, DLGPROC WindowProc, HINSTANCE ProcessHandler = NULL, HWND ParentWindowHandler = NULL)
 	{
 		return CreateDialog(ProcessHandler, MAKEINTRESOURCE(IdRes), ParentWindowHandler, WindowProc);
 	}
 
-	static EX_WND CreateDlg(LPCSTR Name, DLGPROC WindowProc, HINSTANCE ProcessHandler = NULL, HWND ParentWindowHandler = NULL)
+	static inline EX_WND CreateDlg(LPCSTR Name, DLGPROC WindowProc, HINSTANCE ProcessHandler = NULL, HWND ParentWindowHandler = NULL)
 	{
 		return CreateDialogA(ProcessHandler, Name, ParentWindowHandler, WindowProc);
 	}
 
-	static EX_WND CreateDlg(LPCWSTR Name, DLGPROC WindowProc, HINSTANCE ProcessHandler = NULL, HWND ParentWindowHandler = NULL)
+	static inline EX_WND CreateDlg(LPCWSTR Name, DLGPROC WindowProc, HINSTANCE ProcessHandler = NULL, HWND ParentWindowHandler = NULL)
 	{
 		return CreateDialogW(ProcessHandler, Name, ParentWindowHandler, WindowProc);
 	}
