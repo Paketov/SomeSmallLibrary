@@ -126,16 +126,16 @@ void StringConvertCodePage(unsigned InCp, unsigned OutCp, const InString & InStr
 	size_t SizeInBuf,  SizeOutBuf;
 #endif
 
-	if((std::is_equal<_InCharType, wchar_t>::value) && (std::is_equal<_OutCharType,wchar_t>::value))
+	if((std::is_equal<_InCharType, wchar_t>::value) && (std::is_equal<_OutCharType, wchar_t>::value))
 	{
 		OutStr = (_OutCharType*)InStr.c_str();
 		return;
 	}else if(std::is_equal<_InCharType, wchar_t>::value)
 	{
 #ifdef WIN32
-		unsigned utf8_size = WideCharToMultiByte(OutCp, 0, (LPCWSTR)InStr.c_str(),InStr.length(), NULL, 0,NULL, NULL);
+		unsigned utf8_size = WideCharToMultiByte(OutCp, 0, (LPCWSTR)InStr.c_str(),InStr.length(), nullptr, 0, nullptr, nullptr);
 		OutStr.resize(utf8_size);
-		WideCharToMultiByte(OutCp, 0, (LPCWSTR)InStr.c_str(),InStr.length(), (LPSTR)&OutStr[0], utf8_size,NULL, NULL);
+		WideCharToMultiByte(OutCp, 0, (LPCWSTR)InStr.c_str(),InStr.length(), (LPSTR)&OutStr[0], utf8_size, nullptr, nullptr);
 #else
 		convert_hnd = iconv_open(CodePageStr[OutCp], "WCHAR_T");
 		if(convert_hnd == (iconv_t)-1)
@@ -148,7 +148,7 @@ void StringConvertCodePage(unsigned InCp, unsigned OutCp, const InString & InStr
 	{
 
 #ifdef WIN32
-		unsigned size = MultiByteToWideChar(InCp, 0, (LPCSTR)InStr.c_str(),InStr.length(), NULL, 0);
+		unsigned size = MultiByteToWideChar(InCp, 0, (LPCSTR)InStr.c_str(),InStr.length(), nullptr, 0);
 		OutStr.resize(size);
 		MultiByteToWideChar(InCp, 0, (LPCSTR)InStr.c_str(), InStr.length(), (LPWSTR)&OutStr[0], size);
 #else
@@ -167,13 +167,13 @@ void StringConvertCodePage(unsigned InCp, unsigned OutCp, const InString & InStr
 			return;
 		}
 #ifdef WIN32
-		unsigned size = MultiByteToWideChar(InCp, 0, (LPCSTR)InStr.c_str(),InStr.length(), NULL, 0);
+		unsigned size = MultiByteToWideChar(InCp, 0, (LPCSTR)InStr.c_str(),InStr.length(), nullptr, 0);
 		std::wstring unicode_str(size, '\0');
 		MultiByteToWideChar(InCp, 0, (LPCSTR)InStr.c_str(), InStr.length(), &unicode_str[0], size);
 
-		int utf8_size = WideCharToMultiByte(OutCp, 0, unicode_str.c_str(),unicode_str.length(), NULL, 0,NULL, NULL);
+		int utf8_size = WideCharToMultiByte(OutCp, 0, unicode_str.c_str(),unicode_str.length(), nullptr, 0, nullptr, nullptr);
 		OutStr.resize(utf8_size);
-		WideCharToMultiByte(OutCp, 0, unicode_str.c_str(),unicode_str.length(),(LPSTR)&OutStr[0], utf8_size,NULL, NULL);
+		WideCharToMultiByte(OutCp, 0, unicode_str.c_str(),unicode_str.length(),(LPSTR)&OutStr[0], utf8_size, nullptr, nullptr);
 #else
 		convert_hnd = iconv_open(CodePageStr[OutCp], CodePageStr[InCp]);
 		if(convert_hnd == (iconv_t)-1)
@@ -185,7 +185,6 @@ void StringConvertCodePage(unsigned InCp, unsigned OutCp, const InString & InStr
 	}
 
 #ifndef WIN32
-
 	for(char * InBuf = (char*)InStr.c_str(), *OutBuf = (char*)OutStr.c_str(); SizeInBuf != 0;)
 	{
 		if(iconv(convert_hnd, &InBuf, &SizeInBuf, &OutBuf, &SizeOutBuf) == (size_t)-1)
@@ -215,99 +214,6 @@ void StringConvertCodePage(unsigned InCp, unsigned OutCp, const InString & InStr
 
 }
 
-
-template<typename T>
-std::basic_string<T> & operator<<(std::basic_string<T> & StrDest, const int Val)
-{
-	T Buf[20];
-	if(std::is_equal<T, wchar_t>::value)
-		swprintf((wchar_t*)Buf,20,L"%i", Val);
-	else
-		sprintf((char*)Buf,"%i", Val);
-	StrDest += Buf;
-	return StrDest;
-}
-
-template<typename T>
-std::basic_string<T> & operator<<(std::basic_string<T> & StrDest, std::basic_string<T> & Val)
-{
-	StrDest += Val;
-	return StrDest;
-}
-
-
-template<typename T>
-std::basic_string<T> & operator<<(std::basic_string<T> & StrDest,const T * Val)
-{
-	StrDest += Val;
-	return StrDest;
-}
-
-template<typename T>
-int & operator<<(int & Dest, std::basic_string<T> & InStr)
-{
-	if(typeid(T) == typeid(wchar_t))
-		swscanf((wchar_t*)InStr.c_str(),L"%i", &Dest);
-	else
-		sscanf((char*)InStr.c_str(),"%i", &Dest);
-	return Dest;
-}
-
-template<typename T>
-std::basic_string<T> & operator<<(std::basic_string<T> & StrDest, T Ch)
-{
-	StrDest += Ch;
-	return StrDest;
-}
-
-template<typename _Elem, typename _Traits = std::char_traits<_Elem>, typename _Ax = std::allocator<_Elem> >
-class ex_basic_string: public std::basic_string<_Elem,_Traits,_Ax>
-{
-public:
-	template<typename Tp>
-	inline ex_basic_string(Tp Val) : std::basic_string<_Elem,_Traits,_Ax>::basic_string(Val) {}
-
-	template<typename Tp, typename Tp2>
-	inline ex_basic_string(Tp Val, Tp2 Val2) : std::basic_string<_Elem,_Traits,_Ax>::basic_string(Val, Val2) {}
-
-	inline ex_basic_string() {};
-
-
-	void ParseInt(int Val, unsigned char RadX = 10)
-	{
-		resize(11);
-		if(std::is_equal<_Elem, wchar_t>::value)
-		{
-			_itow(Val, (wchar_t*)c_str(), RadX);
-		}else
-		{
-			itoa(Val, (char*)c_str(), RadX);
-		}
-	}
-
-
-
-	int ToInt(unsigned char Radix = 10)
-	{
-		int Result = 0;
-		StringToNumber(&Result, *this, Radix);
-		return Result;
-	}
-
-	template<class T>
-	static ex_basic_string ToString(T Val)
-	{
-		ex_basic_string s;
-		s << Val;
-		return s;
-	}
-
-	static ex_basic_string ToString()
-	{
-		ex_basic_string s;
-		return s;
-	}
-};
 
 //Converting from number to string
 
@@ -421,7 +327,6 @@ STR_STAT _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, 
 
 template<typename TypeChar, typename StreamType, TypeChar (*GetChar)(StreamType), void (*UngetChar)(StreamType, TypeChar)>
 inline size_t _SkipSpace(StreamType Stream);
-
 
 /*
   Decl templates
