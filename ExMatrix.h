@@ -309,6 +309,33 @@ public:
 			}
 		} Count;
 
+
+		class
+		{
+			__ROW_FIELDS;
+		public:
+			operator T()
+			{
+				T s = T(0);
+				for(unsigned i = 0;i < _Fields._Count;i++)
+					s += _Fields.v[i];
+				return s;
+			}
+		} Summ;
+
+		class
+		{
+			__ROW_FIELDS;
+		public:
+			operator T()
+			{		
+				T s = T(0);
+				for(unsigned i = 0;i < _Fields._Count;i++)
+					s += (_Fields.v[i] * _Fields.v[i]);
+				return sqrt(s);
+			}
+		} Mod;
+
 		typename std::not_empty_if<cj == 0, _REMOVE_ELEMENT>::type	RemoveElement;
 		typename std::not_empty_if<cj == 0, _INSERT_ELEMENT>::type	InsertElement;
 	};
@@ -614,22 +641,6 @@ public:
 	inline bool operator!=(_T (&Another)[_j])
 	{
 	   return !operator==(Another);
-	}
-
-	T Summ()
-	{
-		T s = T(0);
-		for(unsigned i = 0;i < _Fields._Count;i++)
-			s += _Fields.v[i];
-		return s;
-	}
-
-	T Mod()
-	{
-		T s = T(0);
-		for(unsigned i = 0;i < _Fields._Count;i++)
-			s += (_Fields.v[i] * _Fields.v[i]);
-		return sqrt(s);
 	}
 
 };
