@@ -1,5 +1,5 @@
-#ifndef __EX_MATRIX_H__
-#define __EX_MATRIX_H__
+#ifndef __EXMATRIX_H_HAS_INCLUDED__
+#define __EXMATRIX_H_HAS_INCLUDED__
 
 /*
   MATRIX class.
@@ -571,6 +571,67 @@ public:
 		(*this)[0] = Val;
 		return TSETTER<cj, 1>(this);
 	}
+
+	template<typename _T, unsigned _j>
+	bool operator ==
+	(
+		ROW<_T, _j> & Val
+	)
+	{
+		if(_Fields._Count != Val.Count)
+			return false;
+		for(unsigned i = 0;i < _Fields._Count;i++)
+		{
+		   if(_Fields.v[i] != Val._Fields.v[i])
+			   return false;
+		}
+		return true;
+	}
+
+	template<typename _T, unsigned _j>
+	inline bool operator ==
+	(
+		ROW<_T, _j> & Val
+	)
+	{
+		return !operator==(Val);
+	}
+
+	template<typename _T, unsigned _j>
+	inline bool operator==(_T (&Another)[_j])
+	{
+		if(_Fields._Count != _j)
+			return false;
+		for(unsigned i = 0;i < _Fields._Count;i++)
+		{
+		   if(_Fields.v[i] != Another[i])
+			   return false;
+		}
+		return true;
+	}
+
+	template<typename _T, unsigned _j>
+	inline bool operator!=(_T (&Another)[_j])
+	{
+	   return !operator==(Another);
+	}
+
+	T Summ()
+	{
+		T s = T(0);
+		for(unsigned i = 0;i < _Fields._Count;i++)
+			s += _Fields.v[i];
+		return s;
+	}
+
+	T Mod()
+	{
+		T s = T(0);
+		for(unsigned i = 0;i < _Fields._Count;i++)
+			s += (_Fields.v[i] * _Fields.v[i]);
+		return sqrt(s);
+	}
+
 };
 
 template<class T = int, unsigned ci = 0,  unsigned cj = 0>
@@ -581,8 +642,6 @@ class MATRIX
 public:
 	static const bool IsStaticArr = ci * cj != 0;
 private:
-
-
 
 	//Static version
 	class TFIELDS_STATIC
