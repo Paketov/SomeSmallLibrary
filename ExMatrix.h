@@ -589,7 +589,7 @@ public:
 	}
 
 	template<typename _T, unsigned _j>
-	inline bool operator ==
+	inline bool operator !=
 	(
 		ROW<_T, _j> & Val
 	)
