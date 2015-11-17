@@ -2370,5 +2370,135 @@ public:
 };
 
 
+inline bool OpenFileDialog(LPWSTR bufFileName, DWORD sizeBuf, LPWSTR Filter = NULL, HWND hwnd = NULL, DWORD Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST)
+{
+/*
+* Диалог для открытия файла. Возвращает в bufFileName  имя файла.
+*/
+	if(bufFileName == NULL)
+		return false;
+
+	if(Filter == NULL)
+		Filter = L"All\0*.*\0";
+
+	OPENFILENAMEW ofn;                  
+	// Инициализируем OPENFILENAME
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = hwnd;
+	ofn.lpstrFile = bufFileName;
+	ofn.lpstrFile[0] = L'\0';
+	ofn.nMaxFile = sizeBuf;
+	ofn.lpstrFilter = Filter;
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFileTitle = NULL;
+	ofn.nMaxFileTitle = 0;
+	ofn.lpstrInitialDir = NULL;
+	ofn.Flags = Flags;
+
+	// Выводим диаложек
+	if(!GetOpenFileNameW(&ofn))
+		return false;
+	return true;
+}
+
+inline bool OpenFileDialog(LPSTR bufFileName, DWORD sizeBuf, LPSTR Filter = NULL, HWND hwnd = NULL, DWORD Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST)
+{
+/*
+* Диалог для открытия файла. Возвращает в bufFileName  имя файла.
+*/
+	if(bufFileName == NULL)
+		return false;
+
+	if(Filter == NULL)
+		Filter = "All\0*.*\0";
+
+	OPENFILENAMEA ofn;                  
+	// Инициализируем OPENFILENAME
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = hwnd;
+	ofn.lpstrFile = bufFileName;
+	ofn.lpstrFile[0] = '\0';
+	ofn.nMaxFile = sizeBuf;
+	ofn.lpstrFilter = Filter;
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFileTitle = NULL;
+	ofn.nMaxFileTitle = 0;
+	ofn.lpstrInitialDir = NULL;
+	ofn.Flags = Flags;
+
+	// Выводим диаложек
+	if(!GetOpenFileNameA(&ofn))
+		return false;
+	return true;
+}
+
+
+inline bool SaveFileDialog(LPWSTR bufFileName, DWORD sizeBuf, LPWSTR Filter = NULL, HWND hwnd = NULL, DWORD Flags = 0)
+{
+/*
+* Диалог для открытия файла. Возвращает в bufFileName  имя файла.
+*/
+	if(bufFileName == NULL)
+		return false;
+
+	if(Filter == NULL)
+		Filter = L"All\0*.*\0";
+
+	OPENFILENAMEW ofn;                  
+	// Инициализируем OPENFILENAME
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = hwnd;
+	ofn.lpstrFile = bufFileName;
+	ofn.lpstrFile[0] = L'\0';
+	ofn.nMaxFile = sizeBuf;
+	ofn.lpstrFilter = Filter;
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFileTitle = NULL;
+	ofn.nMaxFileTitle = 0;
+	ofn.lpstrInitialDir = NULL;
+	ofn.Flags = 0;
+
+	// Выводим диаложек
+	if(!GetSaveFileNameW(&ofn))
+		return false;
+	return true;
+}
+
+
+inline bool SaveFileDialog(LPSTR bufFileName, DWORD sizeBuf, LPSTR Filter = NULL, HWND hwnd = NULL, DWORD Flags = 0)
+{
+/*
+* Диалог для открытия файла. Возвращает в bufFileName  имя файла.
+*/
+	if(bufFileName == NULL)
+		return false;
+
+	if(Filter == NULL)
+		Filter = "All\0*.*\0";
+
+	OPENFILENAMEA ofn;                  
+	// Инициализируем OPENFILENAME
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = hwnd;
+	ofn.lpstrFile = bufFileName;
+	ofn.lpstrFile[0] = '\0';
+	ofn.nMaxFile = sizeBuf;
+	ofn.lpstrFilter = Filter;
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFileTitle = NULL;
+	ofn.nMaxFileTitle = 0;
+	ofn.lpstrInitialDir = NULL;
+	ofn.Flags = 0;
+
+	// Выводим диаложек
+	if(!GetSaveFileNameA(&ofn))
+		return false;
+	return true;
+}
+
 #endif
 
