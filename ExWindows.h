@@ -13,9 +13,8 @@
 
 
 #ifdef USE_WONDER_CONTROLS
-
-#pragma comment(linker, "\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
-#pragma comment(lib, "comctl32.lib")
+#	pragma comment(linker, "\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#	pragma comment(lib, "comctl32.lib")
 bool ___g = ([](){InitCommonControls(); return true;})();
 #endif
 
@@ -2304,6 +2303,62 @@ public:
 				return ListView_DeleteAllItems(hWnd);
 			}
 		} Items;
+
+		/*
+		set, get;
+		LVS_EX_ ...
+		*/
+		class
+		{
+			HWND hWnd;
+		public:
+			operator DWORD()
+			{
+				return ListView_GetExtendedListViewStyle(hWnd);
+			}
+
+			DWORD operator=(DWORD Val)
+			{
+				ListView_SetExtendedListViewStyle(hWnd, Val);
+				return Val;
+			}
+		
+			DWORD operator|=(DWORD Val)
+			{
+				ListView_SetExtendedListViewStyle(hWnd, Val | ListView_GetExtendedListViewStyle(hWnd));
+				return Val;
+			}
+
+			DWORD operator&=(DWORD Val)
+			{
+				ListView_SetExtendedListViewStyle(hWnd, Val & ListView_GetExtendedListViewStyle(hWnd));
+				return Val;
+			}
+		} ExtendedStyle;
+
+
+		class
+		{
+			HWND hWnd;
+		public:
+			operator bool()
+			{
+				return ListView_GetExtendedListViewStyle(hWnd) & LVS_EX_GRIDLINES;
+			}
+
+			bool operator=(bool Val)
+			{
+
+				DWORD r = ListView_GetExtendedListViewStyle(hWnd);
+				if(Val)
+					r |= LVS_EX_GRIDLINES;
+				else
+					r &= (~LVS_EX_GRIDLINES);
+				ListView_SetExtendedListViewStyle(hWnd, r);
+				return Val;
+			}
+		} IsShowGrid;
+
 	};
 
 };
