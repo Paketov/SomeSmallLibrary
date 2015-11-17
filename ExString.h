@@ -1149,6 +1149,26 @@ inline int StringICompare(const wchar_t * Str1, const wchar_t * Str2)
 #endif
 }
 
+inline char * StringUpper(char * Dest)
+{
+    return strupr(Dest);
+}
+
+inline wchar_t * StringUpper(wchar_t * Dest)
+{
+    return wcsupr(Dest);
+}
+
+inline char * StringLower(char * Dest)
+{
+    return strlwr(Dest);
+}
+
+inline wchar_t * StringLower(wchar_t * Dest)
+{
+    return wcslwr(Dest);
+}
+
 inline char * StringAppend(char * Dest, const char * Source)
 {
     return strcat(Dest, Source);
@@ -1270,6 +1290,7 @@ inline bool IsLatter(char c)
 {
 	return isalpha(c) != 0;
 }
+
 
 template<typename TypeChar>
 inline bool IsSpace(TypeChar c)
