@@ -762,7 +762,7 @@ public:
 		RECT Rect;
 		if(! ::GetClientRect(hWnd, &Rect))
 			return -1;
-		return Rect.left - Rect.right;
+		return Rect.right - Rect.left;
 	}
 	//
 
@@ -839,7 +839,7 @@ public:
 		RECT Rect;
 		if(! ::GetWindowRect(hWnd, &Rect))
 			return -1;
-		return Rect.left - Rect.right;
+		return Rect.right - Rect.left;
 	}
 
 	BOOL GetRelParentCoord(LPRECT lpRect)
@@ -1475,6 +1475,11 @@ public:
 		hWnd = Wnd;
 	}
 
+	operator EX_WND()
+	{
+		return hWnd;
+	}
+
 	class COLUMN
 	{
 
@@ -1489,6 +1494,7 @@ public:
 
 			class
 			{
+			public:
 				struct
 				{
 					HWND hWnd;
