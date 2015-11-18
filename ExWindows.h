@@ -239,9 +239,10 @@ public:
 
 			BOOL operator=(BOOL isEnable)
 			{ 
-				return ::EnableWindow(hWnd, isEnable);
+				::EnableWindow(hWnd, isEnable);
+				return isEnable;
 			}
-		} Enable;
+		} IsEnable;
 
 		/*
 		*WNDPROC; Set, Get;
@@ -579,6 +580,81 @@ public:
 		*/
 		//WND_COMBO__ AsCombo;
 
+		/*
+		*long; Get, Set;
+		*Set or get window width.
+		*/
+		class{
+			HWND hWnd;
+		public:
+			operator long()
+			{
+				RECT Rect;
+				if(! ::GetWindowRect(hWnd, &Rect))
+					return -1;
+				return Rect.right - Rect.left;
+			}
+
+			long operator=(long Val)
+			{
+				RECT Rect;
+				::GetWindowRect(hWnd, &Rect);
+				::SetWindowPos(hWnd, NULL, 0, 0, Val, Rect.bottom - Rect.top, SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOZORDER);
+				return Val;
+			}
+		} Width;
+
+		/*
+		*long; Get, Set;
+		*Set or get window height.
+		*/
+		class{
+			HWND hWnd;
+		public:
+			operator long()
+			{
+				RECT Rect;
+				if(! ::GetWindowRect(hWnd, &Rect))
+					return -1;
+				return Rect.bottom - Rect.top;
+			}
+
+			long operator=(long Val)
+			{
+				RECT Rect;
+				::GetWindowRect(hWnd, &Rect);
+				::SetWindowPos(hWnd, NULL, 0, 0, Rect.right - Rect.left, Val, SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOZORDER);
+				return Val;
+			}
+
+		} Height;
+
+
+		class{
+			HWND hWnd;
+		public:
+
+			operator long()
+			{		
+				RECT Rect;
+				if(! ::GetClientRect(hWnd, &Rect))
+					return -1;
+				return Rect.right - Rect.left;
+			}
+
+		} ClientWidth;
+
+		class{
+			HWND hWnd;
+		public:
+			operator long()
+			{		
+				RECT Rect;
+				if(! ::GetClientRect(hWnd, &Rect))
+					return -1;
+				return Rect.bottom - Rect.top;
+			}
+		} ClientHeight;
 	};
 
 	inline operator HWND()
@@ -749,21 +825,6 @@ public:
 		return TRUE;
 	}
 
-	long GetClientHeight()
-	{
-		RECT Rect;
-		if(! ::GetClientRect(hWnd, &Rect))
-			return -1;
-		return Rect.bottom - Rect.top;
-	}
-
-	long GetClientWidth()
-	{
-		RECT Rect;
-		if(! ::GetClientRect(hWnd, &Rect))
-			return -1;
-		return Rect.right - Rect.left;
-	}
 	//
 
 	BOOL GetCoord(LPRECT lpRect)
@@ -824,22 +885,6 @@ public:
 			return -1;
 		*Height = Rect.bottom - Rect.top;
 		*Width = Rect.right - Rect.left;
-	}
-
-	long GetHeight()
-	{
-		RECT Rect;
-		if(! ::GetWindowRect(hWnd, &Rect))
-			return -1;
-		return Rect.bottom - Rect.top;
-	}
-
-	long GetWidth()
-	{
-		RECT Rect;
-		if(! ::GetWindowRect(hWnd, &Rect))
-			return -1;
-		return Rect.right - Rect.left;
 	}
 
 	BOOL GetRelParentCoord(LPRECT lpRect)
@@ -1034,7 +1079,7 @@ public:
 		return  (EX_WND__)::WindowFromPoint(*Point);
 	}
 
-	inline bool isChild(HWND Wnd)
+	inline bool IsChild(HWND Wnd)
 	{
 		return ::IsChild(hWnd, Wnd) == TRUE;
 	}
@@ -1149,16 +1194,16 @@ public:
 	EX_WND::EndPaint;\
 	EX_WND::GetChildWindows;\
 	EX_WND::GetClientCoord;\
-	EX_WND::GetClientHeight;\
-	EX_WND::GetClientWidth;\
+	EX_WND::ClientHeight;\
+	EX_WND::ClientWidth;\
 	EX_WND::GetCoord;\
 	EX_WND::GetFocus;\
-	EX_WND::GetHeight;\
+	EX_WND::Height;\
 	EX_WND::GetRelParentCoord;\
 	EX_WND::GetSize;\
-	EX_WND::GetWidth;\
+	EX_WND::Width;\
 	EX_WND::Invalidate;\
-	EX_WND::isChild;\
+	EX_WND::IsChild;\
 	EX_WND::KillTimer;\
 	EX_WND::SetCoord;\
 	EX_WND::SetFocus;\
