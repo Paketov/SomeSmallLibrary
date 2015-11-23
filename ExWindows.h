@@ -15,7 +15,6 @@
 #ifdef USE_WONDER_CONTROLS
 #	pragma comment(linker, "\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #	pragma comment(lib, "comctl32.lib")
-bool ___g = ([](){InitCommonControls(); return true;})();
 #endif
 
 template<bool>
@@ -34,6 +33,8 @@ typedef EX_WND__<true>		EX_WND;
 template<bool>
 class EX_WND__
 {
+	static bool ___g;
+
 public:
 	union
 	{	
@@ -1181,6 +1182,10 @@ public:
 
 };
 
+#ifdef USE_WONDER_CONTROLS
+template<bool l>
+bool EX_WND__<l>::___g = ([](){InitCommonControls(); return true;})(); 
+#endif
 
 #define EX_WND_FIELD_AND_METHODS \
 	EX_WND::Class;\
