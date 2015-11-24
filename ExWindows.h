@@ -2360,8 +2360,27 @@ public:
 			ITEM New()
 			{
 				LV_ITEM li = {LVIF_TEXT,0,0,0,0,TEXT(""),0,0};
+				li.iItem = 7000;
 				int Index = ListView_InsertItem(hWnd, &li);
 				return ITEM(hWnd, Index);
+			}
+
+			ITEM New(int IndexInsert, int SubItemIndex = 0, LPWSTR Text = L"")
+			{
+				LV_ITEMW li = {LVIF_TEXT,0,0,0,0};
+				li.iItem = IndexInsert;
+				li.iSubItem = SubItemIndex;
+				li.pszText = Text;
+				return New(li);
+			}
+
+			ITEM New(int IndexInsert, int SubItemIndex, LPSTR Text, int iImage = 0)
+			{
+				LV_ITEMA li = {LVIF_TEXT,0,0,0,0};
+				li.iItem = IndexInsert;
+				li.iSubItem = SubItemIndex;
+				li.pszText = Text;
+				return New(li);
 			}
 
 			ITEM New(LV_ITEMA & Item)
