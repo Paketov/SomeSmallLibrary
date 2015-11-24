@@ -2360,7 +2360,6 @@ public:
 			ITEM New()
 			{
 				LV_ITEM li = {LVIF_TEXT,0,0,0,0,TEXT(""),0,0};
-				li.iItem = 7000;
 				int Index = ListView_InsertItem(hWnd, &li);
 				return ITEM(hWnd, Index);
 			}
