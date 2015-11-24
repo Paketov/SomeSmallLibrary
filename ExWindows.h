@@ -504,14 +504,14 @@ public:
 				return ::GetParent(hWnd);
 			}
 
-			inline EX_WND__ operator=(EX_WND__ NewStyle)
+			inline EX_WND__ operator=(EX_WND__ NewParent)
 			{
-				return ::SetParent(hWnd, NewStyle);
+				return ::SetParent(hWnd, NewParent);
 			}
 
-			inline HWND operator=(HWND NewStyle)
+			inline HWND operator=(HWND NewParent)
 			{
-				return ::SetParent(hWnd, NewStyle);
+				return ::SetParent(hWnd, NewParent);
 			}
 
 			inline EX_WND__ operator()()
@@ -566,10 +566,11 @@ public:
 		*bool; Get;
 		*Determines whether the specified window is minimized (iconic).
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
-			operator bool()
+			inline operator bool()
 			{
 				return ::IsIconic(hWnd);
 			}
@@ -581,26 +582,50 @@ public:
 		*/
 		//WND_COMBO__ AsCombo;
 
+
+		class
+		{
+			HWND hWnd;
+		public:
+
+			inline operator LONG()
+			{		
+				RECT Rect;
+				::GetClientRect(hWnd, &Rect);
+				return Rect.right - Rect.left;
+			}
+		} ClientWidth;
+
+		class
+		{
+			HWND hWnd;
+		public:
+			inline operator LONG()
+			{		
+				RECT Rect;
+				::GetClientRect(hWnd, &Rect);
+				return Rect.bottom - Rect.top;
+			}
+		} ClientHeight;
+
 		/*
 		*long; Get, Set;
 		*Set or get window width.
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			operator long()
 			{
 				RECT Rect;
-				if(! ::GetWindowRect(hWnd, &Rect))
-					return -1;
+				::GetWindowRect(hWnd, &Rect);
 				return Rect.right - Rect.left;
 			}
 
-			long operator=(long Val)
+			inline long operator=(long Val)
 			{
-				RECT Rect;
-				::GetWindowRect(hWnd, &Rect);
-				::SetWindowPos(hWnd, NULL, 0, 0, Val, Rect.bottom - Rect.top, SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOZORDER);
+				::SetWindowPos(hWnd, NULL, 0, 0, Val, EX_WND(hWnd).Height, SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOZORDER);
 				return Val;
 			}
 		} Width;
@@ -609,53 +634,294 @@ public:
 		*long; Get, Set;
 		*Set or get window height.
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
-			operator long()
-			{
-				RECT Rect;
-				if(! ::GetWindowRect(hWnd, &Rect))
-					return -1;
-				return Rect.bottom - Rect.top;
-			}
-
-			long operator=(long Val)
+			inline operator long()
 			{
 				RECT Rect;
 				::GetWindowRect(hWnd, &Rect);
-				::SetWindowPos(hWnd, NULL, 0, 0, Rect.right - Rect.left, Val, SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOZORDER);
-				return Val;
-			}
-
-		} Height;
-
-
-		class{
-			HWND hWnd;
-		public:
-
-			operator long()
-			{		
-				RECT Rect;
-				if(! ::GetClientRect(hWnd, &Rect))
-					return -1;
-				return Rect.right - Rect.left;
-			}
-
-		} ClientWidth;
-
-		class{
-			HWND hWnd;
-		public:
-			operator long()
-			{		
-				RECT Rect;
-				if(! ::GetClientRect(hWnd, &Rect))
-					return -1;
 				return Rect.bottom - Rect.top;
 			}
-		} ClientHeight;
+
+			inline long operator=(long Val)
+			{
+				::SetWindowPos(hWnd, NULL, 0, 0, EX_WND(hWnd).Width, Val, SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOZORDER);
+				return Val;
+			}
+		} Height;
+
+		class
+		{
+		 	HWND hWnd;
+		public:
+			operator LONG()
+			{
+				RECT Rect;
+				::GetWindowRect(hWnd, &Rect);
+				MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), (LPPOINT)&Rect, 1);
+				return Rect.left;
+			}
+						
+			inline LONG operator= (LONG New)
+			{
+				SetWindowPos(hWnd, NULL, New, EX_WND(hWnd).Top, 0, 0, SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOZORDER);
+				return New;
+			}
+		} Left;
+
+		class
+		{
+		 	HWND hWnd;
+		public:
+			operator LONG()
+			{
+				RECT Rect;
+				::GetWindowRect(hWnd, &Rect);
+				MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), (LPPOINT)&Rect, 1);
+				return Rect.top;
+			}
+						
+			inline LONG operator= (LONG New)
+			{
+				SetWindowPos(hWnd, NULL, EX_WND(hWnd).Left, New, 0, 0, SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOZORDER);
+				return New;
+			}
+		} Top;
+
+		class
+		{
+		 	HWND hWnd;
+		public:
+			inline operator LONG()
+			{
+				RECT Rect;
+				::GetWindowRect(hWnd, &Rect);
+				MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), ((LPPOINT)&Rect) + 1, 1);
+				return Rect.right;
+			}
+						
+			inline LONG operator= (LONG New)
+			{
+				RECT Rect;
+				::GetWindowRect(hWnd, &Rect);
+				MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), (LPPOINT)&Rect, 2);
+				SetWindowPos(hWnd, NULL, 0, 0, New - Rect.left, Rect.bottom - Rect.top, SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOZORDER);
+				return New;
+			}
+		} Right;
+
+		class
+		{
+		 	HWND hWnd;
+		public:
+			inline operator LONG()
+			{
+				RECT Rect;
+				::GetWindowRect(hWnd, &Rect);
+				MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), ((LPPOINT)&Rect) + 1, 1);
+				return Rect.bottom;
+			}
+						
+			inline LONG operator= (LONG New)
+			{
+				RECT Rect;
+				::GetWindowRect(hWnd, &Rect);
+				MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), (LPPOINT)&Rect, 2);
+				SetWindowPos(hWnd, NULL, 0, 0, Rect.right - Rect.left, New - Rect.top, SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOZORDER);
+				return New;
+			}
+		} Bottom;
+
+		class
+		{
+			HWND hWnd;
+		public:
+			inline operator RECT()
+			{
+				RECT Rect;
+				::GetWindowRect(hWnd, &Rect);
+				MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), (LPPOINT)&Rect, 2);
+				return Rect;
+			}
+					
+			inline RECT& operator= (RECT& New)
+			{
+				SetWindowPos(hWnd, NULL, New.left, New.top, New.right - New.left, New.bottom - New.top, SWP_NOOWNERZORDER | SWP_NOZORDER);
+				return New;
+			}
+
+			bool operator ==(const RECT& Val)
+			{
+				RECT Rect = operator RECT();
+				return (Rect.bottom == Val.bottom) && (Rect.left == Val.left) && (Rect.right == Val.right) && (Rect.top == Val.top);
+			}
+
+			inline bool operator !=(const RECT& Val)
+			{
+				return !operator ==(Val);
+			}
+
+			bool Contains(const RECT& Another)
+			{
+			   RECT Rect = operator RECT();
+			   return (Another.bottom < Rect.bottom) && (Another.top > Rect.top) && (Another.left > Rect.left) && (Another.right < Rect.right);
+			}
+						
+			bool Contains(const POINT& Another)
+			{
+			   RECT Rect = operator RECT();
+			   return (Another.x < Rect.right) && (Another.x > Rect.left) && (Another.y < Rect.bottom) && (Another.y > Rect.top);
+			}
+
+			bool Contains(LONG x, LONG y)
+			{
+			   RECT Rect = operator RECT();
+			   return (x < Rect.right) && (x > Rect.left) && (y < Rect.bottom) && (y > Rect.top);
+			}
+		} Rectangle;
+
+		class
+		{
+			HWND hWnd;
+		public:
+			inline operator RECT()
+			{
+				RECT Rect;
+				::GetWindowRect(hWnd, &Rect);
+				return Rect;
+			}
+					
+			inline RECT& operator= (RECT& New)
+			{
+				RECT Rect = New;
+				MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), (LPPOINT)&Rect, 2);
+				SetWindowPos(hWnd, NULL, Rect.left, Rect.top, Rect.right - Rect.left, Rect.bottom - Rect.top, SWP_NOOWNERZORDER | SWP_NOZORDER);
+				return New;
+			}
+
+			bool operator ==(const RECT& Val)
+			{
+				RECT Rect = operator RECT();
+				return (Rect.bottom == Val.bottom) && (Rect.left == Val.left) && (Rect.right == Val.right) && (Rect.top == Val.top);
+			}
+
+			inline bool operator !=(const RECT& Val)
+			{
+				return !operator ==(Val);
+			}
+
+			bool Contains(const RECT& Another)
+			{
+			   RECT Rect = operator RECT();
+			   return (Another.bottom < Rect.bottom) && (Another.top > Rect.top) && (Another.left > Rect.left) && (Another.right < Rect.right);
+			}
+						
+			bool Contains(const POINT& Another)
+			{
+			   RECT Rect = operator RECT();
+			   return (Another.x < Rect.right) && (Another.x > Rect.left) && (Another.y < Rect.bottom) && (Another.y > Rect.top);
+			}
+
+			bool Contains(LONG x, LONG y)
+			{
+			   RECT Rect = operator RECT();
+			   return (x < Rect.right) && (x > Rect.left) && (y < Rect.bottom) && (y > Rect.top);
+			}
+		} RectangleRelScreen;
+
+		class
+		{
+			HWND hWnd;
+		public:
+			inline operator RECT()
+			{
+				RECT Rect;
+				::GetClientRect(hWnd, &Rect);
+				MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), (LPPOINT)&Rect, 2);
+				return Rect;
+			}
+
+			bool operator ==(const RECT& Val)
+			{
+				RECT Rect = operator RECT();
+				return (Rect.bottom == Val.bottom) && (Rect.left == Val.left) && (Rect.right == Val.right) && (Rect.top == Val.top);
+			}
+
+			inline bool operator !=(const RECT& Val)
+			{
+				return !operator ==(Val);
+			}
+
+			bool Contains(const RECT& Another)
+			{
+			   RECT Rect = operator RECT();
+			   return (Another.bottom < Rect.bottom) && (Another.top > Rect.top) && (Another.left > Rect.left) && (Another.right < Rect.right);
+			}
+						
+			bool Contains(const POINT& Another)
+			{
+			   RECT Rect = operator RECT();
+			   return (Another.x < Rect.right) && (Another.x > Rect.left) && (Another.y < Rect.bottom) && (Another.y > Rect.top);
+			}
+
+			bool Contains(LONG x, LONG y)
+			{
+			   RECT Rect = operator RECT();
+			   return (x < Rect.right) && (x > Rect.left) && (y < Rect.bottom) && (y > Rect.top);
+			}
+		} ClientRectangle;
+
+		/*
+		*HFONT; Get, Set;
+		*Set or get current font of window.
+		*/
+		class
+		{
+			HWND hWnd;
+		public:
+			/*
+			Use CreateFont for set new font.
+			Example: 
+			CreateFont (14, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, ANSI_CHARSET, 
+			OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
+		  DEFAULT_PITCH | FF_SWISS, L"Times New Roman");
+			*/
+			inline operator HFONT()
+			{
+				//GetCharABCWidths
+				return (HFONT)SendMessage(hWnd, WM_GETFONT, 0, 0);
+			}
+
+			inline HFONT operator=(HFONT NewFont)
+			{
+				SendMessage(hWnd, WM_SETFONT, (WPARAM)NewFont, TRUE);
+				return NewFont;
+			}
+		} Font;
+
+		/*
+		*HMENU; Get, Set;
+		*Set or get current menu of window.
+		*/
+		class
+		{
+			HWND hWnd;
+		public:
+						
+			inline operator HMENU()
+			{
+				//use CreateMenu
+				return GetMenu(hWnd);
+			}
+
+			inline HMENU operator=(HMENU NewMenu)
+			{
+				SetMenu(hWnd, NewMenu);
+				return NewMenu;
+			}
+		} Menu;
 	};
 
 	inline operator HWND()
@@ -736,213 +1002,47 @@ public:
 		return GetDlgItem(hWnd, nIDDlgItem);
 	}
 
-	inline BOOL BringToTop()
+	inline bool BringToTop()
 	{
-		return BringWindowToTop(hWnd);
+		return BringWindowToTop(hWnd) != FALSE;
 	}
 
 	//
-	inline BOOL Show(int nCmdShow = SW_SHOW)
+	inline bool Show(int nCmdShow = SW_SHOW)
 	{
-		return ShowWindow(hWnd,nCmdShow);
+		return ShowWindow(hWnd,nCmdShow) != FALSE;
 	}
 	//
 
-	inline BOOL Update()
+	inline bool Update()
 	{
-		return UpdateWindow(hWnd);
+		return UpdateWindow(hWnd) != FALSE;
 	}
 	//
 
-	inline BOOL Invalidate()
+	inline bool Invalidate()
 	{
-		return InvalidateRect(hWnd, NULL, FALSE);
+		return InvalidateRect(hWnd, NULL, FALSE) != FALSE;
 	}
 
-	inline BOOL Invalidate(const RECT *lpRect)
+	inline bool Invalidate(const RECT *lpRect)
 	{
-		return InvalidateRect(hWnd, lpRect, FALSE);
+		return InvalidateRect(hWnd, lpRect, FALSE) != FALSE;
 	}
 
-	inline BOOL Validate(RECT * lpRect)
+	inline bool Validate(RECT * lpRect)
 	{
-		return ::ValidateRect(hWnd, lpRect);
+		return ::ValidateRect(hWnd, lpRect) != FALSE;
 	}
 
-	inline BOOL Validate()
+	inline bool Validate()
 	{
-		return ::ValidateRect(hWnd, NULL);
+		return ::ValidateRect(hWnd, NULL) != FALSE;
 	}
 
-	//
-	inline BOOL GetClientCoord(LPRECT lpRect)
-	{
-		return ::GetClientRect(hWnd, lpRect);
-	}
-
-	inline BOOL GetClientCoord(RECT & lpRect)
-	{
-		return ::GetClientRect(hWnd, &lpRect);
-	}
-
-	BOOL GetClientCoord(LPPOINT Point1, LPPOINT Point2)
-	{
-		RECT Rect;
-		if(! ::GetClientRect(hWnd, &Rect))
-			return FALSE;
-		*Point1 = *(LPPOINT)&Rect;
-		*Point2 = *(LPPOINT)&Rect.right;
-		return TRUE;
-	}
-
-	BOOL GetClientCoord(LPPOINT Point)
-	{
-		RECT Rect;
-		if(! ::GetClientRect(hWnd, &Rect))
-			return FALSE;
-		*Point = *(LPPOINT)&Rect;
-		return TRUE;
-	}
-
-	BOOL GetClientCoord(LPLONG x, LPLONG y)
-	{
-		RECT Rect;
-		if(! ::GetClientRect(hWnd, &Rect))
-			return FALSE;
-		*x = Rect.left;
-		*y = Rect.top;
-		return TRUE;
-	}
-
-	BOOL GetClientCoord(LPLONG x, LPLONG y, LPLONG x2, LPLONG y2)
-	{
-		RECT Rect;
-		if(! ::GetClientRect(hWnd, &Rect))
-			return FALSE;
-		*x = Rect.left;
-		*y = Rect.top;
-		*y2 = Rect.bottom;
-		*x2  = Rect.right;
-		return TRUE;
-	}
-
-	//
-
-	BOOL GetCoord(LPRECT lpRect)
-	{
-		return ::GetWindowRect(hWnd, lpRect);
-	}
-
-	BOOL GetCoord(RECT & lpRect)
-	{
-		return ::GetWindowRect(hWnd, &lpRect);
-	}
-
-	BOOL GetCoord(LPPOINT Point1, LPPOINT Point2)
-	{
-		RECT Rect;
-		if(! ::GetWindowRect(hWnd, &Rect))
-			return FALSE;
-		*Point1 = *(LPPOINT)&Rect;
-		*Point2 = *(LPPOINT)&Rect.right;
-		return TRUE;
-	}
-
-	BOOL GetCoord(LPPOINT Point)
-	{
-		RECT Rect;
-		if(! ::GetWindowRect(hWnd, &Rect))
-			return FALSE;
-		*Point = *(LPPOINT)&Rect;
-		return TRUE;
-	}
-
-	BOOL GetCoord(LPLONG x, LPLONG y)
-	{
-		RECT Rect;
-		if(! ::GetWindowRect(hWnd, &Rect))
-			return FALSE;
-		*x = Rect.left;
-		*y = Rect.top;
-		return TRUE;
-	}
-
-	BOOL GetCoord(LPLONG x, LPLONG y, LPLONG x2, LPLONG y2)
-	{
-		RECT Rect;
-		if(! ::GetWindowRect(hWnd, &Rect))
-			return FALSE;
-		*x = Rect.left;
-		*y = Rect.top;
-		*y2 = Rect.bottom;
-		*x2  = Rect.right;
-		return TRUE;
-	}
-
-	BOOL GetSize(LPLONG Width, LPLONG Height)
-	{
-		RECT Rect;
-		if(! ::GetWindowRect(hWnd, &Rect))
-			return -1;
-		*Height = Rect.bottom - Rect.top;
-		*Width = Rect.right - Rect.left;
-	}
-
-	BOOL GetRelParentCoord(LPRECT lpRect)
-	{
-		if(! ::GetWindowRect(hWnd, lpRect))
-			return FALSE;
-		MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), (LPPOINT)lpRect, 2);
-		return TRUE;
-	}
-
-	BOOL GetRelParentCoord(LPPOINT Point1, LPPOINT Point2)
-	{
-		RECT Rect;
-		if(! ::GetWindowRect(hWnd, &Rect))
-			return FALSE;
-		MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), (LPPOINT)&Rect, 2);
-		*Point1 = *(LPPOINT)&Rect;
-		*Point2 = *(LPPOINT)&Rect.right;
-		return TRUE;
-	}
-
-	BOOL GetRelParentCoord(LPPOINT Point)
-	{
-		RECT Rect;
-		if(! ::GetWindowRect(hWnd, &Rect))
-			return FALSE;
-		MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), (LPPOINT)&Rect, 1);
-		*Point = *(LPPOINT)&Rect;
-		return TRUE;
-	}
-
-	BOOL GetRelParentCoord(LPLONG x, LPLONG y)
-	{
-		RECT Rect;
-		if(! ::GetWindowRect(hWnd, &Rect))
-			return FALSE;
-		MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), (LPPOINT)&Rect, 1);
-		*x = Rect.left;
-		*y = Rect.top;
-		return TRUE;
-	}
-
-	BOOL GetRelParentCoord(LPLONG x, LPLONG y, LPLONG x2, LPLONG y2)
-	{
-		RECT Rect;
-		if(! ::GetWindowRect(hWnd, &Rect))
-			return FALSE;
-		MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), (LPPOINT)&Rect, 2);
-		*x = Rect.left;
-		*y = Rect.top;
-		*y2 = Rect.bottom;
-		*x2  = Rect.right;
-		return TRUE;
-	}
 	///
 
-	inline EX_WND__ SetFocus()
+	inline EX_WND__ Focus()
 	{
 		return (EX_WND__)::SetFocus(hWnd);
 	}
@@ -989,89 +1089,19 @@ public:
 	}
 
 
-	///////
-
-	BOOL SetCoord(LPRECT lpRect)
+	/////////
+	inline bool ShowContextMenu(HMENU hMenu, UINT Flags = TPM_LEFTALIGN|TPM_TOPALIGN|TPM_LEFTBUTTON|TPM_RETURNCMD|TPM_NONOTIFY)
 	{
-		POINT p = *(LPPOINT)lpRect;
-		MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), &p, 1);
-		return MoveWindow(hWnd, p.x, p.y, lpRect->right - lpRect->left, lpRect->bottom - lpRect->top, TRUE);
+		//Use CreatePopupMenu for creating menu
+		POINT Poi;
+		GetCursorPos(&Poi);
+		return TrackPopupMenu(hMenu, Flags, Poi.x, Poi.y , 0, hWnd, NULL) != FALSE;
 	}
 
-	BOOL SetCoord(RECT & Rect)
+	inline bool ShowContextMenu(HMENU hMenu,  UINT Flags, int x, int y)
 	{
-		POINT p = *(LPPOINT)&Rect;
-		MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), &p, 1);
-		return MoveWindow(hWnd, p.x, p.y, Rect.right - Rect.left, Rect.bottom - Rect.top, TRUE);
+		return TrackPopupMenu(hMenu, Flags, x, y, 0, hWnd, NULL) != FALSE;
 	}
-
-	BOOL SetCoord(LPPOINT Point1, LPPOINT Point2)
-	{
-		POINT p = *Point1;
-		MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), &p, 1);
-		return MoveWindow(hWnd, p.x, p.y, Point2->x - Point1->x, Point2->y - Point1->y, TRUE);
-	}
-
-	BOOL SetCoord(LPPOINT Point)
-	{
-		POINT p = *Point;
-		MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), &p, 1);
-		return SetWindowPos(hWnd, NULL, p.x, p.y, 0, 0, SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOZORDER);
-	}
-
-	BOOL SetCoord(LONG x, LONG y)
-	{
-		POINT p;
-		p.x = x;
-		p.y = y;
-		MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), &p, 1);
-		return SetWindowPos(hWnd, NULL, p.x, p.y, 0, 0, SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOZORDER);
-	}
-
-	BOOL SetCoord(LONG x, LONG y, LONG x2, LONG y2)
-	{
-		POINT p;
-		p.x = x;
-		p.y = y;
-		MapWindowPoints(HWND_DESKTOP, ::GetParent(hWnd), &p, 1);
-		return MoveWindow(hWnd, p.x, p.y, x2 - x, y2 - y, TRUE);
-	}
-
-	BOOL SetSize(LONG Width, LONG Height)
-	{
-		return SetWindowPos(hWnd, NULL, 0, 0, Width, Height, SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOZORDER);
-	}
-
-	BOOL SetRelParentCoord(LPRECT lpRect)
-	{
-		return MoveWindow(hWnd, lpRect->left, lpRect->top, lpRect->right - lpRect->left, lpRect->bottom - lpRect->top, TRUE);
-	}
-
-	BOOL SetRelParentCoord(RECT & Rect)
-	{
-		return MoveWindow(hWnd, Rect.left, Rect.top, Rect.right - Rect.left, Rect.bottom - Rect.top, TRUE);
-	}
-
-	BOOL SetRelParentCoord(LPPOINT Point1, LPPOINT Point2)
-	{
-		return MoveWindow(hWnd, Point1->x, Point1->y, Point2->x - Point1->x, Point2->y - Point1->y, TRUE);
-	}
-
-	BOOL SetRelParentCoord(LPPOINT Point)
-	{
-		return SetWindowPos(hWnd, NULL, Point->x, Point->y, 0, 0, SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOZORDER);
-	}
-
-	BOOL SetRelParentCoord(LONG x, LONG y)
-	{
-		return SetWindowPos(hWnd, NULL, x, y, 0, 0, SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOZORDER);
-	}
-
-	BOOL SetRelParentCoord(LONG x, LONG y, LONG x2, LONG y2)
-	{
-		return MoveWindow(hWnd, x, y, x2 - x, y2 - y, TRUE);
-	}
-
 
 	//////
 
@@ -1088,15 +1118,15 @@ public:
 	////
 
 	/*Close window.*/
-	inline BOOL Close()
+	inline bool Close()
 	{
-		return ::CloseWindow(hWnd);
+		return ::CloseWindow(hWnd) != FALSE;
 	}
 
 	/*Destroys window. */
-	inline BOOL Destroy()
+	inline bool Destroy()
 	{
-		return ::DestroyWindow(hWnd); 
+		return ::DestroyWindow(hWnd) != FALSE; 
 	}
 
 	/*The CreateCompatibleDC function creates a memory device context (DC) compatible with the window.*/
@@ -1113,15 +1143,15 @@ public:
 	}
 
 	/*The EndPaint function marks the end of painting in the specified window.*/
-	inline BOOL EndPaint(LPPAINTSTRUCT ps)
+	inline bool EndPaint(LPPAINTSTRUCT ps)
 	{
-		return ::EndPaint(hWnd, ps);
+		return ::EndPaint(hWnd, ps) != FALSE;
 	}
 
 	/*Destroys a modal dialog box, causing the system to end any processing for the dialog box.*/
-	inline BOOL EndDialog(INT_PTR Result = 0)
+	inline bool EndDialog(INT_PTR Result = 0)
 	{
-		return ::EndDialog(hWnd, Result);
+		return ::EndDialog(hWnd, Result) != FALSE;
 	}
 
 	/*Creates a timer with the specified time-out value.*/
@@ -1148,6 +1178,7 @@ private:
 		unsigned CurElement;
 		HWND * Buf;
 	} FOR_ENUM_WINDOWS;
+
 	static BOOL CALLBACK EnumChildProc(HWND hwnd,LPARAM lParam)
 	{
 		FOR_ENUM_WINDOWS * arg = (FOR_ENUM_WINDOWS *)lParam;
@@ -1160,16 +1191,16 @@ private:
 	}
 public:
 
-	inline BOOL GetChildWindows(HWND * hWndBuf, unsigned MaxElemInBuf)
+	inline bool GetChildWindows(HWND * hWndBuf, unsigned MaxElemInBuf)
 	{
 		FOR_ENUM_WINDOWS arg;
 		arg.Buf = hWndBuf;
 		arg.MaxElements = MaxElemInBuf;
 		arg.CurElement = 0;
-		return EnumChildWindows(hWnd, EnumChildProc,(LPARAM)&arg);
+		return EnumChildWindows(hWnd, EnumChildProc,(LPARAM)&arg) != FALSE;
 	}
 
-	inline BOOL GetChildWindows(HWND * hWndBuf, unsigned MaxElemInBuf, unsigned * CountGetted)
+	inline bool GetChildWindows(HWND * hWndBuf, unsigned MaxElemInBuf, unsigned * CountGetted)
 	{
 		FOR_ENUM_WINDOWS arg;
 		arg.Buf = hWndBuf;
@@ -1177,7 +1208,7 @@ public:
 		arg.CurElement = 0;
 		BOOL Res = EnumChildWindows(hWnd, EnumChildProc,(LPARAM)&arg);
 		*CountGetted = arg.CurElement;
-		return Res;
+		return Res != FALSE;
 	}
 
 };
@@ -1198,27 +1229,30 @@ bool EX_WND__<l>::___g = ([](){InitCommonControls(); return true;})();
 	EX_WND::EndDialog;\
 	EX_WND::EndPaint;\
 	EX_WND::GetChildWindows;\
-	EX_WND::GetClientCoord;\
 	EX_WND::ClientHeight;\
 	EX_WND::ClientWidth;\
-	EX_WND::GetCoord;\
 	EX_WND::GetFocus;\
 	EX_WND::Height;\
-	EX_WND::GetRelParentCoord;\
-	EX_WND::GetSize;\
 	EX_WND::Width;\
+	EX_WND::Left;\
+	EX_WND::Right;\
+	EX_WND::Top;\
+	EX_WND::Bottom;\
+	EX_WND::Rectangle;\
+	EX_WND::RectangleRelScreen;\
+	EX_WND::ClientRectangle;\
+	EX_WND::Font;\
 	EX_WND::Invalidate;\
 	EX_WND::IsChild;\
 	EX_WND::KillTimer;\
-	EX_WND::SetCoord;\
-	EX_WND::SetFocus;\
-	EX_WND::SetRelParentCoord;\
-	EX_WND::SetSize;\
+	EX_WND::Focus;\
 	EX_WND::SetTimer;\
 	EX_WND::Show;\
 	EX_WND::SwitchToThisWindow;\
 	EX_WND::Update;\
 	EX_WND::Validate;\
+	EX_WND::Menu;\
+	EX_WND::ShowContextMenu;\
 	/*EX_WND::AsCombo;*/\
 	EX_WND::Dc;\
 	EX_WND::ExStyle;\
