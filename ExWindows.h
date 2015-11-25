@@ -938,8 +938,7 @@ public:
 		class
 		{
 			HWND hWnd;
-		public:
-						
+		public:			
 			inline operator HMENU()
 			{
 				//use CreateMenu
@@ -952,6 +951,34 @@ public:
 				return NewMenu;
 			}
 		} Menu;
+
+		/*
+		*HRGN; Get, Set;
+		*Set or get current menu of window.
+		*/
+		class
+		{
+			HWND hWnd;
+		public:
+			/*
+			@RgnDest - region for copy. use CreateRectRgn
+			@return 
+			NULLREGION
+			SIMPLEREGION
+			COMPLEXREGION
+			ERROR
+			*/
+			inline int operator()(HRGN RgnDest)
+			{
+			    return GetWindowRgn(hWnd, RgnDest);
+			}
+
+			inline HRGN operator=(HRGN New)
+			{
+			    SetWindowRgn(hWnd, New, TRUE);
+				return New;
+			}
+		} Region;
 	};
 
 	inline operator HWND()
