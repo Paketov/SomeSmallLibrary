@@ -317,6 +317,7 @@ public:
 		/*
 		*LONG_PTR; Set, Get;
 		*Sets a new extended window style. 
+		*WS_EX_ ...
 		*/
 		class{
 			HWND hWnd;
@@ -330,11 +331,26 @@ public:
 			{
 				return SetWindowLongPtr(hWnd, GWL_EXSTYLE, NewStyle);
 			}
+
+			inline LONG_PTR operator |= (LONG_PTR AddStyle)
+			{
+			   LONG_PTR lp = operator LONG_PTR() | AddStyle;
+			   operator=(lp);
+			   return lp;
+			}
+						
+			inline LONG_PTR operator &= (LONG_PTR FilterStyle)
+			{
+			   LONG_PTR lp = operator LONG_PTR() & FilterStyle;
+			   operator=(lp);
+			   return lp;
+			}
 		} ExStyle;	
 
 		/*
 		*LONG_PTR; Set, Get;
 		*Sets a new window style.
+		* WS_ ...
 		*/
 		class{
 			HWND hWnd;
@@ -347,6 +363,20 @@ public:
 			inline LONG_PTR operator=(LONG_PTR NewStyle)
 			{
 				return SetWindowLongPtr(hWnd, GWL_STYLE, NewStyle);
+			}
+
+			inline LONG_PTR operator |= (LONG_PTR AddStyle)
+			{
+			   LONG_PTR lp = operator LONG_PTR() | AddStyle;
+			   operator=(lp);
+			   return lp;
+			}
+						
+			inline LONG_PTR operator &= (LONG_PTR FilterStyle)
+			{
+			   LONG_PTR lp = operator LONG_PTR() & FilterStyle;
+			   operator=(lp);
+			   return lp;
 			}
 		} Style;
 
