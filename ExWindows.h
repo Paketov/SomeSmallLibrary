@@ -1309,6 +1309,7 @@ bool EX_WND__<l>::___g = ([](){InitCommonControls(); return true;})();
 	EX_WND::Update;\
 	EX_WND::Validate;\
 	EX_WND::Menu;\
+	EX_WND::Region;\
 	EX_WND::ShowContextMenu;\
 	/*EX_WND::AsCombo;*/\
 	EX_WND::Dc;\
