@@ -58,10 +58,44 @@ class EX_WND__
 		inline void set_str(char* Buffer) { SetWindowTextA(hWnd, Buffer); }
 		inline void set_str(wchar_t* Buffer) { SetWindowTextW(hWnd, Buffer); }
 	};
+
+
+	class __HWND_NAME_CLASS
+	{
+		HWND hWnd;
+	public:
+
+		void get_stl_str(std::basic_string<WCHAR>& Str)
+		{
+			size_t l, k = 0;
+			do
+			{
+				k = (k | 0xff) + 1;
+				Str.resize(k);
+				GetClassNameW(hWnd,(LPWSTR)Str.c_str(), k);
+			}while((l = wcslen(Str.c_str())) >= (k - 3));
+			Str.resize(l);
+		}
+
+		void get_stl_str(std::basic_string<CHAR>& Str)
+		{
+			size_t l, k = 0;
+			do
+			{
+				k = (k | 0xff) + 1;
+				Str.resize(k);
+				GetClassNameA(hWnd,(LPSTR)Str.c_str(), k);
+			}while((l = strlen(Str.c_str())) >= (k - 3));
+			Str.resize(l);
+		}
+		inline int get_str_len() { std::string k; get_stl_str(k); return k.length();}
+		inline size_t get_str(char* Buffer, size_t Len) { return GetClassNameA(hWnd, Buffer, Len);	 }
+		inline size_t get_str(wchar_t* Buffer, size_t Len) { return GetClassNameW(hWnd, Buffer, Len); }
+	};
 public:
 
 	template<class BaseType>
-	class __TEXT_PROPERTY
+	class __TEXT_PROPERTY_SET_GET
 	{
 		/*
 		BaseType must have this methods:
@@ -77,29 +111,27 @@ public:
 	public:
 		class
 		{
-			friend __TEXT_PROPERTY;
+			friend __TEXT_PROPERTY_SET_GET;
 			BaseType v; 
 		public:
 			inline operator int() { return v.get_str_len();}
 		} Length;
-
-		operator std::basic_string<WCHAR>() { std::basic_string<WCHAR> s; length.v.get_stl_str(s); return s; }
-		operator std::basic_string<CHAR>() { std::basic_string<CHAR> s; length.v.get_stl_str(s); return s; }
-		operator int() { char s[40] = {0}; length.v.get_str(s, 39); return atoi(s);}
-		operator unsigned() { char s[40] = {0}; length.v.get_str(s, 39); unsigned r = 0; sscanf(s, "%u", &r); return r;}
-		inline size_t operator()(LPWSTR Buffer, size_t Len = 0x0fffffff) { return length.v.get_str(Buffer, Len);}
-		inline size_t operator()(LPSTR Buffer, size_t Len = 0x0fffffff) { return length.v.get_str(Buffer, Len); }
-		inline std::basic_string<WCHAR> & operator=(const std::basic_string<WCHAR> & Str) { length.v.set_str((LPWSTR)Str.c_str()); return (std::basic_string<WCHAR>&)Str; }
-		inline std::basic_string<CHAR> & operator=(const std::basic_string<CHAR> & Str) { length.v.set_str((LPSTR)Str.c_str()); return (std::basic_string<CHAR>&)Str; }
-		inline LPSTR operator=(LPCSTR Str) { length.v.set_str((LPSTR)Str); return (LPSTR)Str; }
-		inline LPWSTR operator=(LPCWSTR Str) { length.v.set_str((LPWSTR)Str); return (LPWSTR)Str; }
+		operator std::basic_string<WCHAR>() { std::basic_string<WCHAR> s; Length.v.get_stl_str(s); return s; }
+		operator std::basic_string<CHAR>() { std::basic_string<CHAR> s; Length.v.get_stl_str(s); return s; }
+		operator int() { char s[40] = {0}; Length.v.get_str(s, 39); return atoi(s);}
+		operator unsigned() { char s[40] = {0}; Length.v.get_str(s, 39); unsigned r = 0; sscanf(s, "%u", &r); return r;}
+		inline size_t operator()(LPWSTR Buffer, size_t Len = 0x0fffffff) { return Length.v.get_str(Buffer, Len);}
+		inline size_t operator()(LPSTR Buffer, size_t Len = 0x0fffffff) { return Length.v.get_str(Buffer, Len); }
+		inline std::basic_string<WCHAR> & operator=(const std::basic_string<WCHAR> & Str) { Length.v.set_str((LPWSTR)Str.c_str()); return (std::basic_string<WCHAR>&)Str; }
+		inline std::basic_string<CHAR> & operator=(const std::basic_string<CHAR> & Str) { Length.v.set_str((LPSTR)Str.c_str()); return (std::basic_string<CHAR>&)Str; }
+		inline LPSTR operator=(LPCSTR Str) { Length.v.set_str((LPSTR)Str); return (LPSTR)Str; }
+		inline LPWSTR operator=(LPCWSTR Str) { Length.v.set_str((LPWSTR)Str); return (LPWSTR)Str; }
 		int operator=(int Val) { char s[40]; itoa(Val, s, 10); operator=(s); return Val; }
 		unsigned operator=(unsigned Val) { char s[40]; sprintf(s, "%u", Val); operator=(s); return Val; }
 		inline bool operator==(const std::basic_string<WCHAR> & Str2) { return operator std::basic_string<WCHAR>() == Str2; }
 		inline bool operator==(const std::basic_string<CHAR> & Str2) { return operator std::basic_string<CHAR>() == Str2; }
 		inline bool operator==(LPCWSTR Str2) { return operator std::basic_string<WCHAR>() == Str2;}
 		inline bool operator==(LPCSTR Str2) { return operator std::basic_string<CHAR>() == Str2;}
-
 		template<class T>
 		inline bool operator!=(T Val) { return !operator==(Val);}
 		inline bool operator>(unsigned Val) { return (unsigned)*this > Val;}
@@ -114,8 +146,49 @@ public:
 		inline bool operator==(unsigned Val) {return operator int() == Val;}
 	};
 
+	template<class BaseType>
+	class __TEXT_PROPERTY_GET
+	{
+		/*
+		BaseType must have this methods:
 
-
+		int BaseType::get_str_len(); - get element len
+		void BaseType::get_stl_str(std::basic_string<WCHAR>& ); - Get stl string wchar_t
+		void BaseType::get_stl_str(std::basic_string<CHAR>& ); - Get stl string char
+		size_t BaseType::get_str(char* Buffer, size_t Len); - Get c string from element
+		size_t BaseType::get_str(wchar_t* Buffer, size_t Len); - Get c string from element
+		*/
+	public:
+		class
+		{
+			friend __TEXT_PROPERTY_GET;
+			BaseType v; 
+		public:
+			inline operator int() { return v.get_str_len();}
+		} Length;
+		operator std::basic_string<WCHAR>() { std::basic_string<WCHAR> s; Length.v.get_stl_str(s); return s; }
+		operator std::basic_string<CHAR>() { std::basic_string<CHAR> s; Length.v.get_stl_str(s); return s; }
+		operator int() { char s[40] = {0}; Length.v.get_str(s, 39); return atoi(s);}
+		operator unsigned() { char s[40] = {0}; Length.v.get_str(s, 39); unsigned r = 0; sscanf(s, "%u", &r); return r;}
+		inline size_t operator()(LPWSTR Buffer, size_t Len = 0x0fffffff) { return Length.v.get_str(Buffer, Len);}
+		inline size_t operator()(LPSTR Buffer, size_t Len = 0x0fffffff) { return Length.v.get_str(Buffer, Len); }
+		inline bool operator==(const std::basic_string<WCHAR> & Str2) { return operator std::basic_string<WCHAR>() == Str2; }
+		inline bool operator==(const std::basic_string<CHAR> & Str2) { return operator std::basic_string<CHAR>() == Str2; }
+		inline bool operator==(LPCWSTR Str2) { return operator std::basic_string<WCHAR>() == Str2;}
+		inline bool operator==(LPCSTR Str2) { return operator std::basic_string<CHAR>() == Str2;}
+		template<class T>
+		inline bool operator!=(T Val) { return !operator==(Val);}
+		inline bool operator>(unsigned Val) { return (unsigned)*this > Val;}
+		inline bool operator<(unsigned Val) { return operator unsigned() < Val;}
+		inline bool operator>=(unsigned Val) { return operator unsigned() > Val;}
+		inline bool operator<=(unsigned Val) { return operator unsigned() < Val;}
+		inline bool operator>(int Val) { return operator int() > Val;}
+		inline bool operator<(int Val) { return operator int() < Val;}
+		inline bool operator>=(int Val) { return operator int() > Val;}
+		inline bool operator<=(int Val) { return operator int() < Val;}
+		inline bool operator==(int Val) { return operator int() == Val;}
+		inline bool operator==(unsigned Val) {return operator int() == Val;}
+	};
 
 	union
 	{	
@@ -125,7 +198,7 @@ public:
 		*std::string, LPCWSTR, LPSTR, int; Set, Get;
 		*Changes the text of the specified window's title bar.
 		*/
-		__TEXT_PROPERTY<__HWND_TEXT> Text;
+		__TEXT_PROPERTY_SET_GET<__HWND_TEXT> Text;
 
 		/*
 		*int; Set, Get;
@@ -323,36 +396,7 @@ public:
 		*std::string, LPWSTR, LPSTR; Get;
 		*Retrieves the name of the class to which the specified window belongs. 
 		*/
-		class{
-			HWND hWnd;
-		public:
-
-			inline operator std::basic_string<WCHAR>()
-			{
-				std::basic_string<WCHAR> Str;
-				Str.resize(255);
-				GetClassNameW(hWnd,(LPWSTR)Str.c_str(),254);
-				return Str;
-			}
-
-			inline operator std::basic_string<CHAR>()
-			{
-				std::basic_string<CHAR> Str;
-				Str.resize(255);
-				GetClassNameA(hWnd,(LPSTR)Str.c_str(),254);
-				return Str;
-			}
-
-			inline int operator()(LPSTR Buf, unsigned Len)
-			{
-				return GetClassNameA(hWnd, Buf, Len);
-			}
-
-			inline int operator()(LPWSTR Buf, unsigned Len)
-			{
-				return GetClassNameW(hWnd, Buf, Len);
-			}
-		} NameClass;
+		__TEXT_PROPERTY_GET<__HWND_NAME_CLASS> NameClass;
 
 		/*
 		*WNDCLASS, WNDCLASSEX; Get;
@@ -365,60 +409,72 @@ public:
 
 			inline operator WNDCLASSW()
 			{		
-				std::basic_string<WCHAR> Name = ((EX_WND__*)this)->NameClass;
+				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
 				WNDCLASSW WndClass = {0};
-				GetClassInfoW(((EX_WND__*)this)->Instance,Name.c_str(),&WndClass);
+				GetClassInfoW(((EX_WND*)this)->Instance,Name.c_str(),&WndClass);
+				WndClass.lpszClassName = nullptr;
 				return WndClass;
 			}
 
 			inline operator WNDCLASSA()
 			{		
-				std::basic_string<CHAR> Name = ((EX_WND__*)this)->NameClass;
+				std::basic_string<CHAR> Name = ((EX_WND*)this)->NameClass;
 				WNDCLASSA WndClass = {0};
-				GetClassInfoA(((EX_WND__*)this)->Instance,Name.c_str(),&WndClass);
+				GetClassInfoA(((EX_WND*)this)->Instance,Name.c_str(),&WndClass);
+				WndClass.lpszClassName = nullptr;
 				return WndClass;
 			}
 
 			inline operator WNDCLASSEXW()
 			{
-				std::basic_string<WCHAR> Name = ((EX_WND__*)this)->NameClass;
+				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
 				WNDCLASSEXW WndClass = {0};
 				WndClass.cbSize = sizeof(WndClass);
-				GetClassInfoExW(((EX_WND__*)this)->Instance, Name.c_str(),&WndClass);
+				GetClassInfoExW(((EX_WND*)this)->Instance, Name.c_str(),&WndClass);
+				WndClass.lpszClassName = nullptr;
 				return WndClass;
 			}
 
 			inline operator WNDCLASSEXA()
 			{
-				std::basic_string<CHAR> Name = ((EX_WND__*)this)->NameClass;
+				std::basic_string<CHAR> Name = ((EX_WND*)this)->NameClass;
 				WNDCLASSEXA WndClass = {0};
 				WndClass.cbSize = sizeof(WndClass);
-				GetClassInfoExA(((EX_WND__*)this)->Instance, Name.c_str(),&WndClass);
+				GetClassInfoExA(((EX_WND*)this)->Instance, Name.c_str(),&WndClass);
+				WndClass.lpszClassName = nullptr;
 				return WndClass;
 			}
 
 			inline bool operator()(LPWNDCLASSW lpWndClass)
 			{		
-				std::basic_string<WCHAR> Name = ((EX_WND__*)this)->NameClass;
-				return GetClassInfoW(((EX_WND__*)this)->Instance,Name.c_str(),lpWndClass) != 0;
+				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
+				bool r = GetClassInfoW(((EX_WND*)this)->Instance, Name.c_str(), lpWndClass) != 0;
+				lpWndClass->lpszClassName = nullptr;
+				return r;
 			}
 
 			inline bool operator()(LPWNDCLASSA lpWndClass)
 			{		
-				std::basic_string<CHAR> Name = ((EX_WND__*)this)->NameClass;
-				return GetClassInfoA(((EX_WND__*)this)->Instance,Name.c_str(),lpWndClass) != 0;
+				std::basic_string<CHAR> Name = ((EX_WND*)this)->NameClass;
+				bool r = GetClassInfoA(((EX_WND*)this)->Instance,Name.c_str(), lpWndClass) != 0;
+				lpWndClass->lpszClassName = nullptr;
+				return r;
 			}
 
 			inline bool operator()(LPWNDCLASSEXW lpWndClass)
 			{		
-				std::basic_string<WCHAR> Name = ((EX_WND__*)this)->NameClass;
-				return GetClassInfoExW(((EX_WND__*)this)->Instance,Name.c_str(),lpWndClass) != 0;
+				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
+				bool r = GetClassInfoExW(((EX_WND*)this)->Instance,Name.c_str(), lpWndClass) != 0;
+				lpWndClass->lpszClassName = nullptr;
+				return r;
 			}
 
 			inline bool operator()(LPWNDCLASSEXA lpWndClass)
 			{		
-				std::basic_string<CHAR> Name = ((EX_WND__*)this)->NameClass;
-				return GetClassInfoExA(((EX_WND__*)this)->Instance,Name.c_str(),lpWndClass) != 0;
+				std::basic_string<CHAR> Name = ((EX_WND*)this)->NameClass;
+				bool r = GetClassInfoExA(((EX_WND*)this)->Instance,Name.c_str(), lpWndClass) != 0;
+				lpWndClass->lpszClassName = nullptr;
+				return r;
 			}
 		} Class;
 
@@ -1174,7 +1230,7 @@ public:
 		arg.Buf = hWndBuf;
 		arg.MaxElements = MaxElemInBuf;
 		arg.CurElement = 0;
-		return EnumChildWindows(hWnd, EnumChildProc,(LPARAM)&arg) != FALSE;
+		return EnumChildWindows(hWnd, EnumChildProc, (LPARAM)&arg) != FALSE;
 	}
 
 	inline bool GetChildWindows(HWND * hWndBuf, unsigned MaxElemInBuf, unsigned * CountGetted)
@@ -1183,7 +1239,7 @@ public:
 		arg.Buf = hWndBuf;
 		arg.MaxElements = MaxElemInBuf;
 		arg.CurElement = 0;
-		BOOL Res = EnumChildWindows(hWnd, EnumChildProc,(LPARAM)&arg);
+		BOOL Res = EnumChildWindows(hWnd, EnumChildProc, (LPARAM)&arg);
 		*CountGetted = arg.CurElement;
 		return Res != FALSE;
 	}
@@ -1314,7 +1370,7 @@ public:
 				int Index;
 			};
 
-			EX_WND::__TEXT_PROPERTY<__ELEMENT_TEXT> Text;
+			EX_WND::__TEXT_PROPERTY_SET_GET<__ELEMENT_TEXT> Text;
 
 			class 
 			{
@@ -1609,7 +1665,7 @@ public:
 				int Index;
 			};
 
-			EX_WND::__TEXT_PROPERTY<__COLUMN_TEXT> Text;
+			EX_WND::__TEXT_PROPERTY_SET_GET<__COLUMN_TEXT> Text;
 
 			/*
 			int; Get, Set;
@@ -1817,7 +1873,7 @@ public:
 				int SubItem;
 			};
 
-			EX_WND::__TEXT_PROPERTY<__SUBITEM_TEXT> Text;
+			EX_WND::__TEXT_PROPERTY_SET_GET<__SUBITEM_TEXT> Text;
 
 			class
 			{
@@ -1831,7 +1887,7 @@ public:
 				inline operator RECT()
 				{
 					RECT Rect;
-					ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_ICON,&Rect);
+					ListView_GetSubItemRect(hWnd, Index, SubItem,LVIR_ICON,&Rect);
 					return Rect;
 				}
 				inline BOOL operator()(LPRECT Rect)
@@ -2160,50 +2216,47 @@ public:
 					}
 				} Count;
 
-				class 
+				class __CUR_SEL
 				{	
 				public:
 
-					union
+					class
 					{
+						friend __CUR_SEL;
 						HWND hWnd;
-						class
+					public:
+						operator unsigned()
 						{
-							HWND hWnd;
-						public:
-							operator unsigned()
-							{
-								return ListView_GetSelectedCount(hWnd);
-							}
-						} Count;
-					};
+							return ListView_GetSelectedCount(hWnd);
+						}
+					} Count;
 
 					inline operator int()
 					{
-						return ListView_GetSelectedColumn(hWnd);
+						return ListView_GetSelectedColumn(Count.hWnd);
 					}
 
 					inline operator COLUMN()
 					{
-						int Index = ListView_GetSelectedColumn(hWnd);
+						int Index = ListView_GetSelectedColumn(Count.hWnd);
 						return COLUMN(hWnd, Index);
 					}
 
 					inline COLUMN operator()()
 					{
-						int Index = ListView_GetSelectedColumn(hWnd);
+						int Index = ListView_GetSelectedColumn(Count.hWnd);
 						return COLUMN(hWnd, Index);
 					}
 
 					inline int operator=(int Index)
 					{
-						ListView_SetSelectedColumn(hWnd, Index);
+						ListView_SetSelectedColumn(Count.hWnd, Index);
 						return Index;
 					}
 
 					inline COLUMN & operator=(COLUMN & Col)
 					{
-						ListView_SetSelectedColumn(hWnd, Col.Index);
+						ListView_SetSelectedColumn(Count.hWnd, Col.Index);
 						return Col;
 					}
 				} CurSel;
