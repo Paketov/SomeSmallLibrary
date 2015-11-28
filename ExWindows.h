@@ -30,8 +30,6 @@ typedef WND_LIST__<true>	WND_LIST;
 typedef EX_WND__<true>		EX_WND;
 
 
-
-
 template<bool>
 class EX_WND__
 {
@@ -41,8 +39,6 @@ class EX_WND__
 	{
 		HWND hWnd;
 	public:
-		inline int get_str_len() { return GetWindowTextLength(hWnd)}
-
 		void get_stl_str(std::basic_string<WCHAR>& s)
 		{
 			int Length = GetWindowTextLengthW(hWnd);
@@ -56,13 +52,10 @@ class EX_WND__
 			s.resize(Length);
 			GetWindowTextA(hWnd, (LPSTR)s.c_str(), Length + 1);
 		}
-
+		inline int get_str_len() { return GetWindowTextLength(hWnd)}
 		inline size_t get_str(char* Buffer, size_t Len) { return GetWindowTextA(hWnd, Buffer, Len);	 }
-
 		inline size_t get_str(wchar_t* Buffer, size_t Len) { return GetWindowTextW(hWnd, Buffer, Len); }
-
 		inline void set_str(char* Buffer) { SetWindowTextA(hWnd, Buffer); }
-
 		inline void set_str(wchar_t* Buffer) { SetWindowTextW(hWnd, Buffer); }
 	};
 public:
@@ -88,61 +81,36 @@ public:
 			BaseType v; 
 		public:
 			inline operator int() { return v.get_str_len();}
-		} length;
+		} Length;
 
-		inline operator std::basic_string<WCHAR>() { std::basic_string<WCHAR> s; length.v.get_stl_str(s); return s; }
-
+		operator std::basic_string<WCHAR>() { std::basic_string<WCHAR> s; length.v.get_stl_str(s); return s; }
 		operator std::basic_string<CHAR>() { std::basic_string<CHAR> s; length.v.get_stl_str(s); return s; }
-
 		operator int() { char s[40] = {0}; length.v.get_str(s, 39); return atoi(s);}
-
 		operator unsigned() { char s[40] = {0}; length.v.get_str(s, 39); unsigned r = 0; sscanf(s, "%u", &r); return r;}
-
 		inline size_t operator()(LPWSTR Buffer, size_t Len = 0x0fffffff) { return length.v.get_str(Buffer, Len);}
-
 		inline size_t operator()(LPSTR Buffer, size_t Len = 0x0fffffff) { return length.v.get_str(Buffer, Len); }
-
 		inline std::basic_string<WCHAR> & operator=(const std::basic_string<WCHAR> & Str) { length.v.set_str((LPWSTR)Str.c_str()); return (std::basic_string<WCHAR>&)Str; }
-
 		inline std::basic_string<CHAR> & operator=(const std::basic_string<CHAR> & Str) { length.v.set_str((LPSTR)Str.c_str()); return (std::basic_string<CHAR>&)Str; }
-
 		inline LPSTR operator=(LPCSTR Str) { length.v.set_str((LPSTR)Str); return (LPSTR)Str; }
-
 		inline LPWSTR operator=(LPCWSTR Str) { length.v.set_str((LPWSTR)Str); return (LPWSTR)Str; }
-
 		int operator=(int Val) { char s[40]; itoa(Val, s, 10); operator=(s); return Val; }
-
 		unsigned operator=(unsigned Val) { char s[40]; sprintf(s, "%u", Val); operator=(s); return Val; }
-
 		inline bool operator==(const std::basic_string<WCHAR> & Str2) { return operator std::basic_string<WCHAR>() == Str2; }
-
 		inline bool operator==(const std::basic_string<CHAR> & Str2) { return operator std::basic_string<CHAR>() == Str2; }
-
 		inline bool operator==(LPCWSTR Str2) { return operator std::basic_string<WCHAR>() == Str2;}
-
 		inline bool operator==(LPCSTR Str2) { return operator std::basic_string<CHAR>() == Str2;}
 
 		template<class T>
 		inline bool operator!=(T Val) { return !operator==(Val);}
-
 		inline bool operator>(unsigned Val) { return (unsigned)*this > Val;}
-
 		inline bool operator<(unsigned Val) { return operator unsigned() < Val;}
-
 		inline bool operator>=(unsigned Val) { return operator unsigned() > Val;}
-
 		inline bool operator<=(unsigned Val) { return operator unsigned() < Val;}
-
 		inline bool operator>(int Val) { return operator int() > Val;}
-
 		inline bool operator<(int Val) { return operator int() < Val;}
-
 		inline bool operator>=(int Val) { return operator int() > Val;}
-
 		inline bool operator<=(int Val) { return operator int() < Val;}
-
 		inline bool operator==(int Val) { return operator int() == Val;}
-
 		inline bool operator==(unsigned Val) {return operator int() == Val;}
 	};
 
