@@ -11,46 +11,75 @@ class NEURALNET
 	class NEURAL_LAYER
 	{
 		friend NEURALNET;
-		class __SINAPS_IN
+		class __NEURON
 		{
 
 		public:
-			inline __SINAPS_IN(NEURAL_LAYER* p, size_t n)
-			{
-				Count.v = p;
-				Count.i = n;
-			}
+			inline __NEURON(NEURAL_LAYER* p, size_t n) { Count.v = p; Count.i = n; }
 
 			union{
 				class{
-					friend __SINAPS_IN;
+					friend __NEURON;
 					struct {NEURAL_LAYER* v; size_t i;};
 				public:
-					operator size_t() const { return v->count_in_prev(); }
-				} Count;
+					inline operator size_t() const { return v->count_in_prev(); }
+				} Count; //Get the number of input synapses weight
+
+				class{
+					struct {NEURAL_LAYER* v; size_t i;};
+				public:
+					operator size_t ()
+					{
+					    size_t r = 0;
+						TypeNum* vn = v->get_row() + i * v->count_in_prev();
+						TypeNum Min = vnv[r]; 
+						for(size_t i = 1, mc = v->count_in_prev();i < mc;i++)
+						{
+							if(vn[i] < Min)
+							   Min = vn[r = i];
+						}
+						return r;
+					}
+				} IndexMinWeigth;
+
+				class{
+					struct {NEURAL_LAYER* v; size_t i;};
+				public:
+					operator size_t ()
+					{
+					    size_t r = 0;
+						TypeNum* vn = v->get_row() + i * v->count_in_prev();
+						TypeNum Max = vn[r]; 
+						for(size_t i = 1, mc = v->count_in_prev(); i < mc; i++)
+						{
+							if(vn[i] > Max)
+								Max = vn[r = i];
+						}
+						return r;
+					}
+				} IndexMaxWeigth;
 			};
 
-			void ClearWeight(TypeNum SetVal)
+			inline void ClearWeights(TypeNum SetVal)
 			{
-				TypeNum* v = Count.v->get_row();
-				const size_t mc = Count;
-				for(size_t i = 0;i < mc;i++)
-				{
+				TypeNum* v = Count.v->get_row() + Count.i * Count.v->count_in_prev();
+				for(size_t i = 0, mc = Count;i < mc;i++)
 					v[i] = SetVal;
-				}
 			}
 
 			/*Get or set sinaps weight*/
-			inline TypeNum& operator[] (size_t Index) { return Count.v->at(Count.i, Index);}
+			inline TypeNum& operator[] (size_t Index) { return Count.v->at(Count.i, Index); }
 		};
-		friend __SINAPS_IN;
+
+		friend __NEURON;
+
 		inline TypeNum& at(size_t Neuron, size_t Sinaps) { return Count.v[Neuron * Count.pn + Sinaps]; }
 
 		inline TypeNum* get_row() { return Count.v; }
 
 		inline size_t count_in_prev() const { return Count.pn; }
 
-		inline bool set_count_prev_neu(size_t NewCount)
+		inline bool set_count_prev(size_t NewCount)
 		{
 			if(Count.pn == NewCount)
 				return true;
@@ -78,16 +107,13 @@ class NEURALNET
 				free(Count.v);
 		}
 
-
-		void ClearAllWeight(TypeNum SetVal)
+		inline void ClearWeights(TypeNum SetVal)
 		{
 			TypeNum* v = Count.v;
-			const size_t mc = Count.n * Count.n;
-			for(size_t i = 0;i < mc;i++)
-			{
+			for(size_t i = 0, mc = Count.n * Count.n;i < mc;i++)
 				v[i] = SetVal;
-			}
 		}
+
 		union
 		{
 			class {
@@ -104,7 +130,7 @@ class NEURALNET
 			} CountSinaps;
 		};
 
-		inline __SINAPS_IN operator[](size_t Index) { return __SINAPS_IN(this, Index); }
+		inline __NEURON operator[](size_t Index) { return __NEURON(this, Index); }
 	};
 
 public:
@@ -142,21 +168,13 @@ public:
 		{
 			__NEURALNET_FIELDS;
 		public:
-			inline operator size_t()  const
-			{ 
-				if(cl == 0)
-					return 0;
-				return nl[0]->count_in_prev(); 
-			}
+			inline operator size_t()  const { return (cl == 0)? 0: nl[0]->count_in_prev(); }
 
 			size_t operator =(size_t NewInCount)
 			{	
 				if(cl == 0)
-				{
-					ic = NewInCount;
-					return NewInCount;
-				}
-				if(nl[0]->set_count_prev_neu(NewInCount))
+					return ic = NewInCount;
+				if(nl[0]->set_count_prev(NewInCount))
 				{
 					if(NewInCount > mcn)
 						mcn = NewInCount;
@@ -170,12 +188,7 @@ public:
 		{
 			__NEURALNET_FIELDS;
 		public:
-			inline operator size_t()  const
-			{ 
-				if(cl == 0)
-					return 0;
-				return nl[cl - 1]->Count; 
-			}
+			inline operator size_t() const { return (cl == 0)? 0: size_t(nl[cl - 1]->Count); }
 		} OutCount;
 
 		class
@@ -191,7 +204,6 @@ public:
 			}
 		} CountAllNeuron;
 
-
 		class
 		{
 			__NEURALNET_FIELDS;
@@ -201,33 +213,55 @@ public:
 
 	};
 
-	inline NEURAL_LAYER& operator[](size_t IndexLayer)
+
+	void ClearWeights(TypeNum SetVal)
 	{
-		return CountLayers.nl[IndexLayer][0];
+		for(size_t i = 0;i < CountLayers.cl;i++)
+			CountLayers.nl[i]->ClearWeights(SetVal);
 	}
 
-	bool NewLayer(size_t CountNeuron, size_t IndexInsert = 0xffffffff)
+	inline NEURAL_LAYER& operator[](size_t IndexLayer) { return CountLayers.nl[IndexLayer][0]; }
+
+	bool NewLayer(size_t CountNeuron, size_t Index = 0xffffffff)
 	{
-		if(IndexInsert > CountLayers) 
-			IndexInsert = CountLayers;
+		if(Index > CountLayers) 
+			Index = CountLayers;
 		auto nl = (NEURAL_LAYER**)realloc(CountLayers.nl, (CountLayers + 1) * sizeof(NEURAL_LAYER*));
 		if(nl == nullptr)
 			return false;
-		if(IndexInsert != CountLayers)
-			memmove(nl + (IndexInsert + 1), nl + IndexInsert,  (CountLayers - IndexInsert) * sizeof(NEURAL_LAYER*));
+		if(Index != CountLayers)
+			memmove(nl + (Index + 1), nl + Index,  (CountLayers - Index) * sizeof(NEURAL_LAYER*));
 
-		if(IndexInsert == CountLayers) //If last layer
+		if(Index == CountLayers) //If last layer
 		{
-			nl[IndexInsert] = new NEURAL_LAYER((IndexInsert != 0) ? nl[IndexInsert - 1]->Count: CountLayers.ic, CountNeuron);	
+			nl[Index] = new NEURAL_LAYER((Index != 0) ? nl[Index - 1]->Count: CountLayers.ic, CountNeuron);	
 		}else
 		{
-			nl[IndexInsert] = new NEURAL_LAYER(nl[IndexInsert + 1]->count_in_prev(), CountNeuron);	
-			nl[IndexInsert + 1]->set_count_prev_neu(CountNeuron);
+			nl[Index] = new NEURAL_LAYER(nl[Index + 1]->count_in_prev(), CountNeuron);	
+			nl[Index + 1]->set_count_prev(CountNeuron);
 		}
 		if(CountNeuron > CountLayers.mcn)		  
 			CountLayers.mcn = CountNeuron;
 		CountLayers.nl = nl;
 		CountLayers.cl++;
+		return true;
+	}
+
+	bool RemoveLayer(size_t Index)
+	{
+		if(Index >= CountLayers) 
+			return false;
+		auto nl = CountLayers.nl;
+		delete nl[Index];
+		if(Index != (CountLayers - 1)) //If not last layer
+		{
+			memmove(nl + Index, nl + (Index + 1),  (CountLayers - (Index + 1)) * sizeof(NEURAL_LAYER*));
+			nl[Index]->set_count_prev((Index == 0)? CountLayers.ic: nl[Index - 1]->Count);
+		}
+		nl = (NEURAL_LAYER**)realloc(nl, (CountLayers.cl - 1) * sizeof(NEURAL_LAYER*));	
+		CountLayers.cl--;
+		if(nl != nullptr)
+			CountLayers.nl = nl;
 		return true;
 	}
 
