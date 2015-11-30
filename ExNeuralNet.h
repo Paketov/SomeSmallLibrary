@@ -40,7 +40,7 @@ class NEURALNET
 						}
 						return r;
 					}
-				} IndexMinWeigth;
+				} IndexMinWeigth; //Get index with minimum weigth
 
 				class{
 					struct {NEURAL_LAYER* v; size_t i;};
@@ -97,9 +97,14 @@ class NEURALNET
 		{
 			const size_t l = nCountNeuronInPrevLayer * nCountNeuron * sizeof(TypeNum);
 			Count.v = (TypeNum*)malloc(l);
+			Count.pn = nCountNeuronInPrevLayer;
+			if(Count.v == nullptr)
+			{
+				Count.n = 0;
+				return;
+			}
 			memset(Count.v, 0, l);
 			Count.n = nCountNeuron;
-			Count.pn = nCountNeuronInPrevLayer;
 		}
 		~NEURAL_LAYER()
 		{
@@ -110,7 +115,7 @@ class NEURALNET
 		inline void ClearWeights(TypeNum SetVal)
 		{
 			TypeNum* v = Count.v;
-			for(size_t i = 0, mc = Count.n * Count.n;i < mc;i++)
+			for(size_t i = 0, mc = CountSinaps; i < mc;i++)
 				v[i] = SetVal;
 		}
 
@@ -147,9 +152,8 @@ public:
 	~NEURALNET()
 	{
 		for(size_t i = 0; i < CountLayers.cl;i++)
-		{
 		   delete CountLayers.nl[i];
-		}
+
 		if(CountLayers.nl != nullptr)
 			free(CountLayers.nl);
 	}
@@ -208,7 +212,7 @@ public:
 		{
 			__NEURALNET_FIELDS;
 		public:
-			inline operator size_t() const {return mcn; }
+			inline operator size_t() const { return mcn; }
 		} MaxCountNeuronInLayer;
 
 	};
@@ -269,29 +273,22 @@ public:
 	{			
 		if(MaxCountNeuronInLayer == 0)
 			return false;
-
-		const size_t cn = MaxCountNeuronInLayer, cl = CountLayers, LenLay = cn * sizeof(TypeNum);
-		TypeNum* gl = (TypeNum*)malloc(LenLay * 2), *sl = gl + cn, *og = gl;
+		const size_t cn = MaxCountNeuronInLayer;
+		TypeNum* gl = (TypeNum*)malloc(cn * sizeof(TypeNum) * 2), *sl = gl + cn, *og = gl;
 		if(gl == nullptr)
 			return false;
-
+		NEURAL_LAYER *const*nl = CountLayers.nl, *const*mnl = nl + size_t(CountLayers);
 		memcpy(gl, In, InCount * sizeof(TypeNum));
-		
-		for(size_t il = 0; il < cl; il++)
+		for(; nl < mnl; nl++)
 		{
-			NEURAL_LAYER* nl = CountLayers.nl[il];
-			const size_t cn = nl->Count;			//Count neuron in this layer
-			const size_t cp = nl->count_in_prev();	//Count neuron in previous layer
-			const TypeNum* s = nl->get_row();		//Get array sinaps
+			const TypeNum* s = (*nl)->get_row(), *mgl2 = gl + (*nl)->count_in_prev(), *mdst = sl + size_t((*nl)->Count);		//Get array sinaps
 
-			for(size_t CurNeu = 0; CurNeu < cn; CurNeu++)
+			for(TypeNum* dst = sl; dst < mdst; dst++)
 			{
 				TypeNum SolveNeu = TypeNum(0);
-				for(size_t CurSinaps = 0; CurSinaps < cp; CurSinaps++)
-				{
-					SolveNeu += gl[CurSinaps] * s[CurNeu * cp + CurSinaps];
-				}
-				sl[CurNeu] = SolveNeu;
+				for(TypeNum* gl2 = gl; gl2 < mgl2; gl2++, s++)
+					SolveNeu += *gl2 * *s;
+				*dst = SolveNeu;
 			}
 			/*in sl placed */
 			std::swap(gl, sl);
