@@ -2,6 +2,7 @@
 #define __NEURALNET_H_HAS_INCLUDED__
 
 #include <malloc.h>
+#include <omp.h>
 #include "ExTypeTraits.h"
 
 template<typename TypeNum = int>
@@ -282,13 +283,46 @@ public:
 		for(; nl < mnl; nl++)
 		{
 			const TypeNum* s = (*nl)->get_row(), *mgl2 = gl + (*nl)->count_in_prev(), *mdst = sl + size_t((*nl)->Count);		//Get array sinaps
-
 			for(TypeNum* dst = sl; dst < mdst; dst++)
 			{
 				TypeNum SolveNeu = TypeNum(0);
-				for(TypeNum* gl2 = gl; gl2 < mgl2; gl2++, s++)
+				for(const TypeNum* gl2 = gl; gl2 < mgl2; gl2++, s++)
 					SolveNeu += *gl2 * *s;
 				*dst = SolveNeu;
+			}
+			/*in sl placed */
+			std::swap(gl, sl);
+		}
+		memcpy(Out, gl, OutCount * sizeof(TypeNum));
+		free(og);
+		return true;
+	}
+
+	bool RecognizeParallel(const TypeNum* In, TypeNum* Out) const
+	{			
+		if(MaxCountNeuronInLayer == 0)
+			return false;
+		const size_t cn = MaxCountNeuronInLayer;
+		TypeNum* gl = (TypeNum*)malloc(cn * sizeof(TypeNum) * 2), *sl = gl + cn, *og = gl;
+		if(gl == nullptr)
+			return false;
+		NEURAL_LAYER *const*nl = CountLayers.nl, *const*mnl = nl + size_t(CountLayers);
+		memcpy(gl, In, InCount * sizeof(TypeNum));
+		for(; nl < mnl; nl++)
+		{
+			//Go next layer
+			int cn = (*nl)->Count, cp = (*nl)->count_in_prev();
+			const TypeNum* s = (*nl)->get_row(), const *mj = gl + cp;		//Get array sinaps
+#pragma omp parallel
+			{
+#pragma omp for private(cn)
+				for(int i = 0; i < cn; i++)
+				{
+					TypeNum SolveNeu = TypeNum(0);
+					for(const TypeNum *gl2 = gl, const *s2 = s + i * cp; gl2 < mj; gl2++, s2++)
+						SolveNeu += *gl2 * *s2;
+					sl[i] = SolveNeu;
+				}
 			}
 			/*in sl placed */
 			std::swap(gl, sl);
