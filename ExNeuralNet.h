@@ -3,6 +3,7 @@
 
 #include <malloc.h>
 #include <omp.h>
+
 #include "ExTypeTraits.h"
 
 template<typename TypeNum = int>
@@ -394,12 +395,58 @@ public:
 				*slt = TypeNum(0);
 			for(TypeNum* glt = gl; glt < mglt; glt++)
 			{
-				long double SumForNeuron = 0.0;
-				for(const TypeNum* st = s, const *m = s + OutCount; st < m; st++)
-					SumForNeuron += *st;
-				long double tn = *glt * CoefGain / SumForNeuron;
-				for(TypeNum* slt = sl, *m = s + OutCount; s < m; s++, slt++)
-					*slt += tn * *s;
+				long double SumWeigths = 0.0;
+				const TypeNum* m = s + OutCount;
+				for(const TypeNum* st = s; st < m; st++)
+					SumWeigths += *st;
+				long double tn = *glt * CoefGain / SumWeigths;
+				for(TypeNum* slt = sl; s < m; s++, slt++)
+					*slt += TypeNum(tn * *s);
+			}
+			InCount = OutCount;
+			std::swap(gl, sl);
+		}
+		memcpy(Out, gl, InputCount * sizeof(TypeNum));
+		free(og);
+		return true;
+	}
+
+
+	bool GetReverseParallel(const TypeNum* In, TypeNum* Out, long double CoefGain = 1.0) const
+	{
+		size_t cn, InCount;
+		if((cn = MaxCountNeuronInLayer) == 0)
+			return false;
+		TypeNum* gl = (TypeNum*)malloc(cn * sizeof(TypeNum) * 2), *sl = gl + cn, *og = gl;
+		if(gl == nullptr)
+			return false;
+		NEURAL_LAYER *const*mnl = CountLayers.nl, *const*nl = mnl + (size_t(CountLayers) - 1);
+		memcpy(gl, In, (InCount = OutputCount) * sizeof(TypeNum));
+
+		for(; nl >= mnl; nl--)
+		{
+			size_t OutCount = (*nl)->count_in_prev(), mglt = InCount;
+			TypeNum* s = (*nl)->get_row();		//Get array sinaps
+
+			for(TypeNum* slt = sl, *m = slt + OutCount; slt < m; slt++)
+				*slt = TypeNum(0);
+#pragma omp parallel
+			{
+#pragma omp for private(mglt)
+				for(int i = 0; i < mglt; i++)
+				{
+					long double SumWeigths = 0.0;
+					TypeNum* a = s + i * OutCount, *ms = a + OutCount;
+					for(TypeNum* st = a; st < ms; st++)
+						SumWeigths += *st;
+					long double tn = gl[i] * CoefGain / SumWeigths;
+					for(TypeNum* slt = sl, const*st = a; st < ms; st++, slt++)
+					{
+						register TypeNum r = TypeNum(tn * *st);
+#pragma omp atomic
+						*slt += r;				//interlocked add
+					}
+				}
 			}
 			InCount = OutCount;
 			std::swap(gl, sl);
