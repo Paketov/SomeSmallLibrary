@@ -59,6 +59,18 @@ class NEURALNET
 						return r;
 					}
 				} IndexMaxWeigth;
+
+				class{
+					struct {NEURAL_LAYER* v; size_t i;};
+				public: 
+					inline operator long double() const 
+					{ 
+						long double r = 0.0;
+						for(const TypeNum* c = v->get_row() + i * v->count_in_prev(), const *m = c + v->count_in_prev(); c < m; c++)
+							r += *c;
+						return r;
+					} 
+				} SumWeigths;
 			};
 
 			inline void ClearWeights(TypeNum SetVal)
@@ -134,10 +146,38 @@ class NEURALNET
 			public: 
 				inline operator size_t() const { return n * pn;} 
 			} CountSinaps;
+
+
+			class{
+				struct {size_t n; size_t pn; TypeNum* v;};
+			public: 
+				inline operator long double() const 
+				{ 
+					long double r = 0.0;
+					for(const TypeNum* m = v + n * pn, const *c = v;c < m;c++)
+						r += *c;
+					return r;
+				} 
+			} SumWeigths;
 		};
 
 		inline __NEURON operator[](size_t Index) { return __NEURON(this, Index); }
 	};
+
+	static void sync_mcn(size_t Countlayers, NEURAL_LAYER** Layers, size_t *Mcn)
+	{
+		size_t maxn = 0;
+		if(Countlayers > 0)
+			maxn = Layers[0]->count_in_prev();
+
+		for(size_t i = 0;i < Countlayers;i++)
+		{
+		   size_t c = Layers[i]->Count;
+		   if(c > maxn)
+			   maxn = c;
+		}
+		*Mcn = maxn;
+	}
 
 public:
 
@@ -185,16 +225,17 @@ public:
 						mcn = NewInCount;
 					ic = NewInCount;
 				}
+				sync_mcn(cl, nl, &mcn);
 				return NewInCount;
 			}
-		} InCount;
+		} InputCount;
 				
 		class
 		{
 			__NEURALNET_FIELDS;
 		public:
 			inline operator size_t() const { return (cl == 0)? 0: size_t(nl[cl - 1]->Count); }
-		} OutCount;
+		} OutputCount;
 
 		class
 		{
@@ -245,10 +286,9 @@ public:
 			nl[Index] = new NEURAL_LAYER(nl[Index + 1]->count_in_prev(), CountNeuron);	
 			nl[Index + 1]->set_count_prev(CountNeuron);
 		}
-		if(CountNeuron > CountLayers.mcn)		  
-			CountLayers.mcn = CountNeuron;
 		CountLayers.nl = nl;
 		CountLayers.cl++;
+		sync_mcn(CountLayers.cl, CountLayers.nl, &CountLayers.mcn);
 		return true;
 	}
 
@@ -267,6 +307,7 @@ public:
 		CountLayers.cl--;
 		if(nl != nullptr)
 			CountLayers.nl = nl;
+		sync_mcn(CountLayers.cl, CountLayers.nl, &CountLayers.mcn);
 		return true;
 	}
 
@@ -279,7 +320,7 @@ public:
 		if(gl == nullptr)
 			return false;
 		NEURAL_LAYER *const*nl = CountLayers.nl, *const*mnl = nl + size_t(CountLayers);
-		memcpy(gl, In, InCount * sizeof(TypeNum));
+		memcpy(gl, In, InputCount * sizeof(TypeNum));
 		for(; nl < mnl; nl++)
 		{
 			const TypeNum* s = (*nl)->get_row(), *mgl2 = gl + (*nl)->count_in_prev(), *mdst = sl + size_t((*nl)->Count);		//Get array sinaps
@@ -293,7 +334,7 @@ public:
 			/*in sl placed */
 			std::swap(gl, sl);
 		}
-		memcpy(Out, gl, OutCount * sizeof(TypeNum));
+		memcpy(Out, gl, OutputCount * sizeof(TypeNum));
 		free(og);
 		return true;
 	}
@@ -307,7 +348,7 @@ public:
 		if(gl == nullptr)
 			return false;
 		NEURAL_LAYER *const*nl = CountLayers.nl, *const*mnl = nl + size_t(CountLayers);
-		memcpy(gl, In, InCount * sizeof(TypeNum));
+		memcpy(gl, In, InputCount * sizeof(TypeNum));
 		for(; nl < mnl; nl++)
 		{
 			//Go next layer
@@ -327,11 +368,46 @@ public:
 			/*in sl placed */
 			std::swap(gl, sl);
 		}
-		memcpy(Out, gl, OutCount * sizeof(TypeNum));
+		memcpy(Out, gl, OutputCount * sizeof(TypeNum));
 		free(og);
 		return true;
 	}
 
+
+	bool GetReverse(const TypeNum* In, TypeNum* Out, long double CoefGain = 1.0) const
+	{
+		size_t cn, InCount;
+		if((cn = MaxCountNeuronInLayer) == 0)
+			return false;
+		TypeNum* gl = (TypeNum*)malloc(cn * sizeof(TypeNum) * 2), *sl = gl + cn, *og = gl;
+		if(gl == nullptr)
+			return false;
+		NEURAL_LAYER *const*mnl = CountLayers.nl, *const*nl = mnl + (size_t(CountLayers) - 1);
+		memcpy(gl, In, (InCount = OutputCount) * sizeof(TypeNum));
+		
+		for(; nl >= mnl; nl--)
+		{
+			size_t OutCount = (*nl)->count_in_prev();
+			TypeNum* s = (*nl)->get_row(), *mglt = gl + InCount;		//Get array sinaps
+
+			for(TypeNum* slt = sl, *m = slt + OutCount; slt < m; slt++)
+				*slt = TypeNum(0);
+			for(TypeNum* glt = gl; glt < mglt; glt++)
+			{
+				long double SumForNeuron = 0.0;
+				for(const TypeNum* st = s, const *m = s + OutCount; st < m; st++)
+					SumForNeuron += *st;
+				long double tn = *glt * CoefGain / SumForNeuron;
+				for(TypeNum* slt = sl, *m = s + OutCount; s < m; s++, slt++)
+					*slt += tn * *s;
+			}
+			InCount = OutCount;
+			std::swap(gl, sl);
+		}
+		memcpy(Out, gl, InputCount * sizeof(TypeNum));
+		free(og);
+		return true;
+	}
 };
 
 #endif
