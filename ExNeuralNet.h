@@ -471,7 +471,7 @@ public:
 		return true;
 	}
 
-	bool GetReverse(const TypeNum* In, TypeNum* Out, long double CoefGain = 1.0) const
+	bool GetReverse(const TypeNum* In, TypeNum* Out) const
 	{
 		size_t cn, InCount;
 		if((cn = MaxCountNeuronInLayer) == 0)
@@ -495,7 +495,7 @@ public:
 				const TypeNum* m = s + OutCount;
 				for(const TypeNum* st = s; st < m; st++)
 					SumWeigths += *st;
-				long double tn = RActivateFunc(*glt) * CoefGain / SumWeigths;
+				long double tn = RActivateFunc(*glt) / SumWeigths;
 				for(TypeNum* slt = sl; s < m; s++, slt++)
 					*slt += TypeNum(tn * *s);
 			}
@@ -507,7 +507,7 @@ public:
 		return true;
 	}
 
-	bool GetReverseParallel(const TypeNum* In, TypeNum* Out, long double CoefGain = 1.0) const
+	bool GetReverseParallel(const TypeNum* In, TypeNum* Out) const
 	{
 		size_t cn, InCount;
 		if((cn = MaxCountNeuronInLayer) == 0)
@@ -533,7 +533,7 @@ public:
 					TypeNum* a = s + i * OutCount, *ms = a + OutCount;
 					for(TypeNum* st = a; st < ms; st++)
 						SumWeigths += *st;
-					long double tn = RActivateFunc(gl[i]) * CoefGain / SumWeigths;
+					long double tn = RActivateFunc(gl[i]) / SumWeigths;
 					for(TypeNum* slt = sl, const*st = a; st < ms; st++, slt++)
 					{
 						register TypeNum r = TypeNum(tn * *st);
