@@ -10,7 +10,11 @@
 template<typename TypeNum = int>
 class NEURALNET
 {
-
+public:
+	typedef TypeNum (__fastcall * TACTIVATE_FUNC)(TypeNum);
+	typedef TypeNum (__fastcall * TDER_ACTIVATE_FUNC)(TypeNum);
+	typedef TypeNum (__fastcall * TREVERSE_ACTIVATE_FUNC)(TypeNum);
+private:
 	class NEURAL_LAYER
 	{
 		friend NEURALNET;
@@ -60,7 +64,7 @@ class NEURALNET
 						}
 						return r;
 					}
-				} IndexMaxWeigth;
+				} IndexMaxWeigth; //Get index with maximum weigth
 
 				class{
 					struct {NEURAL_LAYER* v; size_t i;};
@@ -107,8 +111,9 @@ class NEURALNET
 		}
 
 #define  __LAYER_FIELDS struct {size_t n; size_t pn; TypeNum* v; \
-			TypeNum (*ActivateFunc)(TypeNum); TypeNum (*DActivateFunc)(TypeNum); \
-			TypeNum (*ReversActivateFunc)(TypeNum);};
+			TACTIVATE_FUNC ActivateFunc; \
+			TDER_ACTIVATE_FUNC DActivateFunc; \
+			TREVERSE_ACTIVATE_FUNC ReversActivateFunc;};
 	public:
 
 		NEURAL_LAYER(size_t nCountNeuronInPrevLayer, size_t nCountNeuron)
@@ -167,26 +172,23 @@ class NEURALNET
 			
 			class { 
 				__LAYER_FIELDS;
-				typedef TypeNum (*TACTIV_FUNC)(TypeNum);
 			public: 
-				inline operator TACTIV_FUNC() const { return ActivateFunc;} 
-				inline TACTIV_FUNC operator =(TACTIV_FUNC New) { return ActivateFunc = New;} 
+				inline operator TACTIVATE_FUNC() const { return ActivateFunc;} 
+				inline TACTIVATE_FUNC operator =(TACTIVATE_FUNC New) { return ActivateFunc = New;} 
 			} ActivateFunction;
 									
 			class { 
 				__LAYER_FIELDS;
-				typedef TypeNum (*TDACTIV_FUNC)(TypeNum);
 			public: 
-				inline operator TDACTIV_FUNC() const { return DActivateFunc;} 
-				inline TDACTIV_FUNC operator =(TDACTIV_FUNC New) { return DActivateFunc = New;} 
+				inline operator TDER_ACTIVATE_FUNC() const { return DActivateFunc;} 
+				inline TDER_ACTIVATE_FUNC operator =(TDER_ACTIVATE_FUNC New) { return DActivateFunc = New;} 
 			} DerActivateFunction;
 
 			class { 
 				__LAYER_FIELDS;
-				typedef TypeNum (*TRACTIV_FUNC)(TypeNum);
 			public: 
-				inline operator TRACTIV_FUNC() const { return ReversActivateFunc;} 
-				inline TRACTIV_FUNC operator =(TRACTIV_FUNC New) { return ReversActivateFunc = New;} 
+				inline operator TREVERSE_ACTIVATE_FUNC() const { return ReversActivateFunc;} 
+				inline TREVERSE_ACTIVATE_FUNC operator =(TREVERSE_ACTIVATE_FUNC New) { return ReversActivateFunc = New;} 
 			} ReverseActivateFunc;
 		};
 
@@ -373,7 +375,7 @@ public:
 		for(; nl < mnl; nl++)
 		{
 			const TypeNum* s = (*nl)->get_row(), *mgl2 = gl + (*nl)->get_count_prev(), *mdst = sl + size_t((*nl)->Count);		//Get array sinaps
-			TypeNum (*ActivateFunc)(TypeNum) = (*nl)->ActivateFunction;
+			TACTIVATE_FUNC ActivateFunc = (*nl)->ActivateFunction;
 			for(TypeNum* dst = sl; dst < mdst; dst++)
 			{
 				TypeNum SolveNeu = TypeNum(0);
@@ -404,7 +406,7 @@ public:
 			//Go next layer
 			int cn = (*nl)->Count, cp = (*nl)->get_count_prev();
 			const TypeNum* s = (*nl)->get_row(), const *mj = gl + cp;		//Get array sinaps
-			TypeNum (*ActivateFunc)(TypeNum) = (*nl)->ActivateFunction;
+			TACTIVATE_FUNC ActivateFunc = (*nl)->ActivateFunction;
 #pragma omp parallel
 			{
 #pragma omp for private(cn)
@@ -424,8 +426,7 @@ public:
 		return true;
 	}
 
-
-	bool Recognize(const TypeNum* In, TypeNum* Out, TypeNum (*ActivateFunc)(TypeNum InputSumm)) const
+	bool Recognize(const TypeNum* In, TypeNum* Out, TACTIVATE_FUNC ActivateFunc) const
 	{			
 		if(CountLayers == 0)
 			return false;
@@ -453,7 +454,7 @@ public:
 		return true;
 	}
 
-	bool RecognizeParallel(const TypeNum* In, TypeNum* Out, TypeNum (*ActivateFunc)(TypeNum InputSumm)) const
+	bool RecognizeParallel(const TypeNum* In, TypeNum* Out, TACTIVATE_FUNC ActivateFunc) const
 	{			
 		if(CountLayers == 0)
 			return false;
@@ -503,7 +504,7 @@ public:
 		{
 			size_t OutCount = (*nl)->get_count_prev();
 			TypeNum* s = (*nl)->get_row(), *mglt = gl + InCount;		//Get array sinaps
-			TypeNum (*RActivateFunc)(TypeNum) = (*nl)->ReverseActivateFunc;
+			TREVERSE_ACTIVATE_FUNC RActivateFunc = (*nl)->ReverseActivateFunc;
 			for(TypeNum* slt = sl, *m = slt + OutCount; slt < m; slt++)
 				*slt = TypeNum(0);
 			for(TypeNum* glt = gl; glt < mglt; glt++)
@@ -539,7 +540,7 @@ public:
 		{
 			size_t OutCount = (*nl)->get_count_prev(), mglt = InCount;
 			TypeNum* s = (*nl)->get_row();		//Get array sinaps
-			TypeNum (*RActivateFunc)(TypeNum) = (*nl)->ReverseActivateFunc;
+			TREVERSE_ACTIVATE_FUNC RActivateFunc = (*nl)->ReverseActivateFunc;
 			for(TypeNum* slt = sl, *m = slt + OutCount; slt < m; slt++)
 				*slt = TypeNum(0);
 #pragma omp parallel
