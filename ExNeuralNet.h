@@ -6,6 +6,7 @@
 
 #include "ExTypeTraits.h"
 
+
 template<typename TypeNum = int>
 class NEURALNET
 {
@@ -74,11 +75,10 @@ class NEURALNET
 				} SumWeigths;
 			};
 
-			inline void ClearWeights(TypeNum SetVal)
+			inline void SetWeights(TypeNum SetVal)
 			{
-				TypeNum* v = Count.v->get_row() + Count.i * Count.v->get_count_prev();
-				for(size_t i = 0, mc = Count;i < mc;i++)
-					v[i] = SetVal;
+				for(TypeNum* v = Count.v->get_row() + Count.i * Count.v->get_count_prev(), *m = v + Count.v->get_count_prev(); v < m; v++)
+					*v = SetVal;
 			}
 
 			/*Get or set sinaps weight*/
@@ -121,11 +121,10 @@ class NEURALNET
 				Count.n = 0;
 				return;
 			}
-			memset(Count.v, 0, l);
 			Count.n = nCountNeuron;
-
 			ReverseActivateFunc = ActivateFunction = [](TypeNum v) -> TypeNum { return v; };
 			DerActivateFunction = [](TypeNum) -> TypeNum { return 1; };
+			SetWeights(TypeNum(0));
 		}
 		~NEURAL_LAYER()
 		{
@@ -133,11 +132,10 @@ class NEURALNET
 				free(Count.v);
 		}
 
-		inline void ClearWeights(TypeNum SetVal)
+		inline void SetWeights(TypeNum SetVal)
 		{
-			TypeNum* v = Count.v;
-			for(size_t i = 0, mc = CountSinaps; i < mc;i++)
-				v[i] = SetVal;
+			for(TypeNum* v = Count.v, *m = v + CountSinaps; v < m; v++)
+				*v = SetVal;
 		}
 
 		union
@@ -202,7 +200,7 @@ class NEURALNET
 		if(Countlayers > 0)
 			maxn = Layers[0]->get_count_prev();
 
-		for(size_t i = 0;i < Countlayers;i++)
+		for(size_t i = 0; i < Countlayers;i++)
 		{
 		   size_t c = Layers[i]->Count;
 		   if(c > maxn)
@@ -310,10 +308,10 @@ public:
 	};
 
 
-	void ClearWeights(TypeNum SetVal)
+	void SetWeights(TypeNum SetVal)
 	{
-		for(size_t i = 0;i < CountLayers.cl;i++)
-			CountLayers.nl[i]->ClearWeights(SetVal);
+		for(size_t i = 0; i < CountLayers.cl; i++)
+			CountLayers.nl[i]->SetWeights(SetVal);
 	}
 
 	//Get layer
