@@ -24,7 +24,7 @@ class NEURALNET
 					friend __NEURON;
 					struct {NEURAL_LAYER* v; size_t i;};
 				public:
-					inline operator size_t() const { return v->count_in_prev(); }
+					inline operator size_t() const { return v->get_count_prev(); }
 				} Count; //Get the number of input synapses weight
 
 				class{
@@ -33,9 +33,9 @@ class NEURALNET
 					operator size_t ()
 					{
 					    size_t r = 0;
-						TypeNum* vn = v->get_row() + i * v->count_in_prev();
+						TypeNum* vn = v->get_row() + i * v->get_count_prev();
 						TypeNum Min = vnv[r]; 
-						for(size_t i = 1, mc = v->count_in_prev();i < mc;i++)
+						for(size_t i = 1, mc = v->get_count_prev();i < mc;i++)
 						{
 							if(vn[i] < Min)
 							   Min = vn[r = i];
@@ -50,9 +50,9 @@ class NEURALNET
 					operator size_t ()
 					{
 					    size_t r = 0;
-						TypeNum* vn = v->get_row() + i * v->count_in_prev();
+						TypeNum* vn = v->get_row() + i * v->get_count_prev();
 						TypeNum Max = vn[r]; 
-						for(size_t i = 1, mc = v->count_in_prev(); i < mc; i++)
+						for(size_t i = 1, mc = v->get_count_prev(); i < mc; i++)
 						{
 							if(vn[i] > Max)
 								Max = vn[r = i];
@@ -67,7 +67,7 @@ class NEURALNET
 					inline operator long double() const 
 					{ 
 						long double r = 0.0;
-						for(const TypeNum* c = v->get_row() + i * v->count_in_prev(), const *m = c + v->count_in_prev(); c < m; c++)
+						for(const TypeNum* c = v->get_row() + i * v->get_count_prev(), const *m = c + v->get_count_prev(); c < m; c++)
 							r += *c;
 						return r;
 					} 
@@ -76,7 +76,7 @@ class NEURALNET
 
 			inline void ClearWeights(TypeNum SetVal)
 			{
-				TypeNum* v = Count.v->get_row() + Count.i * Count.v->count_in_prev();
+				TypeNum* v = Count.v->get_row() + Count.i * Count.v->get_count_prev();
 				for(size_t i = 0, mc = Count;i < mc;i++)
 					v[i] = SetVal;
 			}
@@ -91,9 +91,9 @@ class NEURALNET
 
 		inline TypeNum* get_row() { return Count.v; }
 
-		inline size_t count_in_prev() const { return Count.pn; }
+		inline size_t get_count_prev() const { return Count.pn; }
 
-		inline bool set_count_prev(size_t NewCount)
+		bool set_count_prev(size_t NewCount)
 		{
 			if(Count.pn == NewCount)
 				return true;
@@ -200,7 +200,7 @@ class NEURALNET
 	{
 		size_t maxn = 0;
 		if(Countlayers > 0)
-			maxn = Layers[0]->count_in_prev();
+			maxn = Layers[0]->get_count_prev();
 
 		for(size_t i = 0;i < Countlayers;i++)
 		{
@@ -212,7 +212,7 @@ class NEURALNET
 	}
 
 public:
-
+	typedef TypeNum TWEIGTHS;
 
 #define __NEURALNET_FIELDS struct{size_t cl; NEURAL_LAYER** nl; size_t mcn; size_t ic;};
 	NEURALNET()
@@ -245,7 +245,7 @@ public:
 		{
 			__NEURALNET_FIELDS;
 		public:
-			inline operator size_t()  const { return (cl == 0)? 0: nl[0]->count_in_prev(); }
+			inline operator size_t()  const { return (cl == 0)? 0: nl[0]->get_count_prev(); }
 
 			size_t operator =(size_t NewInCount)
 			{	
@@ -276,11 +276,29 @@ public:
 			inline operator size_t() const
 			{
 				size_t res = 0;
-				for(size_t i = 0;i < CountLayers;i++)
-					res += CountLayers.nl[i]->Count;
+				for(size_t i = 0;i < cl;i++)
+					res += nl[i]->Count;
 				return res; 
 			}
-		} CountAllNeuron;
+		} CountNeuron;
+
+		class
+		{
+			__NEURALNET_FIELDS;
+		public:
+			inline operator size_t() const
+			{
+				if(cl == 0)
+					return 0;
+				size_t res = 0;
+				for(size_t i = 0;i < cl;i++)
+				{
+					size_t c = nl[i]->Count;
+					res += c * c;
+				}
+				return res; 
+			}
+		} CountSinaps;
 
 		class
 		{
@@ -316,7 +334,7 @@ public:
 			nl[Index] = new NEURAL_LAYER((Index != 0) ? nl[Index - 1]->Count: CountLayers.ic, CountNeuron);	
 		}else
 		{
-			nl[Index] = new NEURAL_LAYER(nl[Index + 1]->count_in_prev(), CountNeuron);	
+			nl[Index] = new NEURAL_LAYER(nl[Index + 1]->get_count_prev(), CountNeuron);	
 			nl[Index + 1]->set_count_prev(CountNeuron);
 		}
 		CountLayers.nl = nl;
@@ -346,7 +364,7 @@ public:
 
 	bool Recognize(const TypeNum* In, TypeNum* Out) const
 	{			
-		if(MaxCountNeuronInLayer == 0)
+		if(CountLayers == 0)
 			return false;
 		const size_t cn = MaxCountNeuronInLayer;
 		TypeNum* gl = (TypeNum*)malloc(cn * sizeof(TypeNum) * 2), *sl = gl + cn, *og = gl;
@@ -356,7 +374,7 @@ public:
 		memcpy(gl, In, InputCount * sizeof(TypeNum));
 		for(; nl < mnl; nl++)
 		{
-			const TypeNum* s = (*nl)->get_row(), *mgl2 = gl + (*nl)->count_in_prev(), *mdst = sl + size_t((*nl)->Count);		//Get array sinaps
+			const TypeNum* s = (*nl)->get_row(), *mgl2 = gl + (*nl)->get_count_prev(), *mdst = sl + size_t((*nl)->Count);		//Get array sinaps
 			TypeNum (*ActivateFunc)(TypeNum) = (*nl)->ActivateFunction;
 			for(TypeNum* dst = sl; dst < mdst; dst++)
 			{
@@ -375,7 +393,7 @@ public:
 
 	bool RecognizeParallel(const TypeNum* In, TypeNum* Out) const
 	{			
-		if(MaxCountNeuronInLayer == 0)
+		if(CountLayers == 0)
 			return false;
 		const size_t cn = MaxCountNeuronInLayer;
 		TypeNum* gl = (TypeNum*)malloc(cn * sizeof(TypeNum) * 2), *sl = gl + cn, *og = gl;
@@ -386,7 +404,7 @@ public:
 		for(; nl < mnl; nl++)
 		{
 			//Go next layer
-			int cn = (*nl)->Count, cp = (*nl)->count_in_prev();
+			int cn = (*nl)->Count, cp = (*nl)->get_count_prev();
 			const TypeNum* s = (*nl)->get_row(), const *mj = gl + cp;		//Get array sinaps
 			TypeNum (*ActivateFunc)(TypeNum) = (*nl)->ActivateFunction;
 #pragma omp parallel
@@ -411,7 +429,7 @@ public:
 
 	bool Recognize(const TypeNum* In, TypeNum* Out, TypeNum (*ActivateFunc)(TypeNum InputSumm)) const
 	{			
-		if(MaxCountNeuronInLayer == 0)
+		if(CountLayers == 0)
 			return false;
 		const size_t cn = MaxCountNeuronInLayer;
 		TypeNum* gl = (TypeNum*)malloc(cn * sizeof(TypeNum) * 2), *sl = gl + cn, *og = gl;
@@ -421,7 +439,7 @@ public:
 		memcpy(gl, In, InputCount * sizeof(TypeNum));
 		for(; nl < mnl; nl++)
 		{
-			const TypeNum* s = (*nl)->get_row(), *mgl2 = gl + (*nl)->count_in_prev(), *mdst = sl + size_t((*nl)->Count);		//Get array sinaps
+			const TypeNum* s = (*nl)->get_row(), *mgl2 = gl + (*nl)->get_count_prev(), *mdst = sl + size_t((*nl)->Count);		//Get array sinaps
 			for(TypeNum* dst = sl; dst < mdst; dst++)
 			{
 				TypeNum SolveNeu = TypeNum(0);
@@ -439,7 +457,7 @@ public:
 
 	bool RecognizeParallel(const TypeNum* In, TypeNum* Out, TypeNum (*ActivateFunc)(TypeNum InputSumm)) const
 	{			
-		if(MaxCountNeuronInLayer == 0)
+		if(CountLayers == 0)
 			return false;
 		const size_t cn = MaxCountNeuronInLayer;
 		TypeNum* gl = (TypeNum*)malloc(cn * sizeof(TypeNum) * 2), *sl = gl + cn, *og = gl;
@@ -450,7 +468,7 @@ public:
 		for(; nl < mnl; nl++)
 		{
 			//Go next layer
-			int cn = (*nl)->Count, cp = (*nl)->count_in_prev();
+			int cn = (*nl)->Count, cp = (*nl)->get_count_prev();
 			const TypeNum* s = (*nl)->get_row(), const *mj = gl + cp;		//Get array sinaps
 #pragma omp parallel
 			{
@@ -474,8 +492,9 @@ public:
 	bool GetReverse(const TypeNum* In, TypeNum* Out) const
 	{
 		size_t cn, InCount;
-		if((cn = MaxCountNeuronInLayer) == 0)
+		if(CountLayers == 0)
 			return false;
+		cn = MaxCountNeuronInLayer;
 		TypeNum* gl = (TypeNum*)malloc(cn * sizeof(TypeNum) * 2), *sl = gl + cn, *og = gl;
 		if(gl == nullptr)
 			return false;
@@ -484,7 +503,7 @@ public:
 		
 		for(; nl >= mnl; nl--)
 		{
-			size_t OutCount = (*nl)->count_in_prev();
+			size_t OutCount = (*nl)->get_count_prev();
 			TypeNum* s = (*nl)->get_row(), *mglt = gl + InCount;		//Get array sinaps
 			TypeNum (*RActivateFunc)(TypeNum) = (*nl)->ReverseActivateFunc;
 			for(TypeNum* slt = sl, *m = slt + OutCount; slt < m; slt++)
@@ -510,8 +529,9 @@ public:
 	bool GetReverseParallel(const TypeNum* In, TypeNum* Out) const
 	{
 		size_t cn, InCount;
-		if((cn = MaxCountNeuronInLayer) == 0)
+		if(CountLayers == 0)
 			return false;
+		cn = MaxCountNeuronInLayer;
 		TypeNum* gl = (TypeNum*)malloc(cn * sizeof(TypeNum) * 2), *sl = gl + cn, *og = gl;
 		if(gl == nullptr)
 			return false;
@@ -519,7 +539,7 @@ public:
 		memcpy(gl, In, (InCount = OutputCount) * sizeof(TypeNum));
 		for(; nl >= mnl; nl--)
 		{
-			size_t OutCount = (*nl)->count_in_prev(), mglt = InCount;
+			size_t OutCount = (*nl)->get_count_prev(), mglt = InCount;
 			TypeNum* s = (*nl)->get_row();		//Get array sinaps
 			TypeNum (*RActivateFunc)(TypeNum) = (*nl)->ReverseActivateFunc;
 			for(TypeNum* slt = sl, *m = slt + OutCount; slt < m; slt++)
