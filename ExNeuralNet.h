@@ -234,6 +234,30 @@ private:
 
 	NEURAL_LAYER& LayerByIndex(size_t Index) { return CountLayers.nl[Index][0]; }
 
+
+	void InitLayerOuts()
+	{
+		for(size_t l = 0; l < CountLayers; l++)
+		{
+			LayerByIndex(l).Count.TmpDer = (TypeNum*)malloc(LayerByIndex(l).Count * sizeof(TypeNum));
+			LayerByIndex(l).Count.TmpDelta = (TypeNum*)malloc(LayerByIndex(l).Count * sizeof(TypeNum));
+			LayerByIndex(l).Count.TmpOut = (TypeNum*)malloc(LayerByIndex(l).Count * sizeof(TypeNum));
+		}
+	}
+
+	void UninitLayerOuts()
+	{
+		for(size_t l = 0; l < CountLayers; l++)
+		{
+			free(LayerByIndex(l).Count.TmpDer);
+			LayerByIndex(l).Count.TmpDer = nullptr;
+			free(LayerByIndex(l).Count.TmpDelta);
+			LayerByIndex(l).Count.TmpDelta = nullptr;
+			free(LayerByIndex(l).Count.TmpOut);
+			LayerByIndex(l).Count.TmpOut = nullptr;
+		}
+	}
+
 public:
 	typedef TypeNum TWEIGTHS;
 
@@ -628,19 +652,13 @@ public:
 		return true;
 	}
 	
-
-
 	double Learn(const TypeNum* In, const TypeNum* Result, double SpeedLern, double ErrorMin = 0.2, unsigned CountLoop = 5000)
 	{
 		if(CountLayers == 0)
 			return -1.0;
 
-		for(size_t l = 0;l < CountLayers;l++)
-		{
-			LayerByIndex(l).Count.TmpDer = (TypeNum*)malloc(LayerByIndex(l).Count * sizeof(TypeNum));
-			LayerByIndex(l).Count.TmpDelta = (TypeNum*)malloc(LayerByIndex(l).Count * sizeof(TypeNum));
-			LayerByIndex(l).Count.TmpOut = (TypeNum*)malloc(LayerByIndex(l).Count * sizeof(TypeNum));
-		}
+		InitLayerOuts();
+
 		double Error = 0.0;
 		for(unsigned MainLoopCounter = 0; MainLoopCounter < CountLoop; MainLoopCounter++)
 		{
@@ -680,9 +698,7 @@ public:
 					Error += CurError * CurError; 					
 					TypeNum CurDelta = SpeedLern * (Delta[q] = Derivatives[q] * CurError);			//Delta[q] = F`(OUT[q]) * (T[q] - OUT[q])
 					for(size_t p = 0; p < CountPrev; p++)
-					{
 						InputWeigths[p] += CurDelta * OutPrev[p];					//w[p,q](i+1) = q[p,q](i) + n * Delta[q] * OUT[p]
-					}
 					InputWeigths += CountPrev;
 				}
 			}
@@ -720,16 +736,108 @@ public:
 			}
 		}
 
-		for(size_t l = 0;l < CountLayers;l++)
-		{
-			free(LayerByIndex(l).Count.TmpDer);
-			LayerByIndex(l).Count.TmpDer = nullptr;
-			free(LayerByIndex(l).Count.TmpDelta);
-			LayerByIndex(l).Count.TmpDelta = nullptr;
-			free(LayerByIndex(l).Count.TmpOut);
-			LayerByIndex(l).Count.TmpOut = nullptr;
-		}
+		UninitLayerOuts();
+		return Error;
+	}
 
+	double LearnParallel(const TypeNum* In, const TypeNum* Result, double SpeedLern, double ErrorMin = 0.2, unsigned CountLoop = 5000)
+	{
+		if(CountLayers == 0)
+			return -1.0;
+
+		InitLayerOuts();
+
+		double Error = 0.0;
+		for(unsigned MainLoopCounter = 0; MainLoopCounter < CountLoop; MainLoopCounter++)
+		{
+			const TypeNum* gl = In;
+			for(NEURAL_LAYER **nl = CountLayers.nl, **mnl = nl + size_t(CountLayers); nl < mnl; nl++)
+			{
+				TypeNum* sl			= (*nl)->Count.TmpOut;
+				TypeNum* s			= (*nl)->get_row();
+				size_t CountPrev	= (*nl)->get_count_prev();
+				const TypeNum* mj	= gl + CountPrev; 
+				int CountNeuron		= size_t((*nl)->Count);
+				TypeNum* Der		= (*nl)->Count.TmpDer;
+				TACTIVATE_FUNC ActivateFunc = (*nl)->ActivateFunction;
+				TDER_ACTIVATE_FUNC DerActivateFunc = (*nl)->DerActivateFunction;
+#pragma omp parallel
+				{
+#pragma omp for private(CountNeuron)
+					for(int i = 0; i < CountNeuron; i++)
+					{ //For each neuron in current layer
+						TypeNum SolveNeu = TypeNum(0);
+						for(const TypeNum *gl2 = gl, const *s2 = s + i * CountPrev; gl2 < mj; gl2++, s2++)
+							SolveNeu += *gl2 * *s2;
+						Der[i] = DerActivateFunc(sl[i] = ActivateFunc(SolveNeu));
+					}
+				}
+				gl = sl;
+			}
+			//output in gl vector
+			Error = 0.0;
+
+			//Правим веса последнего слоя
+			{
+				const TypeNum* Derivatives	= LayerByIndex(CountLayers - 1).Count.TmpDer;
+				TypeNum* InputWeigths		= LayerByIndex(CountLayers - 1).get_row();
+				TypeNum* Delta				= LayerByIndex(CountLayers - 1).Count.TmpDelta;
+				const TypeNum* OutPrev		= (CountLayers > 1)? (LayerByIndex(CountLayers - 2).Count.TmpOut): In;
+				TypeNum* CurOut				= LayerByIndex(CountLayers - 1).Count.TmpOut;
+				size_t CountPrev			= LayerByIndex(CountLayers - 1).get_count_prev();
+				int mq						= OutputCount;
+#pragma omp parallel
+				{
+#pragma omp for private(mq)
+					for(int q = 0; q < mq; q++)
+					{
+						TypeNum CurError = Result[q] - CurOut[q]; 
+						Error += CurError * CurError; 					
+						TypeNum CurDelta = SpeedLern * (Delta[q] = Derivatives[q] * CurError);			//Delta[q] = F`(OUT[q]) * (T[q] - OUT[q])
+						TypeNum* w = InputWeigths + q * CountPrev;
+						for(size_t p = 0; p < CountPrev; p++)
+							w[p] += CurDelta * OutPrev[p];					//w[p,q](i+1) = q[p,q](i) + n * Delta[q] * OUT[p]
+					}
+				}
+			}
+			Error /= 2.0;
+			if(Error < ErrorMin)
+				break;
+
+			if(CountLayers > 1) 
+			{
+				//Правим веса внутренних слоёв
+				for(int l = CountLayers - 2; l >= 0; l--)
+				{				
+					const TypeNum* Derivatives	= LayerByIndex(l).Count.TmpDer;
+					TypeNum* InputWeigths		= LayerByIndex(l).get_row();
+					const TypeNum* OutPrev		= (l < 1)? In: LayerByIndex(l - 1).Count.TmpOut;
+					TypeNum* Delta				= LayerByIndex(l).Count.TmpDelta;
+					const TypeNum* DeltaNextLayer = LayerByIndex(l + 1).Count.TmpDelta;
+					TypeNum* WeigthToNextLayer	= LayerByIndex(l).get_row();
+					size_t CountPrev			= LayerByIndex(l).get_count_prev();
+					int NeuronCount				= LayerByIndex(l).Count;
+					size_t NeuronCountInNextLayer	= LayerByIndex(l + 1).Count;
+#pragma omp parallel
+					{
+#pragma omp for private(NeuronCount)
+						for(int q = 0; q < NeuronCount; q++)
+						{
+							TypeNum CurDelta = TypeNum(0);
+							TypeNum* w = WeigthToNextLayer + q * NeuronCountInNextLayer;
+							for(size_t k = 0;k < NeuronCountInNextLayer; k++)
+								CurDelta += DeltaNextLayer[k] * w[k];
+							Delta[q] = (CurDelta *= Derivatives[q]);
+							CurDelta *= SpeedLern;
+							w = InputWeigths + q * CountPrev;
+							for(size_t p = 0; p < CountPrev; p++)
+								w[p] += CurDelta * OutPrev[p];
+						}
+					}
+				}
+			}
+		}
+		UninitLayerOuts();
 		return Error;
 	}
 };
