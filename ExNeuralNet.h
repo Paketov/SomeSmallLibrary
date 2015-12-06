@@ -427,11 +427,8 @@ lblOutErr:
 		{ 
 			TypeNum* w = LayerByIndex(l).get_row();
 			TypeNum CountInputNeuron =  sqrt(TypeNum(LayerByIndex(l).get_count_prev()));
-
 			for(size_t q = 0, mq = LayerByIndex(l).CountSinaps; q < mq; q++) 
-			{ 
 				w[q] = UnifiedRand() / CountInputNeuron;
-			} 
 		} 
 	}
 
