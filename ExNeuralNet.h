@@ -756,39 +756,37 @@ public:
 					}
 				}
 			}
+
 			Error /= 2.0;
 			if(Error < ErrorMin)
 				break;
 
-			if(CountLayers > 1) 
-			{
-				//Правим веса внутренних слоёв
-				for(int l = CountLayers - 2; l >= 0; l--)
-				{				
-					const TypeNum* Derivatives	= LayerByIndex(l).Count.TmpDer;
-					TypeNum* InputWeigths		= LayerByIndex(l).get_row();
-					const TypeNum* OutPrev		= (l < 1)? In: LayerByIndex(l - 1).Count.TmpOut;
-					TypeNum* Delta				= LayerByIndex(l).Count.TmpDelta;
-					const TypeNum* DeltaNextLayer = LayerByIndex(l + 1).Count.TmpDelta;
-					TypeNum* WeigthToNextLayer	= LayerByIndex(l).get_row();
-					size_t CountPrev			= LayerByIndex(l).get_count_prev();
-					int NeuronCount				= LayerByIndex(l).Count;
-					size_t NeuronCountInNextLayer	= LayerByIndex(l + 1).Count;
+			//Правим веса внутренних слоёв
+			for(int l = CountLayers - 2; l >= 0; l--)
+			{				
+				const TypeNum* Derivatives	= LayerByIndex(l).Count.TmpDer;
+				TypeNum* InputWeigths		= LayerByIndex(l).get_row();
+				const TypeNum* OutPrev		= (l < 1)? In: LayerByIndex(l - 1).Count.TmpOut;
+				TypeNum* Delta				= LayerByIndex(l).Count.TmpDelta;
+				const TypeNum* DeltaNextLayer = LayerByIndex(l + 1).Count.TmpDelta;
+				TypeNum* WeigthToNextLayer	= LayerByIndex(l).get_row();
+				size_t CountPrev			= LayerByIndex(l).get_count_prev();
+				int NeuronCount				= LayerByIndex(l).Count;
+				size_t NeuronCountInNextLayer	= LayerByIndex(l + 1).Count;
 #pragma omp parallel
-					{
+				{
 #pragma omp for private(NeuronCount)
-						for(int q = 0; q < NeuronCount; q++)
-						{
-							TypeNum CurDelta = TypeNum(0);
-							TypeNum* w = WeigthToNextLayer + q * NeuronCountInNextLayer;
-							for(size_t k = 0;k < NeuronCountInNextLayer; k++)
-								CurDelta += DeltaNextLayer[k] * w[k];
-							Delta[q] = (CurDelta *= Derivatives[q]);
-							CurDelta *= SpeedLern;
-							w = InputWeigths + q * CountPrev;
-							for(size_t p = 0; p < CountPrev; p++)
-								w[p] += CurDelta * OutPrev[p];
-						}
+					for(int q = 0; q < NeuronCount; q++)
+					{
+						TypeNum CurDelta = TypeNum(0);
+						TypeNum* w = WeigthToNextLayer + q * NeuronCountInNextLayer;
+						for(size_t k = 0;k < NeuronCountInNextLayer; k++)
+							CurDelta += DeltaNextLayer[k] * w[k];
+						Delta[q] = (CurDelta *= Derivatives[q]);
+						CurDelta *= SpeedLern;
+						w = InputWeigths + q * CountPrev;
+						for(size_t p = 0; p < CountPrev; p++)
+							w[p] += CurDelta * OutPrev[p];
 					}
 				}
 			}
