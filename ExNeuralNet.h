@@ -3,6 +3,7 @@
 
 #include <malloc.h>
 #include <omp.h>
+#include <math.h>
 
 #include "ExTypeTraits.h"
 
@@ -11,11 +12,27 @@ template<typename TypeNum = int>
 class NEURALNET
 {
 public:
+	typedef TypeNum TWEIGTHS;
+
 	typedef TypeNum (__fastcall * TACTIVATE_FUNC)(TypeNum);
 	typedef TypeNum (__fastcall * TDER_ACTIVATE_FUNC)(TypeNum);
 	typedef TypeNum (__fastcall * TREVERSE_ACTIVATE_FUNC)(TypeNum);
-private:
+	struct ACTIV_FUNCTIONS
+	{
 
+		static TypeNum __fastcall ReverseSig(TypeNum In) 
+		{
+			if(In < 0)
+				return -log(TypeNum(1) /TypeNum(0.000000001) - TypeNum(1));
+			if(In > 1)
+				return -log(TypeNum(1) /TypeNum(1) - TypeNum(1));
+			return -log(TypeNum(1) / In - TypeNum(1));
+		};
+		static TypeNum __fastcall Sig(TypeNum In) { return TypeNum(1) / (TypeNum(1) + exp(-In)); } //Сигмоидальная активизационная функция
+		static TypeNum __fastcall DerSig(TypeNum In) { TypeNum e = exp(In); return e / (e + 1) * (e + 1); } //Производная сигмоидальной функции
+	};
+
+private:
 
 	class NEURAL_LAYER
 	{
@@ -135,7 +152,7 @@ private:
 			Count.TmpDelta = nullptr;
 			Count.TmpOut = nullptr;
 			ReverseActivateFunc = ActivateFunction = [](TypeNum v) -> TypeNum { return v; };
-			DerActivateFunction = [](TypeNum in) -> TypeNum { return in; };
+			DerActivateFunction = [](TypeNum in) -> TypeNum { return 1; };
 			SetWeights(TypeNum(0));
 		}
 		~NEURAL_LAYER()
@@ -234,7 +251,6 @@ private:
 
 	NEURAL_LAYER& LayerByIndex(size_t Index) { return CountLayers.nl[Index][0]; }
 
-
 	void InitLayerOuts()
 	{
 		for(size_t l = 0; l < CountLayers; l++)
@@ -259,41 +275,22 @@ private:
 	}
 
 public:
-	typedef TypeNum TWEIGTHS;
-
+	
 #define __NEURALNET_FIELDS struct{size_t cl; NEURAL_LAYER** nl; size_t mcn; size_t ic;};
-	NEURALNET()
-	{
-		CountLayers.mcn = CountLayers.cl = 0;
-		CountLayers.nl = nullptr;
-		CountLayers.ic = 1;
-	}
-
-	~NEURALNET()
-	{
-		for(size_t i = 0; i < CountLayers.cl;i++)
-		   delete CountLayers.nl[i];
-
-		if(CountLayers.nl != nullptr)
-			free(CountLayers.nl);
-	}
 
 	union
 	{
-		class
-		{
+		class{
 			friend NEURALNET;
 			__NEURALNET_FIELDS;
 		public:
 			inline operator size_t() const { return cl; }
 		} CountLayers;
 
-		class
-		{
+		class{
 			__NEURALNET_FIELDS;
 		public:
 			inline operator size_t()  const { return (cl == 0)? 0: nl[0]->get_count_prev(); }
-
 			size_t operator =(size_t NewInCount)
 			{	
 				if(cl == 0)
@@ -309,15 +306,13 @@ public:
 			}
 		} InputCount;
 				
-		class
-		{
+		class{
 			__NEURALNET_FIELDS;
 		public:
 			inline operator size_t() const { return (cl == 0)? 0: size_t(nl[cl - 1]->Count); }
 		} OutputCount;
 
-		class
-		{
+		class{
 			__NEURALNET_FIELDS;
 		public:
 			inline operator size_t() const
@@ -329,8 +324,7 @@ public:
 			}
 		} CountNeuron;
 
-		class
-		{
+		class{
 			__NEURALNET_FIELDS;
 		public:
 			inline operator size_t() const
@@ -347,20 +341,51 @@ public:
 			}
 		} CountSinaps;
 
-		class
-		{
+		class{
 			__NEURALNET_FIELDS;
 		public:
 			inline operator size_t() const { return mcn; }
 		} MaxCountNeuronInLayer;
-
 	};
 
+	NEURALNET()
+	{
+		CountLayers.mcn = CountLayers.cl = 0;
+		CountLayers.nl = nullptr;
+		CountLayers.ic = 1;
+	}
+
+	~NEURALNET()
+	{
+		for(size_t i = 0; i < CountLayers.cl;i++)
+		   delete CountLayers.nl[i];
+
+		if(CountLayers.nl != nullptr)
+			free(CountLayers.nl);
+	}
 
 	void SetWeights(TypeNum SetVal)
 	{
 		for(size_t i = 0; i < CountLayers.cl; i++)
 			CountLayers.nl[i]->SetWeights(SetVal);
+	}
+
+	void SetActivateFuncInAllLayers(TACTIVATE_FUNC NewActivateFunc)
+	{
+		for(size_t l = 0; l < CountLayers; l++)
+			LayerByIndex(l).ActivateFunction = NewActivateFunc;
+	}
+
+	void SetDerActivateFuncInAllLayers(TDER_ACTIVATE_FUNC NewDerActivateFunc)
+	{
+		for(size_t l = 0; l < CountLayers; l++)
+			LayerByIndex(l).DerActivateFunction = NewDerActivateFunc;
+	}
+
+	void SetReverseActivateFuncInAllLayers(TACTIVATE_FUNC NewRevActivateFunc)
+	{
+		for(size_t l = 0; l < CountLayers; l++)
+			LayerByIndex(l).ReverseActivateFunc = NewRevActivateFunc;
 	}
 
 	//Get layer
@@ -483,78 +508,6 @@ public:
 		free(og);
 		return true;
 	}
-		
-	template<typename InputVectorType, typename OutputVectorType>
-	typename std::enable_if<
-		std::is_convertible<InputVectorType, TypeNum>::value && 
-		std::is_convertible<TypeNum, OutputVectorType>::value ,
-		bool
-	>::type
-	Recognize(const InputVectorType* In, OutputVectorType* Out, TACTIVATE_FUNC ActivateFunc) const
-	{			
-		if(CountLayers == 0)
-			return false;
-		const size_t cn = MaxCountNeuronInLayer;
-		TypeNum* gl = (TypeNum*)malloc(cn * sizeof(TypeNum) * 2), *sl = gl + cn, *og = gl;
-		if(gl == nullptr)
-			return false;
-		copy_arr_cast(gl, In, InputCount);
-		for(NEURAL_LAYER *const*nl = CountLayers.nl, *const*mnl = nl + size_t(CountLayers); nl < mnl; nl++)
-		{
-			const TypeNum* s = (*nl)->get_row(), *mgl2 = gl + (*nl)->get_count_prev(), *mdst = sl + size_t((*nl)->Count);		//Get array sinaps
-			for(TypeNum* dst = sl; dst < mdst; dst++)
-			{
-				TypeNum SolveNeu = TypeNum(0);
-				for(const TypeNum* gl2 = gl; gl2 < mgl2; gl2++, s++)
-					SolveNeu += *gl2 * *s;
-				*dst = ActivateFunc(SolveNeu);
-			}
-			/*in sl placed */
-			std::swap(gl, sl);
-		}
-		copy_arr_cast(Out, gl, OutputCount);
-		free(og);
-		return true;
-	}
-
-	template<typename InputVectorType, typename OutputVectorType>
-	typename std::enable_if<
-		std::is_convertible<InputVectorType, TypeNum>::value && 
-		std::is_convertible<TypeNum, OutputVectorType>::value ,
-		bool
-	>::type
-	RecognizeParallel(const InputVectorType* In, OutputVectorType* Out, TACTIVATE_FUNC ActivateFunc) const
-	{			
-		if(CountLayers == 0)
-			return false;
-		const size_t cn = MaxCountNeuronInLayer;
-		TypeNum* gl = (TypeNum*)malloc(cn * sizeof(TypeNum) * 2), *sl = gl + cn, *og = gl;
-		if(gl == nullptr)
-			return false;
-		copy_arr_cast(gl, In, InputCount);
-		for(NEURAL_LAYER *const*nl = CountLayers.nl, *const*mnl = nl + size_t(CountLayers); nl < mnl; nl++)
-		{
-			//Go next layer
-			int cn = (*nl)->Count, cp = (*nl)->get_count_prev();
-			const TypeNum* s = (*nl)->get_row(), const *mj = gl + cp;		//Get array sinaps
-#pragma omp parallel
-			{
-#pragma omp for private(cn)
-				for(int i = 0; i < cn; i++)
-				{
-					TypeNum SolveNeu = TypeNum(0);
-					for(const TypeNum *gl2 = gl, const *s2 = s + i * cp; gl2 < mj; gl2++, s2++)
-						SolveNeu += *gl2 * *s2;
-					sl[i] = ActivateFunc(SolveNeu);
-				}
-			}
-			/*in sl placed */
-			std::swap(gl, sl);
-		}
-		copy_arr_cast(Out, gl, OutputCount);
-		free(og);
-		return true;
-	}
 
 	template<typename InputVectorType, typename OutputVectorType>
 	typename std::enable_if<
@@ -564,6 +517,7 @@ public:
 	>::type
 	GetReverse(const InputVectorType* In, OutputVectorType* Out) const
 	{
+
 		size_t cn, InCount;
 		if(CountLayers == 0)
 			return false;
@@ -586,10 +540,10 @@ public:
 				TypeNum* m = s + OutCount;
 				for(const TypeNum* st = s; st < m; st++)
 					SumWeigths += *st;
-				if(SumWeigths == 0.0)
+				if(SumWeigths == TypeNum(0))
 				{
-				   s = m;
-				   continue;
+					s = m;
+					continue;
 				}
 				long double tn = RActivateFunc(*glt) / SumWeigths;
 				for(TypeNum* slt = sl; s < m; s++, slt++)
@@ -635,6 +589,8 @@ public:
 					TypeNum* a = s + i * OutCount, *ms = a + OutCount;
 					for(TypeNum* st = a; st < ms; st++)
 						SumWeigths += *st;
+					if(SumWeigths == TypeNum(0))
+						continue;
 					long double tn = RActivateFunc(gl[i]) / SumWeigths;
 					for(TypeNum* slt = sl, const*st = a; st < ms; st++, slt++)
 					{
@@ -652,7 +608,7 @@ public:
 		return true;
 	}
 	
-	double Learn(const TypeNum* In, const TypeNum* Result, double SpeedLern, double ErrorMin = 0.2, unsigned CountLoop = 5000)
+	double Learn(const TypeNum* In, const TypeNum* Result, double SpeedLern = 0.5, double ErrorMin = 0.2, unsigned CountLoop = 5000)
 	{
 		if(CountLayers == 0)
 			return -1.0;
@@ -677,7 +633,8 @@ public:
 					TypeNum SolveNeu = TypeNum(0);
 					for(const TypeNum* gl2 = gl; gl2 < mgl2; gl2++, s++) //for each weigth
 						SolveNeu += *gl2 * *s;
-					*Der = DerActivateFunc(*dst = ActivateFunc(SolveNeu));
+					*dst = ActivateFunc(SolveNeu);
+					*Der = DerActivateFunc(SolveNeu);
 				}
 				gl = sl;
 			}
@@ -706,41 +663,39 @@ public:
 			if(Error < ErrorMin)
 				break;
 
-			if(CountLayers > 1) 
-			{
-				//Правим веса внутренних слоёв
-				for(int l = CountLayers - 2; l >= 0; l--)
-				{				
-					const TypeNum* Derivatives	= LayerByIndex(l).Count.TmpDer;
-					TypeNum* InputWeigths	= LayerByIndex(l).get_row();
-					const TypeNum* OutPrev	= (l < 1)? In: LayerByIndex(l - 1).Count.TmpOut;
-					TypeNum* Delta			= LayerByIndex(l).Count.TmpDelta;
-					const TypeNum* DeltaNextLayer = LayerByIndex(l + 1).Count.TmpDelta;
-					TypeNum* WeigthToNextLayer = LayerByIndex(l).get_row();
-					size_t CountPrev		= LayerByIndex(l).get_count_prev();
-					size_t NeuronCount		= LayerByIndex(l).Count;
-					size_t NeuronCountInNextLayer	= LayerByIndex(l + 1).Count;
-					for(size_t q = 0; q < NeuronCount; q++)
-					{
-						TypeNum CurDelta = TypeNum(0);
-						for(size_t k = 0;k < NeuronCountInNextLayer; k++)
-							CurDelta += DeltaNextLayer[k] * WeigthToNextLayer[k];
-						WeigthToNextLayer += NeuronCountInNextLayer;
-						Delta[q] = (CurDelta *= Derivatives[q]);
-						CurDelta *= SpeedLern;
-						for(size_t p = 0; p < CountPrev; p++)
-							InputWeigths[p] += CurDelta * OutPrev[p];
-						InputWeigths += CountPrev;
-					}
+			//Правим веса внутренних слоёв
+			for(int l = CountLayers - 2; l >= 0; l--)
+			{				
+				const TypeNum* Derivatives	= LayerByIndex(l).Count.TmpDer;
+				TypeNum* InputWeigths	= LayerByIndex(l).get_row();
+				const TypeNum* OutPrev	= (l < 1)? In: LayerByIndex(l - 1).Count.TmpOut;
+				TypeNum* Delta			= LayerByIndex(l).Count.TmpDelta;
+				const TypeNum* DeltaNextLayer = LayerByIndex(l + 1).Count.TmpDelta;
+				TypeNum* WeigthToNextLayer = LayerByIndex(l).get_row();
+				size_t CountPrev		= LayerByIndex(l).get_count_prev();
+				size_t NeuronCount		= LayerByIndex(l).Count;
+				size_t NeuronCountInNextLayer	= LayerByIndex(l + 1).Count;
+				for(size_t q = 0; q < NeuronCount; q++)
+				{
+					TypeNum CurDelta = TypeNum(0);
+					for(size_t k = 0;k < NeuronCountInNextLayer; k++)
+						CurDelta += DeltaNextLayer[k] * WeigthToNextLayer[k];
+					WeigthToNextLayer += NeuronCountInNextLayer;
+					Delta[q] = (CurDelta *= Derivatives[q]);
+					CurDelta *= SpeedLern;
+					for(size_t p = 0; p < CountPrev; p++)
+						InputWeigths[p] += CurDelta * OutPrev[p];
+					InputWeigths += CountPrev;
 				}
 			}
+		
 		}
 
 		UninitLayerOuts();
 		return Error;
 	}
 
-	double LearnParallel(const TypeNum* In, const TypeNum* Result, double SpeedLern, double ErrorMin = 0.2, unsigned CountLoop = 5000)
+	double LearnParallel(const TypeNum* In, const TypeNum* Result, double SpeedLern = 0.5, double ErrorMin = 0.2, unsigned CountLoop = 5000)
 	{
 		if(CountLayers == 0)
 			return -1.0;
@@ -769,7 +724,8 @@ public:
 						TypeNum SolveNeu = TypeNum(0);
 						for(const TypeNum *gl2 = gl, const *s2 = s + i * CountPrev; gl2 < mj; gl2++, s2++)
 							SolveNeu += *gl2 * *s2;
-						Der[i] = DerActivateFunc(sl[i] = ActivateFunc(SolveNeu));
+						sl[i] = ActivateFunc(SolveNeu);
+						Der[i] = DerActivateFunc(SolveNeu);
 					}
 				}
 				gl = sl;
@@ -793,7 +749,7 @@ public:
 					{
 						TypeNum CurError = Result[q] - CurOut[q]; 
 						Error += CurError * CurError; 					
-						TypeNum CurDelta = SpeedLern * (Delta[q] = Derivatives[q] * CurError);			//Delta[q] = F`(OUT[q]) * (T[q] - OUT[q])
+						TypeNum CurDelta = SpeedLern * (Delta[q] = Derivatives[q] * CurError);	//Delta[q] = F`(OUT[q]) * (T[q] - OUT[q])
 						TypeNum* w = InputWeigths + q * CountPrev;
 						for(size_t p = 0; p < CountPrev; p++)
 							w[p] += CurDelta * OutPrev[p];					//w[p,q](i+1) = q[p,q](i) + n * Delta[q] * OUT[p]
