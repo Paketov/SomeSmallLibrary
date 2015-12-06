@@ -4,6 +4,7 @@
 #include <malloc.h>
 #include <omp.h>
 #include <math.h>
+#include <stdlib.h>
 
 #include "ExTypeTraits.h"
 
@@ -49,7 +50,7 @@ private:
 					struct {NEURAL_LAYER* v; size_t i;};
 				public:
 					inline operator size_t() const { return v->get_count_prev(); }
-				} Count; //Get the number of input synapses weight
+				} Count; //Get count of input weight
 
 				class{
 					struct {NEURAL_LAYER* v; size_t i;};
@@ -129,7 +130,10 @@ private:
 			return true;
 		}
 
-#define  __LAYER_FIELDS struct {size_t n; size_t pn; TypeNum* v; \
+#define  __LAYER_FIELDS struct {\
+			size_t n; \
+			size_t pn; \
+			TypeNum* v; \
 			TACTIVATE_FUNC ActivateFunc; \
 			TDER_ACTIVATE_FUNC DActivateFunc; \
 			TREVERSE_ACTIVATE_FUNC ReversActivateFunc;\
@@ -225,7 +229,6 @@ private:
 		size_t maxn = 0;
 		if(Countlayers > 0)
 			maxn = Layers[0]->get_count_prev();
-
 		for(size_t i = 0; i < Countlayers;i++)
 		{
 		   size_t c = Layers[i]->Count;
@@ -251,26 +254,42 @@ private:
 
 	NEURAL_LAYER& LayerByIndex(size_t Index) { return CountLayers.nl[Index][0]; }
 
-	void InitLayerOuts()
+	bool InitLayerOuts()
 	{
 		for(size_t l = 0; l < CountLayers; l++)
 		{
 			LayerByIndex(l).Count.TmpDer = (TypeNum*)malloc(LayerByIndex(l).Count * sizeof(TypeNum));
+			if(LayerByIndex(l).Count.TmpDer == nullptr)
+				goto lblErrOut;
 			LayerByIndex(l).Count.TmpDelta = (TypeNum*)malloc(LayerByIndex(l).Count * sizeof(TypeNum));
+			if(LayerByIndex(l).Count.TmpDelta == nullptr)
+				goto lblErrOut;
 			LayerByIndex(l).Count.TmpOut = (TypeNum*)malloc(LayerByIndex(l).Count * sizeof(TypeNum));
+			if(LayerByIndex(l).Count.TmpOut == nullptr)
+				goto lblErrOut;
 		}
+		return true;
+lblErrOut:
+		UninitLayerOuts();
+		return false;
 	}
 
 	void UninitLayerOuts()
 	{
 		for(size_t l = 0; l < CountLayers; l++)
 		{
-			free(LayerByIndex(l).Count.TmpDer);
-			LayerByIndex(l).Count.TmpDer = nullptr;
-			free(LayerByIndex(l).Count.TmpDelta);
-			LayerByIndex(l).Count.TmpDelta = nullptr;
-			free(LayerByIndex(l).Count.TmpOut);
-			LayerByIndex(l).Count.TmpOut = nullptr;
+			if(LayerByIndex(l).Count.TmpDer != nullptr){
+				free(LayerByIndex(l).Count.TmpDer);
+				LayerByIndex(l).Count.TmpDer = nullptr;
+			}
+			if(LayerByIndex(l).Count.TmpDer != nullptr){
+				free(LayerByIndex(l).Count.TmpDelta);
+				LayerByIndex(l).Count.TmpDelta = nullptr;
+			}
+			if(LayerByIndex(l).Count.TmpDer != nullptr){
+				free(LayerByIndex(l).Count.TmpOut);
+				LayerByIndex(l).Count.TmpOut = nullptr;
+			}
 		}
 	}
 
@@ -364,10 +383,53 @@ public:
 			free(CountLayers.nl);
 	}
 
+	template<typename InputVectorType, typename OutputVectorType>
+	typename std::enable_if<
+		std::is_convertible<InputVectorType, TypeNum>::value && 
+		std::is_convertible<TypeNum, OutputVectorType>::value ,
+		double
+	>::type
+    CheckError(const InputVectorType* InputVector, const OutputVectorType* ExpectedVector) const
+	{
+		auto OutputVector = (TypeNum*)malloc(OutputCount * sizeof(TypeNum));
+		if(OutputVector == nullptr)
+			return -1.0;
+		if(!Recognize(InputVector, OutputVector))
+			goto lblOutErr;
+		double RetError = 0.0;
+		for(size_t i = 0, mi = OutputCount;i < mi;i++)
+		{
+			TypeNum Err = TypeNum(ExpectedVector[i]) - OutputVector[i];
+			RetError += Err * Err;
+		}
+		free(OutputVector);
+		return RetError / 2.0;
+
+lblOutErr:
+		free(OutputVector);
+		return -1.0;
+	}
+
 	void SetWeights(TypeNum SetVal)
 	{
 		for(size_t i = 0; i < CountLayers.cl; i++)
 			CountLayers.nl[i]->SetWeights(SetVal);
+	}
+
+	void RandomizeWeights()
+	{
+		srand(time(nullptr));
+		auto UnifiedRand = [](){return TypeNum(2) * ((TypeNum)rand() / ((TypeNum) RAND_MAX)) - 1;};
+		for(size_t l = 0, ml = CountLayers;l < ml;l++) 
+		{ 
+			TypeNum* w = LayerByIndex(l).get_row();
+			TypeNum CountInputNeuron =  sqrt(TypeNum(LayerByIndex(l).get_count_prev()));
+
+			for(size_t q = 0, mq = LayerByIndex(l).CountSinaps; q < mq; q++) 
+			{ 
+				w[q] = UnifiedRand() / CountInputNeuron;
+			} 
+		} 
 	}
 
 	void SetActivateFuncInAllLayers(TACTIVATE_FUNC NewActivateFunc)
@@ -467,7 +529,6 @@ public:
 		free(og);
 		return true;
 	}
-
 
 	template<typename InputVectorType, typename OutputVectorType>
 	typename std::enable_if<
@@ -613,7 +674,8 @@ public:
 		if(CountLayers == 0)
 			return -1.0;
 
-		InitLayerOuts();
+		if(!InitLayerOuts())
+			return -1.0;
 
 		double Error = 0.0;
 		for(unsigned MainLoopCounter = 0; MainLoopCounter < CountLoop; MainLoopCounter++)
@@ -700,7 +762,8 @@ public:
 		if(CountLayers == 0)
 			return -1.0;
 
-		InitLayerOuts();
+		if(!InitLayerOuts())
+			return -1.0;
 
 		double Error = 0.0;
 		for(unsigned MainLoopCounter = 0; MainLoopCounter < CountLoop; MainLoopCounter++)
