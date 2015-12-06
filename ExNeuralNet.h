@@ -20,7 +20,6 @@ public:
 	typedef TypeNum (__fastcall * TREVERSE_ACTIVATE_FUNC)(TypeNum);
 	struct ACTIV_FUNCTIONS
 	{
-
 		static TypeNum __fastcall ReverseSig(TypeNum In) 
 		{
 			if(In < 0)
@@ -31,6 +30,10 @@ public:
 		};
 		static TypeNum __fastcall Sig(TypeNum In) { return TypeNum(1) / (TypeNum(1) + exp(-In)); } //Сигмоидальная активизационная функция
 		static TypeNum __fastcall DerSig(TypeNum In) { TypeNum e = exp(In); return e / (e + 1) * (e + 1); } //Производная сигмоидальной функции
+
+
+		static TypeNum __fastcall Sig2(TypeNum In) { return (TypeNum(2) * x) / (TypeNum(1) + abs(x)); }
+		static TypeNum __fastcall DerSig2(TypeNum In) { TypeNum temp = TypeNum(1) + abs(x); return TypeNum(2) / (temp * temp); }
 	};
 
 private:
