@@ -7,7 +7,44 @@
 #include <stdlib.h>
 
 #include "ExTypeTraits.h"
+/*
+	ExNeuronNet 
+	Paketov
+	2015
 
+Example:
+	NEURALNET<float> Net;
+
+	Net.InputCount = 10;
+	Net.NewLayer(10);
+	Net.NewLayer(10);
+	Net.EnableAllBiases();
+
+	float In[10], Out[10], TestOut[10];
+
+	float new_val = -0.5;
+	std::arr_set_elements(In, new_val);
+	std::arr_set_elements(Out, new_val);
+
+	In[0] = 0.5;
+	In[5] = 0.5;
+	In[3] = 0.5;
+
+	Out[1] = 0.5;
+	Out[3] = 0.5;
+	Out[8] = 0.5;
+
+	//Обучаем сеть
+	Net.Randomize();
+						
+	for(unsigned i = 0; i < 10; i++)
+		err = hh.Learn(In, Out, 0.1, 0.000000001, 5000);
+
+	//Проверяем обученность
+	double Err = Net.Recognize(In, TestOut);
+
+
+*/
 
 template<typename TypeNum = int>
 class NEURALNET
@@ -18,6 +55,7 @@ public:
 	typedef TypeNum (__fastcall * TACTIVATE_FUNC)(TypeNum);
 	typedef TypeNum (__fastcall * TDER_ACTIVATE_FUNC)(TypeNum);
 	typedef TypeNum (__fastcall * TREVERSE_ACTIVATE_FUNC)(TypeNum);
+	
 	struct ACTIV_FUNCTIONS
 	{
 		static TypeNum __fastcall ReverseSig(TypeNum In) 
@@ -53,7 +91,7 @@ private:
 					struct {NEURAL_LAYER* v; size_t i;};
 				public:
 					inline operator size_t() const { return v->get_count_prev(); }
-				} Count; //Get count of input weight
+				} Count; /*Количество входных весов*/
 
 				class{
 					struct {NEURAL_LAYER* v; size_t i;};
@@ -70,7 +108,7 @@ private:
 						}
 						return r;
 					}
-				} IndexMinWeigth; //Get index with minimum weigth
+				} IndexMinWeigth;
 
 				class{
 					struct {NEURAL_LAYER* v; size_t i;};
@@ -87,7 +125,7 @@ private:
 						}
 						return r;
 					}
-				} IndexMaxWeigth; //Get index with maximum weigth
+				} IndexMaxWeigth;
 
 				class{
 					struct {NEURAL_LAYER* v; size_t i;};
@@ -102,13 +140,14 @@ private:
 				} SumWeigths;
 			};
 
+			/*Задать определённое значение всем входным весам*/
 			inline void SetWeights(TypeNum SetVal)
 			{
 				for(TypeNum* v = Count.v->get_row() + Count.i * Count.v->get_count_prev(), *m = v + Count.v->get_count_prev(); v < m; v++)
 					*v = SetVal;
 			}
 
-			/*Get or set sinaps weight*/
+			/*Получить входной вес для данного нейрона*/
 			inline TypeNum& operator[] (size_t Index) { return Count.v->at(Count.i, Index); }
 		};
 
@@ -164,12 +203,14 @@ private:
 			DerActivateFunction = [](TypeNum in) -> TypeNum { return TypeNum(1); };
 			SetWeights(TypeNum(0));
 		}
+
 		~NEURAL_LAYER()
 		{
 			if(Count.v != nullptr)
 				free(Count.v);
 		}
 
+		/*Задать определённое значение всем весам слоя*/
 		inline void SetWeights(TypeNum SetVal)
 		{
 			for(TypeNum* v = Count.v, *m = v + CountSinaps; v < m; v++)
@@ -183,13 +224,13 @@ private:
 				__LAYER_FIELDS;
 			public:
 				inline operator size_t() const { return n;}
-			} Count; //Get count neuron in layer
+			} Count; /*Количество нейронов в слое*/
 
 			class { 
 				__LAYER_FIELDS;
 			public: 
 				inline operator size_t() const { return n * pn;} 
-			} CountSinaps;
+			} CountSinaps; /*Общее количество весов в слое*/
 
 			class{
 				__LAYER_FIELDS;
@@ -202,14 +243,14 @@ private:
 					return r;
 				} 
 			} SumWeigths;
-			
+
 			class { 
 				__LAYER_FIELDS;
 			public: 
 				inline operator TACTIVATE_FUNC() const { return ActivateFunc;} 
 				inline TACTIVATE_FUNC operator =(TACTIVATE_FUNC New) { return ActivateFunc = New;} 
 			} ActivateFunction;
-									
+
 			class { 
 				__LAYER_FIELDS;
 			public: 
@@ -245,16 +286,16 @@ private:
 					}
 					return New;
 				} 
-			} IsHaveBiases;
+			} IsHaveBiases; /*Есть ли базис для данного слоя*/
 
 			class{
 				__LAYER_FIELDS;
 			public: 
 				inline TypeNum& operator[](size_t Index) { return Biases[Index]; }
-			} Biases;
+			} Biases;	 /*Интератор для базисов*/
 		};
 
-		//Get neuron
+		/*Получить определённый нейрон*/
 		inline __NEURON operator[](size_t Index) { return __NEURON(this, Index); }
 	};
 
@@ -338,7 +379,7 @@ public:
 			__NEURALNET_FIELDS;
 		public:
 			inline operator size_t() const { return cl; }
-		} CountLayers;
+		} CountLayers; /*Получить количество слоёв в сети*/
 
 		class{
 			__NEURALNET_FIELDS;
@@ -357,13 +398,13 @@ public:
 				sync_mcn(cl, nl, &mcn);
 				return NewInCount;
 			}
-		} InputCount;
+		} InputCount; /*Размер входного вектора*/
 				
 		class{
 			__NEURALNET_FIELDS;
 		public:
 			inline operator size_t() const { return (cl == 0)? 0: size_t(nl[cl - 1]->Count); }
-		} OutputCount;
+		} OutputCount;/*Размер выходного вектора*/
 
 		class{
 			__NEURALNET_FIELDS;
@@ -375,7 +416,7 @@ public:
 					res += nl[i]->Count;
 				return res; 
 			}
-		} CountNeuron;
+		} CountNeuron;/*Общее количество нейронов в сети*/
 
 		class{
 			__NEURALNET_FIELDS;
@@ -392,13 +433,13 @@ public:
 				}
 				return res; 
 			}
-		} CountSinaps;
+		} CountSinaps; /*Общее количество весов в сети*/
 
 		class{
 			__NEURALNET_FIELDS;
 		public:
 			inline operator size_t() const { return mcn; }
-		} MaxCountNeuronInLayer;
+		} MaxCountNeuronInLayer; /*Максимальный размер слоя в сети*/
 	};
 
 	NEURALNET()
@@ -417,6 +458,12 @@ public:
 			free(CountLayers.nl);
 	}
 
+	/*
+	Проверить ошибку для конкретного входного вектора и ожидаемого выходного.
+	 @In - Входной вектор размерности InputCount.
+	 @Out - Ожидаемый выходной вектор размерности OutputCount.
+	 @return - Возвращает квадратичную ошибку
+	*/
 	template<typename InputVectorType, typename OutputVectorType>
 	typename std::enable_if<
 		std::is_convertible<InputVectorType, TypeNum>::value && 
@@ -444,12 +491,14 @@ lblOutErr:
 		return -1.0;
 	}
 
+	/*Задать единое значение всем весам сети*/
 	void SetWeights(TypeNum SetVal)
 	{
 		for(size_t i = 0; i < CountLayers.cl; i++)
 			CountLayers.nl[i]->SetWeights(SetVal);
 	}
 
+	/*Нагенерировать случайные веса во всей сети*/
 	void RandomizeWeights()
 	{
 		srand(time(nullptr));
@@ -463,6 +512,7 @@ lblOutErr:
 		} 
 	}
 
+	/*Нагенерировать случайные базисы для всех слоёв*/
 	void RandomizeBiasis()
 	{
 		srand(time(nullptr));
@@ -478,45 +528,57 @@ lblOutErr:
 		} 
 	}
 
+	/*Нагенерировать случайные весы и базисы для всех слоёв*/
 	void Randomize()
 	{
 		RandomizeWeights();
 		RandomizeBiasis();
 	}
 
+	/*Задать активизационную функцию для всей сети*/
 	void SetActivateFuncInAllLayers(TACTIVATE_FUNC NewActivateFunc)
 	{
 		for(size_t l = 0; l < CountLayers; l++)
 			LayerByIndex(l).ActivateFunction = NewActivateFunc;
 	}
 
+	/*Задать производную активизационной функции для всей сети*/
 	void SetDerActivateFuncInAllLayers(TDER_ACTIVATE_FUNC NewDerActivateFunc)
 	{
 		for(size_t l = 0; l < CountLayers; l++)
 			LayerByIndex(l).DerActivateFunction = NewDerActivateFunc;
 	}
 
+	/*Задать инверсированый вариант активизационной функции для всей сети (используется для GetReverse)*/
 	void SetReverseActivateFuncInAllLayers(TACTIVATE_FUNC NewRevActivateFunc)
 	{
 		for(size_t l = 0; l < CountLayers; l++)
 			LayerByIndex(l).ReverseActivateFunc = NewRevActivateFunc;
 	}
 
+	/*Включить базисы во всех слоях*/
 	void EnableAllBiases()
 	{
 	  	for(size_t l = 0; l < CountLayers; l++)
 			LayerByIndex(l).IsHaveBiases = true;
 	}
 
+	/*Отключить базисы во всех слоях*/
 	void DisableAllBiases()
 	{
 	  	for(size_t l = 0; l < CountLayers; l++)
 			LayerByIndex(l).IsHaveBiases = false;
 	}
 
-	//Get layer
+	/*Получить требуемый слой по индексу*/
 	inline NEURAL_LAYER& operator[](size_t IndexLayer) { return CountLayers.nl[IndexLayer][0]; }
 
+	/*
+	Добавить новый слой
+	@CountNeuron - Количество нейронов в создаваемом слое.
+	@Index - Индекс, куда будет вставлятся слой
+	@retun - Возвращает true в удачном случае
+	*/
 	bool NewLayer(size_t CountNeuron, size_t Index = 0xffffffff)
 	{
 		if(Index > CountLayers) 
@@ -541,6 +603,11 @@ lblOutErr:
 		return true;
 	}
 
+	/*
+	Удалить конкретный слой из сети
+	@Index - Индекс слоя, который будет удаляться
+	@retun - Возвращает true в удачном случае
+	*/
 	bool RemoveLayer(size_t Index)
 	{
 		if(Index >= CountLayers) 
@@ -560,6 +627,12 @@ lblOutErr:
 		return true;
 	}
 	
+	/*
+	 Распознать входной вектор и вывести ассоциированый с ним другой вектор.
+	 @In - Входной вектор размерности InputCount
+	 @Out - Выходной вектор размерности OutputCount ассоциированый с @In
+	 @return - Возвращает true в удачном случае
+	*/
 	template<typename InputVectorType, typename OutputVectorType>
 	typename std::enable_if<
 		std::is_convertible<InputVectorType, TypeNum>::value && 
@@ -608,6 +681,13 @@ lblOutErr:
 		return true;
 	}
 
+	/*
+	 Распознать входной вектор и вывести ассоциированый с ним другой вектор.
+	 Распараллеливается на все процессоры.
+	 @In - Входной вектор размерности InputCount
+	 @Out - Выходной вектор размерности OutputCount ассоциированый с @In
+	 @return - Возвращает true в удачном случае
+	*/
 	template<typename InputVectorType, typename OutputVectorType>
 	typename std::enable_if<
 		std::is_convertible<InputVectorType, TypeNum>::value && 
@@ -666,6 +746,12 @@ lblOutErr:
 		return true;
 	}
 
+	/*
+	 Получить обратное представление выходного вектора.
+	 @In - Вектор, для которого требуется получить обратное представление нейронной сети.
+	 @Out - Выходной вектор размерности InputCount.
+	 @return - Возвращает true в удачном случае
+	*/
 	template<typename InputVectorType, typename OutputVectorType>
 	typename std::enable_if<
 		std::is_convertible<InputVectorType, TypeNum>::value && 
@@ -727,6 +813,13 @@ lblOutErr:
 		return true;
 	}
 
+	/*
+	 Получить обратное представление выходного вектора.
+	 Распараллеливается на все процессоры.
+	 @In - Вектор, для которого требуется получить обратное представление нейронной сети.
+	 @Out - Выходной вектор размерности InputCount.
+	 @return - Возвращает true в удачном случае
+	*/
 	template<typename InputVectorType, typename OutputVectorType>
 	typename std::enable_if<
 		std::is_convertible<InputVectorType, TypeNum>::value && 
@@ -804,6 +897,15 @@ lblOutErr:
 		return true;
 	}
 
+	/*
+	 Учить сеть.
+	 @In -  Входной вектор размерности InputCount
+	 @Out - Вектор размерности OutputCount, который требуется ассоциировать с @In
+	 @SpeedLern - Скорость обучения (Обычно от 0.1 до 1.0)
+	 @ErrorMin - Ошибка - при достижении которой, требуется закончить обучение.
+	 @CountLoop - Максимальное количество прогона примера.
+	 @return - Возвращает конечную ошибку.
+	*/
 	double Learn(const TypeNum* In, const TypeNum* Result, double SpeedLern = 0.5, double ErrorMin = 0.2, unsigned CountLoop = 5000)
 	{
 		if(CountLayers == 0)
@@ -948,6 +1050,16 @@ lblOutErr:
 		return Error;
 	}
 
+	/*
+	 Учить сеть.
+	 Распараллеливается на все процессоры.
+	 @In -  Входной вектор размерности InputCount
+	 @Out - Вектор размерности OutputCount, который требуется ассоциировать с @In
+	 @SpeedLern - Скорость обучения (Обычно от 0.1 до 1.0)
+	 @ErrorMin - Ошибка - при достижении которой, требуется закончить обучение.
+	 @CountLoop - Максимальное количество прогона примера.
+	 @return - Возвращает конечную ошибку.
+	*/
 	double LearnParallel(const TypeNum* In, const TypeNum* Result, double SpeedLern = 0.5, double ErrorMin = 0.2, unsigned CountLoop = 5000)
 	{
 		if(CountLayers == 0)
