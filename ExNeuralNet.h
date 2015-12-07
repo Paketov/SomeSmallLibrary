@@ -770,7 +770,9 @@ lblOutErr:
 		double Error = 0.0;
 		for(unsigned MainLoopCounter = 0; MainLoopCounter < CountLoop; MainLoopCounter++)
 		{
+			Error = 0.0;
 			auto SourceNeurons = In;
+			
 			for(NEURAL_LAYER **nl = CountLayers.nl, **mnl = nl + size_t(CountLayers); nl < mnl; nl++)
 			{
 				auto Out = (*nl)->Count.TmpOut;
@@ -809,8 +811,6 @@ lblOutErr:
 				}
 				SourceNeurons = Out;
 			}
-			//output in gl vector
-			Error = 0.0;
 
 			//Правим веса последнего слоя
 			{
@@ -847,9 +847,6 @@ lblOutErr:
 					}
 				}
 			}
-			Error /= 2.0;
-			if(Error < ErrorMin)
-				break;
 
 			//Правим веса внутренних слоёв
 			for(int l = CountLayers - 2; l >= 0; l--)
@@ -896,7 +893,9 @@ lblOutErr:
 					}				
 				}
 			}
-
+			Error /= 2.0;
+			if(Error < ErrorMin)
+				break;
 		}
 
 		UninitLayerOuts();
@@ -914,6 +913,7 @@ lblOutErr:
 		double Error = 0.0;
 		for(unsigned MainLoopCounter = 0; MainLoopCounter < CountLoop; MainLoopCounter++)
 		{
+			Error = 0.0;
 			auto SourceNeurons = In;
 			for(NEURAL_LAYER **nl = CountLayers.nl, **mnl = nl + size_t(CountLayers); nl < mnl; nl++)
 			{
@@ -962,8 +962,7 @@ lblOutErr:
 				}
 				SourceNeurons = Out;
 			}
-			//output in gl vector
-			Error = 0.0;
+
 
 			//Правим веса последнего слоя
 			{
@@ -1011,11 +1010,6 @@ lblOutErr:
 					}				
 				}
 			}
-
-			Error /= 2.0;
-			if(Error < ErrorMin)
-				break;
-
 			//Правим веса внутренних слоёв
 			for(int l = CountLayers - 2; l >= 0; l--)
 			{		
@@ -1070,6 +1064,9 @@ lblOutErr:
 				}
 
 			}
+			Error /= 2.0;
+			if(Error < ErrorMin)
+				break;
 		}
 		UninitLayerOuts();
 		return Error;
