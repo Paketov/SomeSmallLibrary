@@ -42,6 +42,7 @@ Example:
 
 	//Проверяем обученность
 	double Err = Net.Recognize(In, TestOut);
+
 */
 
 template<typename TypeNum = int>
