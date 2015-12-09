@@ -97,7 +97,7 @@ private:
 				public:
 					operator size_t ()
 					{
-					    size_t r = 0;
+						size_t r = 0;
 						TypeNum* vn = v->get_row() + i * v->get_count_prev();
 						TypeNum Min = vnv[r]; 
 						for(size_t i = 1, mc = v->get_count_prev();i < mc;i++)
@@ -114,7 +114,7 @@ private:
 				public:
 					operator size_t ()
 					{
-					    size_t r = 0;
+						size_t r = 0;
 						TypeNum* vn = v->get_row() + i * v->get_count_prev();
 						TypeNum Max = vn[r]; 
 						for(size_t i = 1, mc = v->get_count_prev(); i < mc; i++)
@@ -274,7 +274,7 @@ private:
 					{
 						if(Biases == nullptr)
 						{
-						    Biases = (TypeNum*)malloc(n * sizeof(TypeNum));
+							Biases = (TypeNum*)malloc(n * sizeof(TypeNum));
 							for(size_t i = 0, mi = n;i < n;i++)
 							   Biases[i] = TypeNum(0);
 						}
@@ -315,7 +315,7 @@ private:
 	template<typename T1, typename T2>
 	static void copy_arr_cast(T1* Dest, T2* Source, size_t Count)
 	{
-	    if(std::is_equal<typename std::remove_const<T2>::type, T1>::value)
+		if(std::is_equal<typename std::remove_const<T2>::type, T1>::value)
 		{
 			memcpy(Dest, Source, Count * sizeof(T1));
 		}else
@@ -469,7 +469,7 @@ public:
 		std::is_convertible<TypeNum, OutputVectorType>::value ,
 		double
 	>::type
-    CheckError(const InputVectorType* InputVector, const OutputVectorType* ExpectedVector) const
+	CheckError(const InputVectorType* InputVector, const OutputVectorType* ExpectedVector) const
 	{
 		auto OutputVector = (TypeNum*)malloc(OutputCount * sizeof(TypeNum));
 		if(OutputVector == nullptr)
@@ -558,14 +558,14 @@ lblOutErr:
 	/*Включить базисы во всех слоях*/
 	void EnableAllBiases()
 	{
-	  	for(size_t l = 0; l < CountLayers; l++)
+		for(size_t l = 0; l < CountLayers; l++)
 			LayerByIndex(l).IsHaveBiases = true;
 	}
 
 	/*Отключить базисы во всех слоях*/
 	void DisableAllBiases()
 	{
-	  	for(size_t l = 0; l < CountLayers; l++)
+		for(size_t l = 0; l < CountLayers; l++)
 			LayerByIndex(l).IsHaveBiases = false;
 	}
 
@@ -1218,7 +1218,7 @@ lblOutErr:
 							for(size_t p = 0; p < CountPrev; p++)
 								w[p] += CurDelta * OutPrev[p];
 						}
-					}				
+					}
 				}
 
 			}
