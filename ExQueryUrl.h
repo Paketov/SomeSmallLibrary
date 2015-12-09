@@ -2,7 +2,7 @@
 #define __QUERYURL_H_HAS_INCLUDED__
 
 /*
-     ExQueryUrl
+	 ExQueryUrl
 	 Paketov
 	 2015.
 
@@ -1126,7 +1126,7 @@ public:
 			   __INTERATOR_PROPERTY__r(IsAdoptedError, edf);
 
 			   class {
-				    __INTERATOR_FIELDS__;
+					__INTERATOR_FIELDS__;
 			   public:
 				   inline operator TDESCR() const { return This->Count.e[Index].GetDescriptor(); }
 			   } Descriptor;
@@ -1153,7 +1153,7 @@ public:
 
 			void Remove()
 			{
-			    if(IsFollowWrite.Index >= IsFollowWrite.This->Count)
+				if(IsFollowWrite.Index >= IsFollowWrite.This->Count)
 					return;	
 				unsigned From = --IsFollowWrite.This->Count.CountSockets;
 				IsFollowWrite = false;
@@ -1226,7 +1226,7 @@ public:
 		{
 			if(Index >= Count)
 				throw "CHECK_EVENTS_SEL::operator[] : Out of bound";	
-		    return INTERATOR(this, Index);
+			return INTERATOR(this, Index);
 		}
 
 		int Check(long WaitTimeSec = 0, long WaitTimeMiliSec = 0)
@@ -1327,7 +1327,7 @@ public:
 
 			   class
 			   {
-				    __INTERATOR_FIELDS__;
+					__INTERATOR_FIELDS__;
 			   public:
 				   inline operator decltype(std::declval<pollfd>().fd)() const { return This->Count.pfd[Index].fd; }	   
 			   } Descriptor;
@@ -1464,7 +1464,7 @@ public:
 		{
 			if(Index >= Count)
 				throw "CHECK_EVENTS_POL::operator[] : Out of bound";
-		    return INTERATOR(this, Index);
+			return INTERATOR(this, Index);
 		}
 
 		int Check(unsigned WaitTime = 0)
@@ -2258,7 +2258,7 @@ public:
 		} IsNonBlocked;
 
 		/*
-		    Get count data in recive buffer.
+			Get count data in recive buffer.
 		*/
 		class  {
 			_QUERY_URL_FIELDS1_;
@@ -2267,7 +2267,7 @@ public:
 		} CountPandingData;
 
 		/*
-		     Get open state.
+			 Get open state.
 		*/
 		class{			
 			_QUERY_URL_FIELDS1_;
@@ -2442,12 +2442,12 @@ public:
 			/*
 			Have on some unix.
 			Set the protocol-defined priority for  all  packets
-            to  be  sent on this socket.  Linux uses this value
-            to order the  networking  queues:  packets  with  a
-            higher priority may be processed first depending on
-            the selected device queueing discipline. For ip(4),
-            this  also  sets the IP type-of-service (TOS) field
-            for outgoing packets.
+			to  be  sent on this socket.  Linux uses this value
+			to order the  networking  queues:  packets  with  a
+			higher priority may be processed first depending on
+			the selected device queueing discipline. For ip(4),
+			this  also  sets the IP type-of-service (TOS) field
+			for outgoing packets.
 			*/
 #ifdef SO_PRIORITY
 			DEF_SOCKET_OPTION_PROPERTY(Priority, int, int, SOL_SOCKET, SO_PRIORITY);
@@ -2685,7 +2685,7 @@ public:
 
 			/*
 			 Return the credentials of the foreign process  connected  to  this  socket.   Only useful for PF_UNIX
-             sockets.  Argument is a  ucred  structure. Only valid as a getsockopt.
+			 sockets.  Argument is a  ucred  structure. Only valid as a getsockopt.
 			*/
 #ifdef SO_PEERCRED
 			DEF_SOCKET_OPTION_PROPERTY(PeerCredentials, ucred&, ucred, SOL_SOCKET, SO_PEERCRED);
