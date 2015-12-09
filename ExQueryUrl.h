@@ -1248,7 +1248,7 @@ public:
 		class INTERATOR
 		{
 			
-#	define __INTERATOR_FIELDS__ struct{CHECK_EVENTS_POL* This; unsigned Index;}		
+#	define __INTERATOR_FIELDS__ struct{CHECK_EVENTS_POL* This; unsigned Index;}
 			
 		public:
 			inline INTERATOR(CHECK_EVENTS_POL* w, unsigned i)
