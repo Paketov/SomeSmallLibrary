@@ -76,10 +76,7 @@ class ROW
 		static const unsigned _Count = cj;
 		T v[cj];
 
-		inline unsigned SetCount(const unsigned Val) const
-		{   
-			return Val;
-		}
+		inline unsigned SetCount(const unsigned Val) const { return Val; }
 
 		inline void Init() const {}
 
@@ -115,10 +112,7 @@ class ROW
 		unsigned _Count;
 		T * v;
 
-		inline unsigned SetCount(const unsigned Val)
-		{   
-			return _Count = Val;
-		}
+		inline unsigned SetCount(const unsigned Val) { return _Count = Val; }
 
 		inline void Init()
 		{
@@ -171,10 +165,7 @@ class ROW
 		unsigned _Count;
 		T * v;
 
-		inline unsigned SetCount(const unsigned Val)
-		{   
-			return _Count = Val;
-		}
+		inline unsigned SetCount(const unsigned Val) { return _Count = Val; }
 
 		inline void Init()
 		{
@@ -294,21 +285,11 @@ public:
 		class
 		{
 			__ROW_FIELDS;
-
 			friend ROW;
-
-			inline unsigned operator=(unsigned NewVal)
-			{
-				return _Fields.SetCount(NewVal);
-			}
-
+			inline unsigned operator=(unsigned NewVal) { return _Fields.SetCount(NewVal); }
 		public:
-			inline operator unsigned()
-			{
-				return _Fields._Count;
-			}
+			inline operator unsigned() const { return _Fields._Count;}
 		} Count;
-
 
 		class
 		{
@@ -347,13 +328,8 @@ private:
 	{
 		ROW * r;
 		friend ROW;
-		
-		inline TSETTER(ROW * r)
-		{
-			this->r = r;
-		}
+		inline TSETTER(ROW * r) { this->r = r; }
 	public:
-
 
 		inline typename std::enable_if
 		<
@@ -373,11 +349,7 @@ private:
 	{
 		ROW * r;
 		friend ROW;
-
-		inline TSETTER(ROW * r)
-		{
-			this->r = r;
-		}
+		inline TSETTER(ROW * r) { this->r = r; }
 	public:
 		inline TSETTER<0, Index + 1> operator <<(T Val)
 		{
@@ -390,10 +362,7 @@ private:
 
 public:
 
-	ROW()
-	{
-		_Fields.Init();
-	}
+	ROW() { _Fields.Init(); }
 
 	ROW(T * Column, unsigned Count)
 	{
@@ -572,18 +541,11 @@ public:
 		return *this;
 	}
 
-
-	inline void Resize(unsigned NewCount)
-	{
-		_Fields.Allocate(NewCount);
-	}
+	inline void Resize(unsigned NewCount) { _Fields.Allocate(NewCount); }
 
 	template<typename _T>
 	inline typename std::enable_if<std::is_convertible<_T, T>::value>::type
-	SetAllVal(_T NewVal)
-	{
-		std::arr_set_elements(_Fields.v, NewVal, _Fields._Count);
-	}
+	SetAllVal(_T NewVal) { std::arr_set_elements(_Fields.v, NewVal, _Fields._Count); }
 
 	inline T & operator[](const unsigned Index)
 	{
@@ -616,13 +578,7 @@ public:
 	}
 
 	template<typename _T, unsigned _j>
-	inline bool operator !=
-	(
-		ROW<_T, _j> & Val
-	)
-	{
-		return !operator==(Val);
-	}
+	inline bool operator !=(ROW<_T, _j> & Val) { return !operator==(Val); }
 
 	template<typename _T, unsigned _j>
 	inline bool operator==(_T (&Another)[_j])
@@ -638,11 +594,7 @@ public:
 	}
 
 	template<typename _T, unsigned _j>
-	inline bool operator!=(_T (&Another)[_j])
-	{
-	   return !operator==(Another);
-	}
-
+	inline bool operator!=(_T (&Another)[_j]) { return !operator==(Another); }
 };
 
 template<class T = int, unsigned ci = 0,  unsigned cj = 0>
@@ -668,15 +620,9 @@ private:
 			T				  v2[ci][cj];
 		};
 
-		inline MATRIX & GetM() const
-		{
-			return *(MATRIX*)this;
-		}
+		inline MATRIX & GetM() const { return *(MATRIX*)this; }
 
-		static inline TROW GetRow(T * pRow)
-		{
-			return *(ROW<T, cj>*)pRow;
-		}
+		static inline TROW GetRow(T * pRow) { return *(ROW<T, cj>*)pRow; }
 
 		inline T & at(unsigned i = 0, unsigned j = 0) const
 		{
@@ -697,20 +643,11 @@ private:
 		}
 
 		template <typename _T> 
-		inline void Copy(const _T (&Arr)[ci][cj])
-		{
-			std::arr_copy_cast(v, Arr);
-		}
+		inline void Copy(const _T (&Arr)[ci][cj]) { std::arr_copy_cast(v, Arr); }
 
-		inline unsigned SetCountColumn(const unsigned Val) const
-		{   
-			return Val;
-		}
+		inline unsigned SetCountColumn(const unsigned Val) const { return Val; }
 
-		inline unsigned SetCountRow(const unsigned Val) const
-		{   
-			return Val;
-		}
+		inline unsigned SetCountRow(const unsigned Val) const { return Val; }
 
 		inline void Init() const{}
 
@@ -727,17 +664,9 @@ private:
 
 		typedef ROW<T, unsigned(-1)> TROW;
 
-		inline MATRIX & GetM() const
-		{
-			return *(MATRIX*)this;
-		}
+		inline MATRIX & GetM() const { return *(MATRIX*)this; }
 
-
-		inline TROW GetRow(T * pRow)
-		{
-			return TROW(pRow, nj);
-		}
-
+		inline TROW GetRow(T * pRow) { return TROW(pRow, nj); }
 
 		inline T & at(unsigned i = 0, unsigned j = 0) const
 		{
@@ -778,15 +707,9 @@ private:
 			std::arr_copy_cast(v, Arr);
 		}
 
-		inline unsigned SetCountColumn(const unsigned Val)
-		{   
-			return nj = Val;
-		}
+		inline unsigned SetCountColumn(const unsigned Val) { return nj = Val; }
 
-		inline unsigned SetCountRow(const unsigned Val)
-		{   
-			return ni = Val;
-		}
+		inline unsigned SetCountRow(const unsigned Val) { return ni = Val; }
 
 		inline void Init()
 		{
@@ -1402,10 +1325,7 @@ private:
 	{
 		__MATRIX_FIELDS_DEF;
 	public:
-		inline void operator()()
-		{
-			_Fields.GetM() = _Fields.GetM().GetAllMinors();
-		}
+		inline void operator()() { _Fields.GetM() = _Fields.GetM().GetAllMinors(); }
 	};
 
 	class _GET_MINOR
@@ -1467,20 +1387,14 @@ private:
 		__MATRIX_FIELDS_DEF;
 	public:
 		//Вырожденная ли матрица
-		operator bool()
-		{
-			return T(0) == T(_Fields.GetM().Determinant);
-		}
+		operator bool() { return T(0) == T(_Fields.GetM().Determinant); }
 	};
 
 	class _IS_SINGULAR_RECT
 	{
 	public:
 		//Вырожденная ли матрица
-		operator bool()
-		{
-			return false;
-		}
+		operator bool() const { return false; }
 	};
 
 	//Remove
@@ -1648,33 +1562,18 @@ public:
 		{
 			__MATRIX_FIELDS_DEF;
 			friend MATRIX;
-
-			inline unsigned operator =(unsigned Val)
-			{
-				return _Fields.SetCountRow(Val);
-			}
+			inline unsigned operator =(unsigned Val) { return _Fields.SetCountRow(Val); }
 		public:
-			
-			inline operator unsigned() const
-			{
-				return _Fields.ni;
-			}
+			inline operator unsigned() const { return _Fields.ni; }
 		} CountRows;
 
 		class
 		{
 			__MATRIX_FIELDS_DEF;
 			friend MATRIX;
-
-			inline unsigned operator =(unsigned Val)
-			{
-				return _Fields.SetCountColumn(Val);
-			}
+			inline unsigned operator =(unsigned Val) { return _Fields.SetCountColumn(Val); }
 		public:
-			inline operator unsigned() const
-			{
-				return _Fields.nj;
-			}
+			inline operator unsigned() const { return _Fields.nj; }
 		} CountColumns;
 
 		class
@@ -1794,20 +1693,14 @@ public:
 		{
 			__MATRIX_FIELDS_DEF;
 		public:
-			operator bool() const
-			{
-				return _Fields.nj == _Fields.ni;
-			}
+			operator bool() const { return _Fields.nj == _Fields.ni; }
 		} IsSquare;
 
 		class 
 		{			
 			__MATRIX_FIELDS_DEF;
 		public:
-			operator bool()
-			{
-				return (_Fields.GetM() * _Fields.GetM().GetTranspose()).IsIdentity;
-			}
+			operator bool() { return (_Fields.GetM() * _Fields.GetM().GetTranspose()).IsIdentity; }
 		} IsOrtogonal;
 
 		typename std::not_empty_if<ci == cj, _DETERMINANT>::type			Determinant;
@@ -2040,10 +1933,7 @@ public:
 			((T*)_Fields.v)[i] = NewVal;
 	}
 
-	MATRIX()
-	{
-		_Fields.Init();
-	}
+	MATRIX() { _Fields.Init(); }
 
 	MATRIX(unsigned ni, unsigned nj, T AllVal)
 	{
@@ -2134,10 +2024,7 @@ public:
 		return *this;
 	}
 
-	~MATRIX()
-	{
-		_Fields.Deinit();
-	}
+	~MATRIX() { _Fields.Deinit(); }
 
 	//Mul
 	template<class _T>
@@ -2595,16 +2482,10 @@ public:
 	}
 
 	template<typename _T, unsigned _i, unsigned _j>
-	inline bool operator!=(MATRIX<_T, _i, _j> & Another)
-	{
-	   return !operator==(Another);
-	}
+	inline bool operator!=(MATRIX<_T, _i, _j> & Another) { return !operator==(Another); }
 
 	template<typename _T, unsigned _i, unsigned _j>
-	inline bool operator!=(_T (&Another)[_i][_j])
-	{
-	   return !operator==(Another);
-	}
+	inline bool operator!=(_T (&Another)[_i][_j]) { return !operator==(Another); }
 };
 
 

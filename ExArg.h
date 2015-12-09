@@ -49,17 +49,12 @@ class EX_ARG
 public:
 	union
 	{
-		class
-		{
+		class{
 			friend EX_ARG;
 			_EX_ARG_FIELDS;
 		public:
-			inline operator unsigned()
-			{
-				return _Count;
-			}
+			inline operator unsigned() const { return _Count; }
 		} Count;
-
 	};
 
 private:
@@ -136,60 +131,32 @@ public:
 	public:
 		union
 		{
-			class
-			{
+			class{
 				__INTERATOR_FIELDS;
-
 			public:
-				inline operator TypeChar*()
-				{
-					return arg;
-				}
-				inline TypeChar * operator()()
-				{
-					return  arg;
-				}
+				inline operator TypeChar*() { return arg; }
+				inline TypeChar * operator()() { return  arg; }
 			} FullString;
 
-			class
-			{
+			class{
 				__INTERATOR_FIELDS;
 				friend INTERATOR;
 			public:
-				inline operator TypeChar*()
-				{
-					return NameArg;
-				}
-
-				inline TypeChar * operator()()
-				{
-					return  NameArg;
-				}
+				inline operator TypeChar*() { return NameArg; }
+				inline TypeChar * operator()() { return  NameArg; }
 			} NameArg;
 
-			class
-			{
+			class{
 				__INTERATOR_FIELDS;
 			public:
-				inline operator TypeChar*()
-				{
-					return Value;
-				}
-				
-				inline TypeChar * operator()()
-				{
-					return  Value;
-				}
+				inline operator TypeChar*() { return Value; }
+				inline TypeChar * operator()() { return  Value; }
 			} Value;
 
-			class
-			{
+			class{
 				__INTERATOR_FIELDS;
 			public:
-				inline operator bool()
-				{
-					return *arg == CHAR_TYPE(TypeChar, '\0');
-				}
+				inline operator bool() { return *arg == CHAR_TYPE(TypeChar, '\0'); }
 			} IsNotHave;
 		};
 
@@ -200,17 +167,11 @@ public:
 			NameArg.NameArg = Name;
 		}
 
-		inline operator bool()
-		{
-			return NameArg.arg != NULL;
-		}
+		inline operator bool() const { return NameArg.arg != NULL; } 
 
-		inline operator TypeChar *()
-		{
-			return NameArg.Value;
-		}
+		inline operator TypeChar *() { return NameArg.Value; }
 
-		bool operator==(TypeChar * Enother)
+		bool operator==(TypeChar * Enother) const
 		{
 			if(NameArg.arg == NULL)
 				return false;
@@ -219,19 +180,16 @@ public:
 			return false;
 		}
 
-		inline bool operator!=(TypeChar * Enother)
-		{
-			return !operator==()(Enother);
-		}
+		inline bool operator!=(TypeChar * Enother) const { return !operator==()(Enother); }
 
-		operator int()
+		operator int() const
 		{
 			int Res = 0;
 			StringDoubleToNumber(&Res, NameArg.Value, 0xffff);
 			return Res;
 		}
 
-		operator double()
+		operator double() const
 		{
 			double Res = 0;
 			StringToNumber(&Res, NameArg.Value, 0xffff);

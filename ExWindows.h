@@ -204,34 +204,24 @@ public:
 		*int; Set, Get;
 		*Sets a new identifier of the child window. The window cannot be a top-level window.
 		*/
-		class {
+		class{
 			HWND hWnd;
 		public:
-			inline operator int()
-			{
-				return ::GetDlgCtrlID(hWnd);
-			}
+			inline operator int() const { return ::GetDlgCtrlID(hWnd); }
 
-			int operator=(int NewId)
-			{
-				return (int)SetWindowLongPtr(hWnd, GWLP_ID, (LONG_PTR)NewId);
-			}
+			int operator=(int NewId) { return (int)SetWindowLongPtr(hWnd, GWLP_ID, (LONG_PTR)NewId); }
 		} Id;
 
 		/*
 		*BOOL; Set, Get;
 		*Enables or disables mouse and keyboard input to the specified window or control.
 		*/
-		class 
-		{
+		class{
 			HWND hWnd;
 		public:
-			operator BOOL()
-			{
-				return ::IsWindowEnabled(hWnd);
-			}
+			operator BOOL() const { return ::IsWindowEnabled(hWnd); }
 
-			BOOL operator=(BOOL isEnable)
+			BOOL operator=(BOOL isEnable) 
 			{ 
 				::EnableWindow(hWnd, isEnable);
 				return isEnable;
@@ -242,63 +232,39 @@ public:
 		*WNDPROC; Set, Get;
 		*Sets a new address for the window procedure.
 		*/
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
-			inline operator WNDPROC()
-			{
-				return (WNDPROC)GetWindowLongPtrW(hWnd, GWLP_WNDPROC);
-			}
+			inline operator WNDPROC() const { return (WNDPROC)GetWindowLongPtrW(hWnd, GWLP_WNDPROC); }
 
-			inline WNDPROC operator=(WNDPROC NewProc)
-			{
-				return (WNDPROC)SetWindowLongPtrW(hWnd, GWLP_WNDPROC, (LONG_PTR)NewProc);
-			}
+			inline WNDPROC operator=(WNDPROC NewProc) { return (WNDPROC)SetWindowLongPtrW(hWnd, GWLP_WNDPROC, (LONG_PTR)NewProc); }
 
-			inline LRESULT CALLBACK operator()(UINT Msg, WPARAM wParam, LPARAM lParam)
-			{
-				return ::SendMessageW(hWnd, Msg, wParam, lParam);
-			}
+			inline LRESULT CALLBACK operator()(UINT Msg, WPARAM wParam, LPARAM lParam) { return ::SendMessageW(hWnd, Msg, wParam, lParam); }
 		} WndProcW;
 
 		/*
 		*WNDPROC; Set, Get;
 		*Sets a new address for the window procedure.
 		*/
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
-			inline operator WNDPROC()
-			{
-				return (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC);
-			}
+			inline operator WNDPROC() const { return (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC); }
 
-			inline WNDPROC operator=(WNDPROC NewProc)
-			{
-				return (WNDPROC)SetWindowLongPtrA(hWnd, GWLP_WNDPROC, (LONG_PTR)NewProc);
-			}
+			inline WNDPROC operator=(WNDPROC NewProc) { return (WNDPROC)SetWindowLongPtrA(hWnd, GWLP_WNDPROC, (LONG_PTR)NewProc); }
 
-			inline LRESULT CALLBACK operator()(UINT Msg, WPARAM wParam, LPARAM lParam)
-			{
-				return ::SendMessageA(hWnd, Msg,wParam, lParam);
-			}
+			inline LRESULT CALLBACK operator()(UINT Msg, WPARAM wParam, LPARAM lParam) { return ::SendMessageA(hWnd, Msg,wParam, lParam); }
 		} WndProcA;
 
 		/*
 		*<variant 4 or 8 bytes>; Set, Get;
 		*Sets the user data associated with the window.
 		*/
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
 			template<class T>
-			inline operator T()
-			{
-				return (T)GetWindowLongPtr(hWnd, GWLP_USERDATA);
-			}
+			inline operator T() const { return (T)GetWindowLongPtr(hWnd, GWLP_USERDATA); }
 
 			template<class T>
 			inline T operator=(T NewData)
@@ -315,15 +281,9 @@ public:
 		class{
 			HWND hWnd;
 		public:
-			inline operator LONG_PTR()
-			{
-				return GetWindowLongPtr(hWnd, GWL_EXSTYLE);
-			}
+			inline operator LONG_PTR() const { return GetWindowLongPtr(hWnd, GWL_EXSTYLE); }
 
-			inline LONG_PTR operator=(LONG_PTR NewStyle)
-			{
-				return SetWindowLongPtr(hWnd, GWL_EXSTYLE, NewStyle);
-			}
+			inline LONG_PTR operator=(LONG_PTR NewStyle) { return SetWindowLongPtr(hWnd, GWL_EXSTYLE, NewStyle); }
 
 			inline LONG_PTR operator |= (LONG_PTR AddStyle)
 			{
@@ -348,15 +308,9 @@ public:
 		class{
 			HWND hWnd;
 		public:
-			inline operator LONG_PTR()
-			{
-				return GetWindowLongPtr(hWnd, GWL_STYLE);
-			}
+			inline operator LONG_PTR() const { return GetWindowLongPtr(hWnd, GWL_STYLE); }
 
-			inline LONG_PTR operator=(LONG_PTR NewStyle)
-			{
-				return SetWindowLongPtr(hWnd, GWL_STYLE, NewStyle);
-			}
+			inline LONG_PTR operator=(LONG_PTR NewStyle) { return SetWindowLongPtr(hWnd, GWL_STYLE, NewStyle); }
 
 			inline LONG_PTR operator |= (LONG_PTR AddStyle)
 			{
@@ -377,19 +331,12 @@ public:
 		*HINSTANCE; Set, Get;
 		*Sets a new application instance handle.
 		*/
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
-			inline operator HINSTANCE()
-			{
-				return (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE);
-			}
+			inline operator HINSTANCE() const { return (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE); }
 
-			inline HINSTANCE operator=(HINSTANCE NewInst)
-			{
-				return (HINSTANCE)SetWindowLongPtr(hWnd, GWLP_HINSTANCE, (LONG_PTR)NewInst);
-			}
+			inline HINSTANCE operator=(HINSTANCE NewInst) { return (HINSTANCE)SetWindowLongPtr(hWnd, GWLP_HINSTANCE, (LONG_PTR)NewInst); }
 		} Instance;
 
 		/*
@@ -402,8 +349,7 @@ public:
 		*WNDCLASS, WNDCLASSEX; Get;
 		*Retrieves information about a window class, including a handle to the small icon associated with the window class.
 		*/
-		class 
-		{
+		class{
 			HWND hWnd;
 		public:
 
@@ -485,101 +431,66 @@ public:
 		class{
 			HWND hWnd;
 		public:
-			inline operator HDC()
-			{
-				return ::GetDC(hWnd);
-			}
+			inline operator HDC() const { return ::GetDC(hWnd); }
 		} Dc;
 
 		/*
 		*EX_WND__, HWND; Get, Set;
 		*Changes the parent window of the specified child window. 
 		*/
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
 
-			inline operator EX_WND__()
-			{
-				return ::GetParent(hWnd);
-			}
+			inline operator EX_WND__() const { return ::GetParent(hWnd); }
 
-			inline operator HWND()
-			{
-				return ::GetParent(hWnd);
-			}
+			inline operator HWND() const { return ::GetParent(hWnd); }
 
-			inline EX_WND__ operator=(EX_WND__ NewParent)
-			{
-				return ::SetParent(hWnd, NewParent);
-			}
+			inline EX_WND__ operator=(EX_WND__ NewParent) { return ::SetParent(hWnd, NewParent); }
 
-			inline HWND operator=(HWND NewParent)
-			{
-				return ::SetParent(hWnd, NewParent);
-			}
+			inline HWND operator=(HWND NewParent) { return ::SetParent(hWnd, NewParent); }
 
-			inline EX_WND__ operator()()
-			{
-				return ::GetParent(hWnd);
-			}
+			inline EX_WND__ operator()() { return ::GetParent(hWnd); }
 		} Parent;
 
 		/*
 		*bool; Get;
 		*Determines whether the specified window handle identifies an existing window. 
 		*/
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
-			inline operator bool()
-			{
-				return ::IsWindow(hWnd) != 0;
-			}
+			inline operator bool() const { return ::IsWindow(hWnd) != 0; }
 		} IsWindow;
 
 		/*
 		*bool; Get;
 		*Determines the visibility state of the specified window. 
 		*/
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
-			inline operator bool()
-			{
-				return ::IsWindowVisible(hWnd);
-			}
+			inline operator bool() const { return ::IsWindowVisible(hWnd); }
 		} IsVisible;
 
 		/*
 		*bool; Get;
 		*Determines whether the specified window is a native Unicode window. 
 		*/
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
-			inline operator bool()
-			{
-				return ::IsWindowUnicode(hWnd);
-			}
+			inline operator bool() const { return ::IsWindowUnicode(hWnd); }
 		} IsUnicode;
 
 		/*
 		*bool; Get;
 		*Determines whether the specified window is minimized (iconic).
 		*/
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
-			inline operator bool()
-			{
-				return ::IsIconic(hWnd);
-			}
+			inline operator bool() const { return ::IsIconic(hWnd); }
 		} IsIconic;
 
 		/*
@@ -589,12 +500,10 @@ public:
 		//WND_COMBO__ AsCombo;
 
 
-		class
-		{
+		class {
 			HWND hWnd;
 		public:
-
-			inline operator LONG()
+			inline operator LONG() const
 			{		
 				RECT Rect;
 				::GetClientRect(hWnd, &Rect);
@@ -602,11 +511,10 @@ public:
 			}
 		} ClientWidth;
 
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
-			inline operator LONG()
+			inline operator LONG() const
 			{		
 				RECT Rect;
 				::GetClientRect(hWnd, &Rect);
@@ -618,11 +526,10 @@ public:
 		*long; Get, Set;
 		*Set or get window width.
 		*/
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
-			operator long()
+			operator long() const
 			{
 				RECT Rect;
 				::GetWindowRect(hWnd, &Rect);
@@ -640,11 +547,10 @@ public:
 		*long; Get, Set;
 		*Set or get window height.
 		*/
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
-			inline operator long()
+			inline operator long() const
 			{
 				RECT Rect;
 				::GetWindowRect(hWnd, &Rect);
@@ -658,11 +564,10 @@ public:
 			}
 		} Height;
 
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
-			operator LONG()
+			operator LONG() const
 			{
 				RECT Rect;
 				::GetWindowRect(hWnd, &Rect);
@@ -677,11 +582,10 @@ public:
 			}
 		} Left;
 
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
-			operator LONG()
+			operator LONG() const
 			{
 				RECT Rect;
 				::GetWindowRect(hWnd, &Rect);
@@ -696,11 +600,10 @@ public:
 			}
 		} Top;
 
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
-			inline operator LONG()
+			inline operator LONG() const
 			{
 				RECT Rect;
 				::GetWindowRect(hWnd, &Rect);
@@ -718,11 +621,10 @@ public:
 			}
 		} Right;
 
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
-			inline operator LONG()
+			inline operator LONG() const
 			{
 				RECT Rect;
 				::GetWindowRect(hWnd, &Rect);
@@ -740,11 +642,10 @@ public:
 			}
 		} Bottom;
 
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
-			inline operator RECT()
+			inline operator RECT() const
 			{
 				RECT Rect;
 				::GetWindowRect(hWnd, &Rect);
@@ -758,16 +659,13 @@ public:
 				return New;
 			}
 
-			bool operator ==(const RECT& Val)
+			bool operator ==(const RECT& Val) const
 			{
 				RECT Rect = operator RECT();
 				return (Rect.bottom == Val.bottom) && (Rect.left == Val.left) && (Rect.right == Val.right) && (Rect.top == Val.top);
 			}
 
-			inline bool operator !=(const RECT& Val)
-			{
-				return !operator ==(Val);
-			}
+			inline bool operator !=(const RECT& Val) const { return !operator ==(Val); }
 
 			bool Contains(const RECT& Another)
 			{
@@ -788,11 +686,10 @@ public:
 			}
 		} Rectangle;
 
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
-			inline operator RECT()
+			inline operator RECT() const
 			{
 				RECT Rect;
 				::GetWindowRect(hWnd, &Rect);
@@ -807,16 +704,13 @@ public:
 				return New;
 			}
 
-			bool operator ==(const RECT& Val)
+			bool operator ==(const RECT& Val) const
 			{
 				RECT Rect = operator RECT();
 				return (Rect.bottom == Val.bottom) && (Rect.left == Val.left) && (Rect.right == Val.right) && (Rect.top == Val.top);
 			}
 
-			inline bool operator !=(const RECT& Val)
-			{
-				return !operator ==(Val);
-			}
+			inline bool operator !=(const RECT& Val) const { return !operator ==(Val); }
 
 			bool Contains(const RECT& Another)
 			{
@@ -837,11 +731,10 @@ public:
 			}
 		} RectangleRelScreen;
 
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
-			inline operator RECT()
+			inline operator RECT() const
 			{
 				RECT Rect;
 				::GetClientRect(hWnd, &Rect);
@@ -849,16 +742,13 @@ public:
 				return Rect;
 			}
 
-			bool operator ==(const RECT& Val)
+			bool operator ==(const RECT& Val) const
 			{
 				RECT Rect = operator RECT();
 				return (Rect.bottom == Val.bottom) && (Rect.left == Val.left) && (Rect.right == Val.right) && (Rect.top == Val.top);
 			}
 
-			inline bool operator !=(const RECT& Val)
-			{
-				return !operator ==(Val);
-			}
+			inline bool operator !=(const RECT& Val) const { return !operator ==(Val); }
 
 			bool Contains(const RECT& Another)
 			{
@@ -883,8 +773,7 @@ public:
 		*HFONT; Get, Set;
 		*Set or get current font of window.
 		*/
-		class
-		{
+		class{
 			HWND hWnd;
 		public:
 			/*
@@ -894,7 +783,7 @@ public:
 			OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
 			DEFAULT_PITCH | FF_SWISS, L"Times New Roman");
 			*/
-			inline operator HFONT()
+			inline operator HFONT() const
 			{
 				//GetCharABCWidths
 				return (HFONT)SendMessage(hWnd, WM_GETFONT, 0, 0);
@@ -911,11 +800,10 @@ public:
 		*HMENU; Get, Set;
 		*Set or get current menu of window.
 		*/
-		class
-		{
+		class{
 			HWND hWnd;
 		public:			
-			inline operator HMENU()
+			inline operator HMENU() const
 			{
 				//use CreateMenu
 				return GetMenu(hWnd);
@@ -944,10 +832,7 @@ public:
 			COMPLEXREGION
 			ERROR
 			*/
-			inline int operator()(HRGN RgnDest)
-			{
-				return GetWindowRgn(hWnd, RgnDest);
-			}
+			inline int operator()(HRGN RgnDest) { return GetWindowRgn(hWnd, RgnDest); }
 
 			inline HRGN operator=(HRGN New)
 			{
@@ -957,137 +842,60 @@ public:
 		} Region;
 	};
 
-	inline operator HWND()
-	{
-		return hWnd;
-	}
+	inline operator HWND() const { return hWnd; }
 
-	inline EX_WND__()
-	{	
-		hWnd = NULL;
-	}
+	inline EX_WND__() {	hWnd = NULL; }
 
-	inline EX_WND__(HWND nhWnd)
-	{
-		hWnd = nhWnd;
-	}
+	inline EX_WND__(HWND nhWnd) { hWnd = nhWnd; }
 
-	inline operator bool()
-	{
-		return hWnd != NULL;
-	}
+	inline operator bool() { return hWnd != NULL; }
 
-	inline operator EX_WND__*()
-	{
-		return this;
-	}
+	inline operator EX_WND__*() { return this; }
 
-	inline bool operator !()
-	{
-		return hWnd == NULL;
-	}
+	inline bool operator !() { return hWnd == NULL; }
 
 private:
-	class _FOR_GET_ADDRESS
-	{
+	class _FOR_GET_ADDRESS {
 		HWND hWnd;
 	public:
-		inline operator HWND*()
-		{
-			return &hWnd;
-		}
+		inline operator HWND*() { return &hWnd; }
 
-		inline operator EX_WND__*()
-		{
-			return (EX_WND__*)&hWnd;
-		}
+		inline operator EX_WND__*() { return (EX_WND__*)&hWnd; }
 	};
 public:
 
-	inline _FOR_GET_ADDRESS & operator &()
-	{
-		return *(_FOR_GET_ADDRESS*)this;
-	}
+	inline _FOR_GET_ADDRESS & operator &() { return *(_FOR_GET_ADDRESS*)this; }
 
-	inline bool operator==(HWND Wnd)
-	{
-		return Wnd == hWnd;
-	}
+	inline bool operator==(HWND Wnd) const { return Wnd == hWnd; }
 
-	inline bool operator!=(HWND Wnd)
-	{
-		return Wnd != hWnd;
-	}
+	inline bool operator!=(HWND Wnd) const { return Wnd != hWnd; }
 
-	inline bool operator==(EX_WND__ Wnd)
-	{
-		return Wnd.hWnd == hWnd;
-	}
+	inline bool operator==(EX_WND__ Wnd) const { return Wnd.hWnd == hWnd; }
 
-	inline bool operator!=(EX_WND__ Wnd)
-	{
-		return Wnd.hWnd != hWnd;
-	}
+	inline bool operator!=(EX_WND__ Wnd) const { return Wnd.hWnd != hWnd; }
 
-	///
-	inline EX_WND__ operator[](int nIDDlgItem)
-	{
-		return GetDlgItem(hWnd, nIDDlgItem);
-	}
+	inline EX_WND__ operator[](int nIDDlgItem)  { return GetDlgItem(hWnd, nIDDlgItem); }
 
-	inline bool BringToTop()
-	{
-		return BringWindowToTop(hWnd) != FALSE;
-	}
+	inline bool BringToTop() { return BringWindowToTop(hWnd) != FALSE; }
 
-	//
-	inline bool Show(int nCmdShow = SW_SHOW)
-	{
-		return ShowWindow(hWnd,nCmdShow) != FALSE;
-	}
-	//
+	inline bool Show(int nCmdShow = SW_SHOW) { return ShowWindow(hWnd,nCmdShow) != FALSE; }
 
-	inline bool Update()
-	{
-		return UpdateWindow(hWnd) != FALSE;
-	}
-	//
+	inline bool Update() { return UpdateWindow(hWnd) != FALSE; }
 
-	inline bool Invalidate()
-	{
-		return InvalidateRect(hWnd, NULL, FALSE) != FALSE;
-	}
+	inline bool Invalidate() { return InvalidateRect(hWnd, NULL, FALSE) != FALSE; }
 
-	inline bool Invalidate(const RECT *lpRect)
-	{
-		return InvalidateRect(hWnd, lpRect, FALSE) != FALSE;
-	}
+	inline bool Invalidate(const RECT *lpRect) { return InvalidateRect(hWnd, lpRect, FALSE) != FALSE; }
 
-	inline bool Validate(RECT * lpRect)
-	{
-		return ::ValidateRect(hWnd, lpRect) != FALSE;
-	}
+	inline bool Validate(RECT * lpRect) { return ::ValidateRect(hWnd, lpRect) != FALSE; }
 
-	inline bool Validate()
-	{
-		return ::ValidateRect(hWnd, NULL) != FALSE;
-	}
+	inline bool Validate() { return ::ValidateRect(hWnd, NULL) != FALSE; }
 
-	///
+	inline EX_WND__ Focus() { return (EX_WND__)::SetFocus(hWnd); }
 
-	inline EX_WND__ Focus()
-	{
-		return (EX_WND__)::SetFocus(hWnd);
-	}
+	static inline EX_WND__ GetFocus() { return (EX_WND__)::GetFocus(); }
 
-	static inline EX_WND__ GetFocus()
-	{
-		return (EX_WND__)::GetFocus();
-	}
-
-
-	static inline EX_WND CreateDlg(int IdRes, DLGPROC WindowProc, HINSTANCE ProcessHandler = NULL, HWND ParentWindowHandler = NULL)
-	{
+	static inline EX_WND CreateDlg(int IdRes, DLGPROC WindowProc, HINSTANCE ProcessHandler = NULL, HWND ParentWindowHandler = NULL) 
+	{ 
 		return CreateDialog(ProcessHandler, MAKEINTRESOURCE(IdRes), ParentWindowHandler, WindowProc);
 	}
 
@@ -1131,78 +939,40 @@ public:
 		return TrackPopupMenu(hMenu, Flags, Poi.x, Poi.y , 0, hWnd, NULL) != FALSE;
 	}
 
-	inline bool ShowContextMenu(HMENU hMenu,  UINT Flags, int x, int y)
-	{
-		return TrackPopupMenu(hMenu, Flags, x, y, 0, hWnd, NULL) != FALSE;
-	}
+	inline bool ShowContextMenu(HMENU hMenu,  UINT Flags, int x, int y) { return TrackPopupMenu(hMenu, Flags, x, y, 0, hWnd, NULL) != FALSE; }
 
-	//////
+	static inline EX_WND__ ByPoint(LPPOINT Point) { return  (EX_WND__)::WindowFromPoint(*Point); }
 
-	static inline EX_WND__ ByPoint(LPPOINT Point)
-	{
-		return  (EX_WND__)::WindowFromPoint(*Point);
-	}
-
-	inline bool IsChild(HWND Wnd)
-	{
-		return ::IsChild(hWnd, Wnd) == TRUE;
-	}
+	inline bool IsChild(HWND Wnd) const { return ::IsChild(hWnd, Wnd) == TRUE; }
 
 	////
 
 	/*Close window.*/
-	inline bool Close()
-	{
-		return ::CloseWindow(hWnd) != FALSE;
-	}
+	inline bool Close() { return ::CloseWindow(hWnd) != FALSE; }
 
 	/*Destroys window. */
-	inline bool Destroy()
-	{
-		return ::DestroyWindow(hWnd) != FALSE; 
-	}
+	inline bool Destroy() { return ::DestroyWindow(hWnd) != FALSE;  }
 
 	/*The CreateCompatibleDC function creates a memory device context (DC) compatible with the window.*/
-	inline HDC CreateCompatibleDC()
-	{
-		return ::CreateCompatibleDC(::GetDC(hWnd));
-	}
+	inline HDC CreateCompatibleDC() { return ::CreateCompatibleDC(::GetDC(hWnd)); }
 
 	/*The BeginPaint function prepares the specified window for painting and fills
 	a PAINTSTRUCT structure with information about the painting.*/
-	inline HDC BeginPaint(LPPAINTSTRUCT ps)
-	{
-		return ::BeginPaint(hWnd, ps);
-	}
+	inline HDC BeginPaint(LPPAINTSTRUCT ps) { return ::BeginPaint(hWnd, ps); }
 
 	/*The EndPaint function marks the end of painting in the specified window.*/
-	inline bool EndPaint(LPPAINTSTRUCT ps)
-	{
-		return ::EndPaint(hWnd, ps) != FALSE;
-	}
+	inline bool EndPaint(LPPAINTSTRUCT ps) { return ::EndPaint(hWnd, ps) != FALSE; }
 
 	/*Destroys a modal dialog box, causing the system to end any processing for the dialog box.*/
-	inline bool EndDialog(INT_PTR Result = 0)
-	{
-		return ::EndDialog(hWnd, Result) != FALSE;
-	}
+	inline bool EndDialog(INT_PTR Result = 0) { return ::EndDialog(hWnd, Result) != FALSE; }
 
 	/*Creates a timer with the specified time-out value.*/
-	inline UINT_PTR SetTimer(UINT Time, UINT_PTR nIDEvent = NULL, TIMERPROC tp = NULL)
-	{
-		return ::SetTimer(hWnd,nIDEvent,Time,tp);
-	}
+	inline UINT_PTR SetTimer(UINT Time, UINT_PTR nIDEvent = NULL, TIMERPROC tp = NULL) { return ::SetTimer(hWnd,nIDEvent,Time,tp); }
 
 	/*Destroys the specified timer.*/
-	inline BOOL KillTimer(UINT_PTR nIDEvent = NULL)
-	{
-		return ::KillTimer(hWnd,nIDEvent);
-	}
+	inline BOOL KillTimer(UINT_PTR nIDEvent = NULL) { return ::KillTimer(hWnd,nIDEvent); }
 
-	inline void SwitchToThisWindow(BOOL fAltTab = FALSE)
-	{
-		return ::SwitchToThisWindow(hWnd, fAltTab);
-	}
+	inline void SwitchToThisWindow(BOOL fAltTab = FALSE) { return ::SwitchToThisWindow(hWnd, fAltTab); }
 
 private:
 	typedef struct
@@ -1378,13 +1148,10 @@ public:
 				int Index;
 			public:
 				template<class T>
-				operator T()
-				{
-					return (T)ComboBox_GetItemData(hWnd, Index);
-				}
+				operator T() const { return (T)ComboBox_GetItemData(hWnd, Index); }
 
 				template<class T>
-				T operator =(T Data)
+				T operator =(T Data) 
 				{
 					ComboBox_SetItemData(hWnd, Index, Data);
 					return Data;
@@ -1398,10 +1165,7 @@ public:
 			this->Index = Index;
 		}
 
-		int Delete()
-		{
-			return ComboBox_DeleteString(hWnd, Index);
-		}
+		int Delete() { return ComboBox_DeleteString(hWnd, Index); }
 	};
 
 	union
@@ -1417,15 +1181,9 @@ public:
 		{
 			HWND hWnd;
 		public:
-			inline operator int()
-			{
-				return ComboBox_GetCurSel(hWnd);
-			}
+			inline operator int() const { return ComboBox_GetCurSel(hWnd); }
 
-			inline int operator=(int Index)
-			{
-				return ComboBox_SetCurSel(hWnd, Index);
-			}
+			inline int operator=(int Index) { return ComboBox_SetCurSel(hWnd, Index); }
 
 			inline ITEM & operator=(ITEM & Item)
 			{
@@ -1433,32 +1191,20 @@ public:
 				return Item;
 			}
 
-			inline operator ITEM()
-			{
-				return ITEM(operator int(), hWnd);
-			}
+			inline operator ITEM() { return ITEM(operator int(), hWnd); }
 
-			inline ITEM operator()()
-			{
-				return ITEM(operator int(), hWnd);
-			}
+			inline ITEM operator()() { return ITEM(operator int(), hWnd); }
 		} CurSel;
 
 		class 
 		{
 			HWND hWnd;
 		public:
-			inline operator int()
-			{
-				return ComboBox_GetCount(hWnd);
-			}
+			inline operator int() { return ComboBox_GetCount(hWnd); }
 		} Count;
 	};
 
-	inline ITEM operator[](int Index)
-	{
-		return ITEM(Index, hWnd);
-	}
+	inline ITEM operator[](int Index) { return ITEM(Index, hWnd); }
 
 	inline ITEM Add()
 	{
@@ -1498,19 +1244,11 @@ public:
 		return Item;
 	}
 
-	WND_COMBO__()
-	{
-	};
+	WND_COMBO__(){};
 
-	WND_COMBO__(EX_WND Wnd)
-	{
-		hWnd = Wnd;
-	}
+	WND_COMBO__(EX_WND Wnd){hWnd = Wnd;}
 
-	operator HWND()
-	{
-		return hWnd;
-	}
+	operator HWND() const {return hWnd;}
 
 	inline ITEM FindByString(LPCSTR Str, int StartIndex = 0)
 	{
@@ -1536,21 +1274,12 @@ public:
 		return ITEM(Index, hWnd);
 	}
 
-	inline ITEM FindByItemData(LPARAM data, int StartIndex = 0)
-	{
-		return ITEM(ComboBox_FindItemData(hWnd, StartIndex, data), hWnd);
-	}
+	inline ITEM FindByItemData(LPARAM data, int StartIndex = 0) { return ITEM(ComboBox_FindItemData(hWnd, StartIndex, data), hWnd);}
 
-	int ResetContent()
-	{
-		return ComboBox_ResetContent(hWnd);
-	}
+	int ResetContent() { return ComboBox_ResetContent(hWnd); }
 
 	/*Limits the length of the text the user may type into the edit control of a combo box.*/
-	inline int SetLimit(int cchMax)
-	{
-		return ComboBox_LimitText(hWnd, cchMax);
-	}
+	inline int SetLimit(int cchMax) { return ComboBox_LimitText(hWnd, cchMax); }
 };
 
 template<bool>
@@ -1560,21 +1289,11 @@ class WND_LIST__
 
 
 public:
-	WND_LIST__()
-	{
-		hWnd = NULL;
-	}
+	WND_LIST__(){hWnd = NULL;}
 
+	WND_LIST__(EX_WND Wnd){hWnd = Wnd;}
 
-	WND_LIST__(EX_WND Wnd)
-	{
-		hWnd = Wnd;
-	}
-
-	operator EX_WND()
-	{
-		return hWnd;
-	}
+	operator EX_WND(){return hWnd;}
 
 	class COLUMN
 	{
@@ -1748,21 +1467,11 @@ public:
 			return Col;
 		}
 
-		inline BOOL operator()(LPLVCOLUMNA Column)
-		{
-			return (BOOL)SendMessageA(hWnd, LVM_SETCOLUMNA, (WPARAM)Index, (LPARAM)Column);
-		}
+		inline BOOL operator()(LPLVCOLUMNA Column) {return (BOOL)SendMessageA(hWnd, LVM_SETCOLUMNA, (WPARAM)Index, (LPARAM)Column);}
 
-		inline BOOL operator()(LPLVCOLUMNW Column)
-		{
-			return (BOOL)SendMessageW(hWnd, LVM_SETCOLUMNW, (WPARAM)Index, (LPARAM)Column);
-		}
+		inline BOOL operator()(LPLVCOLUMNW Column) {return (BOOL)SendMessageW(hWnd, LVM_SETCOLUMNW, (WPARAM)Index, (LPARAM)Column);}
 
-		inline LPLVCOLUMNA operator=(LPLVCOLUMNA Column)
-		{
-			SendMessageA(hWnd, LVM_SETCOLUMNA, (WPARAM)Index, (LPARAM)Column);
-			return Column;
-		}
+		inline LPLVCOLUMNA operator=(LPLVCOLUMNA Column){ SendMessageA(hWnd, LVM_SETCOLUMNA, (WPARAM)Index, (LPARAM)Column);return Column; }
 
 		inline LPLVCOLUMNW operator=(LPLVCOLUMNW Column)
 		{
@@ -1770,10 +1479,7 @@ public:
 			return Column;
 		}
 
-		inline BOOL Delete()
-		{
-			return ListView_DeleteColumn(hWnd, Index);
-		}
+		inline BOOL Delete() { return ListView_DeleteColumn(hWnd, Index); }
 	};
 
 	class SUBITEM
@@ -1890,10 +1596,7 @@ public:
 					ListView_GetSubItemRect(hWnd, Index, SubItem,LVIR_ICON,&Rect);
 					return Rect;
 				}
-				inline BOOL operator()(LPRECT Rect)
-				{
-					return ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_ICON ,Rect);
-				}
+				inline BOOL operator()(LPRECT Rect) { return ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_ICON ,Rect); }
 			} RectIcon;
 
 			class
@@ -1911,10 +1614,7 @@ public:
 					ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_BOUNDS ,&Rect);
 					return Rect;
 				}
-				inline BOOL operator()(LPRECT Rect)
-				{
-					return ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_BOUNDS ,Rect);
-				}
+				inline BOOL operator()(LPRECT Rect) { return ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_BOUNDS ,Rect); }
 
 			} RectBonus;
 
@@ -1933,11 +1633,7 @@ public:
 					ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_LABEL,&Rect);
 					return Rect;
 				}
-				inline BOOL operator()(LPRECT Rect)
-				{
-					return ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_LABEL ,Rect);
-				}
-
+				inline BOOL operator()(LPRECT Rect) { return ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_LABEL ,Rect); }
 			} RectLabel;
 
 			class 
@@ -2074,7 +1770,7 @@ public:
 					int Index;
 				};
 			public:
-				inline operator UINT()
+				inline operator UINT() const
 				{
 					return ListView_GetItemState(hWnd, Index, LVIS_CUT|LVIS_DROPHILITED|LVIS_FOCUSED|LVIS_SELECTED|LVIS_OVERLAYMASK|LVIS_STATEIMAGEMASK);
 				}
@@ -2090,10 +1786,7 @@ public:
 					return NewState;
 				}
 
-				inline void operator()(UINT NewState, UINT Mask)
-				{
-					ListView_SetItemState(hWnd, Index, NewState, Mask);
-				}
+				inline void operator()(UINT NewState, UINT Mask) { ListView_SetItemState(hWnd, Index, NewState, Mask); }
 			} State;
 
 			class
@@ -2104,10 +1797,7 @@ public:
 					int Index;
 				};
 			public:
-				operator bool()
-				{
-					return ListView_IsItemVisible(hWnd,Index) == TRUE;
-				}
+				operator bool() const { return ListView_IsItemVisible(hWnd,Index) == TRUE; }
 			} IsVisible;
 		};
 
@@ -2117,25 +1807,13 @@ public:
 			this->Index = Index;
 		}
 
-		HWND EditLabel()
-		{
-			return ListView_EditLabel(hWnd, Index);
-		}
+		HWND EditLabel() { return ListView_EditLabel(hWnd, Index); }
 
-		inline BOOL Delete()
-		{
-			return ListView_DeleteItem(hWnd, Index);
-		}
+		inline BOOL Delete() { return ListView_DeleteItem(hWnd, Index); }
 
-		inline BOOL Update()
-		{
-			return ListView_Update(hWnd, Index);
-		}
+		inline BOOL Update() { return ListView_Update(hWnd, Index); }
 
-		inline SUBITEM operator[](int SubItem)
-		{
-			return SUBITEM(hWnd, Index, SubItem);
-		}
+		inline SUBITEM operator[](int SubItem) { return SUBITEM(hWnd, Index, SubItem); }
 	};
 
 	union
@@ -2147,30 +1825,22 @@ public:
 			EX_WND_FIELD_AND_METHODS;
 		};
 
-		class 
-		{
+		class {
 			HWND hWnd;
 		public:
-			inline operator COLORREF()
-			{
-				return ListView_GetBkColor(hWnd);
-			}
+			inline operator COLORREF() const { return ListView_GetBkColor(hWnd); }
 
-			inline COLORREF operator=(COLORREF Val)
+			inline COLORREF operator=(COLORREF Val) 
 			{
 				ListView_SetBkColor(hWnd,Val);
 				return Val;
 			}
 		} BkColor;
 
-		class 
-		{
+		class {
 			HWND hWnd;
 		public:
-			inline operator COLORREF()
-			{
-				return ListView_GetTextColor(hWnd);
-			}
+			inline operator COLORREF() const { return ListView_GetTextColor(hWnd); }
 
 			inline COLORREF operator=(COLORREF Val)
 			{
@@ -2179,14 +1849,10 @@ public:
 			}
 		} TextColor;
 
-		class 
-		{
+		class {
 			HWND hWnd;
 		public:
-			inline operator COLORREF()
-			{
-				return ListView_GetTextBkColor(hWnd);
-			}
+			inline operator COLORREF() const { return ListView_GetTextBkColor(hWnd); }
 
 			inline COLORREF operator=(COLORREF Val)
 			{
@@ -2195,19 +1861,14 @@ public:
 			}
 		} TextBkColor;
 
-		class
-		{
-
+		class{
 		public:
-			union
-			{
+			union{
 				HWND hWnd;
-
-				class
-				{
+				class{
 					HWND hWnd;
 				public:
-					inline operator int()
+					inline operator int() const
 					{
 						LV_COLUMNW Col = {LVCF_FMT};
 						int Count = 0;
@@ -2225,16 +1886,10 @@ public:
 						friend __CUR_SEL;
 						HWND hWnd;
 					public:
-						operator unsigned()
-						{
-							return ListView_GetSelectedCount(hWnd);
-						}
+						operator unsigned() const { return ListView_GetSelectedCount(hWnd); }
 					} Count;
 
-					inline operator int()
-					{
-						return ListView_GetSelectedColumn(Count.hWnd);
-					}
+					inline operator int() const { return ListView_GetSelectedColumn(Count.hWnd); }
 
 					inline operator COLUMN()
 					{
@@ -2262,10 +1917,7 @@ public:
 				} CurSel;
 			};
 
-			inline COLUMN operator[](int Index)
-			{
-				return COLUMN(hWnd, Index);
-			}
+			inline COLUMN operator[](int Index) { return COLUMN(hWnd, Index); }
 
 			inline COLUMN New()
 			{
@@ -2313,15 +1965,9 @@ public:
 				{
 					HWND hWnd;
 				public:
-					inline operator int()
-					{
-						return ListView_GetItemCount(hWnd);
-					}
+					inline operator int() const { return ListView_GetItemCount(hWnd); }
 
-					inline int operator=(int NewCount)
-					{
-						return ListView_SetItemCount(hWnd, NewCount);
-					}
+					inline int operator=(int NewCount) { return ListView_SetItemCount(hWnd, NewCount); }
 				} Count;
 
 				class
@@ -2329,15 +1975,9 @@ public:
 					HWND hWnd;
 				public:
 
-					inline operator int()
-					{
-						return  ListView_GetHotItem(hWnd);
-					}
+					inline operator int() const { return  ListView_GetHotItem(hWnd); }
 
-					inline int operator=(int Index)
-					{
-						return ListView_SetHotItem(hWnd, Index);
-					}
+					inline int operator=(int Index) { return ListView_SetHotItem(hWnd, Index); }
 
 					inline operator ITEM()
 					{
@@ -2359,10 +1999,7 @@ public:
 				} CurSel;
 			};
 
-			inline ITEM operator [](int Index)
-			{
-				return ITEM(hWnd, Index);
-			}
+			inline ITEM operator [](int Index) { return ITEM(hWnd, Index); }
 
 			ITEM New()
 			{
@@ -2413,10 +2050,7 @@ public:
 				return ITEM(hWnd, Index);
 			}
 
-			BOOL DeleteAll()
-			{
-				return ListView_DeleteAllItems(hWnd);
-			}
+			BOOL DeleteAll() { return ListView_DeleteAllItems(hWnd); }
 		} Items;
 
 		/*
@@ -2427,10 +2061,7 @@ public:
 		{
 			HWND hWnd;
 		public:
-			operator DWORD()
-			{
-				return ListView_GetExtendedListViewStyle(hWnd);
-			}
+			operator DWORD() const { return ListView_GetExtendedListViewStyle(hWnd); }
 
 			DWORD operator=(DWORD Val)
 			{
@@ -2456,10 +2087,7 @@ public:
 		{
 			HWND hWnd;
 		public:
-			operator bool()
-			{
-				return ListView_GetExtendedListViewStyle(hWnd) & LVS_EX_GRIDLINES;
-			}
+			operator bool() const { return ListView_GetExtendedListViewStyle(hWnd) & LVS_EX_GRIDLINES; }
 
 			bool operator=(bool Val)
 			{

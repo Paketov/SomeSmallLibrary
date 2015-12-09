@@ -110,15 +110,9 @@ public:
 		{
 			friend HASH_TABLE;
 			EXHASH_TABLE_FIELDS;
-			inline TINDEX operator =(TINDEX NewVal)
-			{
-				return CountUsed = NewVal;
-			}
+			inline TINDEX operator =(TINDEX NewVal) { return CountUsed = NewVal; }
 		public:
-			inline operator TINDEX() const
-			{
-				return CountUsed;
-			}
+			inline operator TINDEX() const { return CountUsed; }
 		} CountUsed;
 
 
@@ -183,35 +177,17 @@ public:
 
 	static const TINDEX EmptyElement = NothingIndex;
 
-	static inline bool isHaveChain(LPCELL pCell)
-	{
-		return pCell->iStart != NothingIndex;
-	}
+	static inline bool isHaveChain(LPCELL pCell) { return pCell->iStart != NothingIndex; }
 
-	static inline bool isHaveNextChain(LPCELL pCell)
-	{
-		return pCell->iNext != NothingIndex;
-	}
+	static inline bool isHaveNextChain(LPCELL pCell) { return pCell->iNext != NothingIndex; }
 
-	inline TINDEX IndexByHash(THASHKEY HashKey) const
-	{
-		return TElementStruct::IndexByHashKey(HashKey, MaxCount);
-	}
+	inline TINDEX IndexByHash(THASHKEY HashKey) const { return TElementStruct::IndexByHashKey(HashKey, MaxCount); }
 
-	inline TINDEX StartIndexByHash(THASHKEY HashKey) const
-	{
-		return (GetTable() + TElementStruct::IndexByHashKey(HashKey, MaxCount))->iStart;
-	}
+	inline TINDEX StartIndexByHash(THASHKEY HashKey) const { return (GetTable() + TElementStruct::IndexByHashKey(HashKey, MaxCount))->iStart; }
 
-	inline LPCELL ElementByHash(THASHKEY HashKey)
-	{
-		return GetTable() + TElementStruct::IndexByHashKey(HashKey, MaxCount);
-	}
+	inline LPCELL ElementByHash(THASHKEY HashKey) { return GetTable() + TElementStruct::IndexByHashKey(HashKey, MaxCount); }
 
-	inline LPCELL operator[](TINDEX Index)
-	{
-		return GetTable() + Index;
-	}
+	inline LPCELL operator[](TINDEX Index) { return GetTable() + Index; }
 
 	template<typename TKey>
 	inline LPCELL AddElement(LPCELL HashCell, TKey InitKey)
@@ -429,6 +405,7 @@ public:
 
 	//========================================================
 
+	/*Interator type*/
 	typedef struct TINTER
 	{
 		friend HASH_TABLE;
@@ -442,22 +419,13 @@ public:
 		    	TINDEX CurStartList;
 				TINDEX CurElementInList;
 			public:
-				inline operator bool() const
-				{
-					return CurStartList == EmptyElement;
-				}
+				inline operator bool() const { return CurStartList == EmptyElement; }
 			} IsEnd;
 		};
 
-		void StartAgain()
-		{
-			IsEnd.CurStartList = EmptyElement;
-		}
+		void StartAgain() { IsEnd.CurStartList = EmptyElement; }
 
-		TINTER()
-		{
-			StartAgain();
-		}
+		TINTER() { StartAgain(); }
 	} TINTER, *LPTINTER;
 
 	bool Interate(LPTINTER SetInterator) const
@@ -506,10 +474,7 @@ public:
 		return true;
 	}
 
-	LPCELL CellByInterator(const LPTINTER SetInterator) const
-	{
-		return GetTable() + SetInterator->IsEnd.CurElementInList;
-	}
+	LPCELL CellByInterator(const LPTINTER SetInterator) const { return GetTable() + SetInterator->IsEnd.CurElementInList; }
 
 	template<typename TKey>
 	bool InteratorByKey(TKey SearchKey, LPTINTER Interator)
@@ -743,10 +708,7 @@ struct HASH_ELEMENT_STRING
 	DataType  Val;
 
 	//Get hash key
-	unsigned HashKey()    
-	{
-		return GenHashKey(KeyVal);
-	}
+	unsigned HashKey() { return GenHashKey(KeyVal); }
 
 	/*
 		Set key value for Insert() function
@@ -774,10 +736,7 @@ struct HASH_ELEMENT_STRING
 	}
 
 	//Get index in hash array by key value
-	static unsigned short IndexByHashKey(unsigned k, unsigned char MaxCount)
-	{
-		return k % MaxCount;
-	}	
+	static unsigned short IndexByHashKey(unsigned k, unsigned char MaxCount) { return k % MaxCount; }	
 
 	//Get hash key by key value
 	inline static unsigned GenHashKey(const CharType* vKey)	
@@ -967,8 +926,6 @@ public:
 			return nullptr;
 		return &(Cell->Val);
 	}
-
-
 
 };
 

@@ -634,10 +634,7 @@ public:
 	}
 
 		template<typename RetType>
-		inline operator RetType*()
-		{
-			return (RetType*)this;
-		}
+		inline operator RetType*() { return (RetType*)this; }
 
 		inline sockaddr& operator =(const sockaddr& New)
 		{
@@ -665,15 +662,9 @@ public:
 			{
 				SOCKET_ADDR_FIELDS;
 			public:
-				inline operator int() const
-				{ 
-					return Addr.sa_family; 
-				}
+				inline operator int() const { return Addr.sa_family; }
 
-				inline int operator =(int Fam)
-				{ 
-					return Addr.sa_family = Fam; 
-				}
+				inline int operator =(int Fam) { return Addr.sa_family = Fam; }
 			} ProtocolFamily;
 
 			class ___PORT
@@ -805,10 +796,7 @@ public:
 		}
 		friend __QUERY_URL;
 
-		operator addrinfo*() const
-		{
-			return HostName.ai;
-		}
+		operator addrinfo*() const { return HostName.ai; }
 
 		void InitFields()
 		{
@@ -822,25 +810,15 @@ public:
 		{
 			friend __QUERY_URL;
 
-			inline operator addrinfo*() const
-			{
-				return Ip.ca;
-			}
+			inline operator addrinfo*() const { return Ip.ca; }
 
-			SOCKET_ADDR& GetSocketAddr()
-			{
-				return (SOCKET_ADDR&)Ip.ca;
-			}
+			SOCKET_ADDR& GetSocketAddr() { return (SOCKET_ADDR&)Ip.ca; }
 
 		public:
-			ADDRESS_INTERATOR(addrinfo * CurAddr)
-			{
-				Ip.ca = CurAddr;
-			}
+			ADDRESS_INTERATOR(addrinfo * CurAddr) { Ip.ca = CurAddr; }
 			union
 			{
-				class
-				{
+				class {
 					addrinfo * ca;
 				public:
 					operator TPORT()
@@ -880,54 +858,34 @@ public:
 
 				} Ip;
 
-				class
-				{
+				class{
 					addrinfo * ca;
 				public:
-					inline operator int() const
-					{
-						return ((SOCKET_ADDR*)ca->ai_addr)->ProtocolFamily;
-					}
+					inline operator int() const { return ((SOCKET_ADDR*)ca->ai_addr)->ProtocolFamily; }
 				} ProtocolFamily;
 
-				class
-				{
+				class{
 					addrinfo * ca;
 				public:
-					inline operator int() const
-					{
-						return ca->ai_socktype;
-					}
+					inline operator int() const { return ca->ai_socktype; }
 				} TypeSocket;
 
-				class
-				{
+				class{
 					addrinfo * ca;
 				public:
-					inline operator int() const
-					{
-						return ca->ai_protocol;
-					}
+					inline operator int() const { return ca->ai_protocol; }
 				} Protocol;
 
-				class
-				{
+				class{
 					addrinfo * ca;
 				public:
-					inline operator int() const
-					{
-						return ca->ai_flags;
-					}
+					inline operator int() const { return ca->ai_flags; }
 				} Flags;
 
-				class
-				{
+				class{
 					addrinfo * ca;
 				public:
-					inline operator char*() const
-					{
-						return ca->ai_canonname;
-					}
+					inline operator char*() const { return ca->ai_canonname; }
 				} CanonicalName;
 			};
 		};
@@ -967,25 +925,13 @@ public:
 			{		
 				ADDRESS_INFO_FIELDS;
 				friend ADDRESS_INFO;
-				int operator =(int nErr)
-				{
-					return iError = nErr;
-				}
+				int operator =(int nErr) { return iError = nErr;}
 			public:
-				operator const char *()
-				{
-					return strerror(iError);
-				}
+				operator const char *() { return strerror(iError); }
 
-				int GetNumber()
-				{
-					return iError;
-				}
+				int GetNumber() { return iError; }
 
-				void Clear()
-				{
-					iError = 0;
-				}
+				void Clear() { iError = 0; }
 			} LastError;
 
 			class
@@ -993,10 +939,7 @@ public:
 				friend ADDRESS_INFO;
 				ADDRESS_INFO_FIELDS;
 			public:
-				operator const char*()
-				{
-					return HostName->c_str();
-				}
+				operator const char*() { return HostName->c_str(); }
 
 				const char* operator= (const char* New)
 				{
@@ -1016,10 +959,7 @@ public:
 				ADDRESS_INFO_FIELDS;
 
 			public:
-				operator const char*()
-				{
-					return PortName->c_str();
-				}
+				operator const char*() { return PortName->c_str(); }
 
 				const char* operator= (const char* New)
 				{
@@ -1111,46 +1051,26 @@ public:
 		{
 			unsigned char f;
 			TDESCR        d;
-			inline TDESCR GetDescriptor()
-			{
-			   return d;
-			}
-			inline void SetDescriptor(TDESCR nd)
-			{
-				d = nd;
-			}
+			inline TDESCR GetDescriptor() { return d;}
+
+			inline void SetDescriptor(TDESCR nd) { d = nd; }
 						
-			inline __QUERY_URL* GetSock()
-			{
-			   return nullptr;
-			}
-			inline void SetSock(__QUERY_URL* ns)
-			{
-				d = ns->RemoteIp.hSocket;
-			}
+			inline __QUERY_URL* GetSock() { return nullptr; }
+
+			inline void SetSock(__QUERY_URL* ns) { d = ns->RemoteIp.hSocket; }
 		};
 				
 		struct ELEM_SOCK
 		{
 			unsigned char f;
 			__QUERY_URL*   s;
-			inline TDESCR GetDescriptor()
-			{
-			   return s->RemoteIp.hSocket;
-			}
-			inline void SetDescriptor(TDESCR nd)
-			{
-				s->RemoteIp.hSocket = nd;
-			}
+			inline TDESCR GetDescriptor() { return s->RemoteIp.hSocket; }
+
+			inline void SetDescriptor(TDESCR nd) { s->RemoteIp.hSocket = nd; }
 						
-			inline __QUERY_URL* GetSock()
-			{
-			   return s;
-			}
-			inline void SetSock(__QUERY_URL* ns)
-			{
-				s = ns;
-			}
+			inline __QUERY_URL* GetSock() { return s; }
+			
+			inline void SetSock(__QUERY_URL* ns) { s = ns; }
 		};
 
 		typedef typename std::conditional<IsUseQuerUrl, ELEM_SOCK, ELEM_DESCR>::type ELEM;
@@ -1205,14 +1125,10 @@ public:
 			   __INTERATOR_PROPERTY__r(IsAdoptedRead,  rdf);
 			   __INTERATOR_PROPERTY__r(IsAdoptedError, edf);
 
-			   class
-			   {
+			   class {
 				    __INTERATOR_FIELDS__;
 			   public:
-				   inline operator TDESCR() const
-				   {
-					   return This->Count.e[Index].GetDescriptor();
-				   }
+				   inline operator TDESCR() const { return This->Count.e[Index].GetDescriptor(); }
 			   } Descriptor;
 
 			   class
@@ -1276,10 +1192,7 @@ public:
 				friend CHECK_EVENTS_SEL;
 				__WAIT_CHANGES_FIELDS__
 			public:
-				inline operator unsigned()
-				{
-					return CountSockets;
-				}
+				inline operator unsigned() { return CountSockets; }
 			} Count;
 		};
 				
@@ -1393,24 +1306,17 @@ public:
 			   __INTERATOR_PROPERTY__r(IsAdoptedDisconnected, POLLHUP);
 			   __INTERATOR_PROPERTY__r(IsAdoptedNotFile, POLLNVAL);
 
-			   class
-			   {
+			   class{
 				   __INTERATOR_FIELDS__;
 			   public:
-				   inline operator decltype(std::declval<pollfd>().revents)() const
-				   {
-					   return This->Count.pfd[Index].revents;
-				   }
+				   inline operator decltype(std::declval<pollfd>().revents)() const { return This->Count.pfd[Index].revents; }
 			   } ReturnedEvents;
 
 			   class
 			   {
 				   __INTERATOR_FIELDS__;
 			   public:
-				   inline operator decltype(std::declval<pollfd>().events)() const
-				   {
-					   return This->Count.pfd[Index].events;
-				   }
+				   inline operator decltype(std::declval<pollfd>().events)() const { return This->Count.pfd[Index].events; }
 
 				   inline decltype(std::declval<pollfd>().events) operator=(decltype(std::declval<pollfd>().events) v)
 				   {
@@ -1423,10 +1329,7 @@ public:
 			   {
 				    __INTERATOR_FIELDS__;
 			   public:
-				   inline operator decltype(std::declval<pollfd>().fd)() const
-				   {
-					   return This->Count.pfd[Index].fd;
-				   }	   
+				   inline operator decltype(std::declval<pollfd>().fd)() const { return This->Count.pfd[Index].fd; }	   
 			   } Descriptor;
 
 			   class
@@ -1497,15 +1400,11 @@ public:
 
 		union
 		{
-			class
-			{
+			class{
 				friend CHECK_EVENTS_POL;
 				__WAIT_CHANGES_FIELDS__
 			public:
-				inline operator unsigned()
-				{
-				    return CountSockets;
-				}
+				inline operator unsigned() { return CountSockets; }
 			} Count;
 		};
 
@@ -1582,10 +1481,7 @@ protected:
 	{
 #define PROTOCOL_INTERATOR_FIELDS struct protoent * Cur;
 
-		inline PROTOCOL_INTERATOR(struct protoent * New)
-		{
-			Name.Cur = New;
-		}
+		inline PROTOCOL_INTERATOR(struct protoent * New) { Name.Cur = New; }
 
 		union
 		{
@@ -1716,14 +1612,10 @@ protected:
 				}
 			} UsedProtocol;
 
-			class
-			{
+			class {
 				PORT_SERVICE_INTERATOR_FIELDS;
 			public:
-				operator bool()
-				{ 
-					return Cur == nullptr;
-				}
+				operator bool() const { return Cur == nullptr; }
 			} NotHave;
 
 			struct P_NAME
@@ -1756,10 +1648,7 @@ protected:
 	struct NET_INTERATOR
 	{
 #define PROTOCOL_INTERATOR_FIELDS struct netent * Cur;
-		inline NET_INTERATOR(struct netent * New)
-		{
-			Name.Cur = New;
-		}
+		inline NET_INTERATOR(struct netent * New) { Name.Cur = New; }
 
 		union
 		{
@@ -1808,10 +1697,7 @@ protected:
 			{
 				PROTOCOL_INTERATOR_FIELDS;
 			public:
-				inline operator bool()
-				{ 
-					return Cur == nullptr;
-				}
+				inline operator bool() const { return Cur == nullptr; }
 			} NotHave;
 
 			struct P_NAME
@@ -1895,10 +1781,7 @@ protected:
 			{
 				INFO_HOST_INTERATOR_FIELDS;
 			public:
-				inline operator bool()
-				{ 
-					return Cur == nullptr;
-				}
+				inline operator bool() const { return Cur == nullptr; }
 			} NotHave;
 
 			struct P_NAME
@@ -1937,10 +1820,7 @@ protected:
 						AddrType = nAddrType;
 					}
 
-					inline operator void*()
-					{
-						return Cur;
-					}
+					inline operator void*() {return Cur;}
 
 					char* operator()(char * Dest, size_t Len = 0xffff)
 					{
@@ -1984,20 +1864,11 @@ protected:
 
 	virtual void EvntUninitFields(){}
 
-	virtual bool EvntBind()
-	{
-		return true;
-	}
+	virtual bool EvntBind(){return true;}
 
-	virtual bool EvntConnect()
-	{
-		return true;
-	}
+	virtual bool EvntConnect() { return true;}
 
-	virtual bool EvntAcceptClient(TDESCR ClientDescr)
-	{
-		return true;
-	}
+	virtual bool EvntAcceptClient(TDESCR ClientDescr) { return true; }
 	
 	virtual int EvntGetCountPandingData()
 	{
@@ -2017,25 +1888,13 @@ protected:
 #endif
 	}
 
-	virtual bool EvntIsNotHaveRecvData()
-	{
-	   return (CountPandingData <= 0) && IsRecivedFin;
-	}
+	virtual bool EvntIsNotHaveRecvData() { return (CountPandingData <= 0) && IsRecivedFin; }
 
-	virtual bool EvntBeforeShutdown(int How)
-	{
-		return true;
-	}
+	virtual bool EvntBeforeShutdown(int How) { return true; }
 
-	virtual bool EvntBeforeClose()
-	{
-		return true;
-	}
+	virtual bool EvntBeforeClose() { return true; }
 
-	void SetLastErr(int Num)
-	{
-		LastError = Num;
-	}
+	void SetLastErr(int Num) { LastError = Num; }
 
 	void InitFields()
 	{
@@ -2074,8 +1933,6 @@ protected:
 		return getsockopt(hSocket, Level, Option, (char*)&New, &l);
 	}
 
-
-
 public:
 
 	union
@@ -2088,29 +1945,17 @@ public:
 			friend __QUERY_URL;
 			_QUERY_URL_FIELDS1_;
 
-			int operator =(int nErr)
-			{
-				return iError = nErr;
-			}
+			int operator =(int nErr) { return iError = nErr; }
 
 		public:
 			//Get string description error
-			inline operator const char *()
-			{
-				return strerror(iError);
-			}
+			inline operator const char *() { return strerror(iError); }
 
 			//Get number error
-			inline int GetNumber()
-			{
-				return iError;
-			}
+			inline int GetNumber() { return iError; }
 
 			//Set err to OK state
-			inline void Clear()
-			{
-				iError = 0;
-			}
+			inline void Clear() { iError = 0; }
 		} LastError;
 
 		/*
@@ -2269,10 +2114,7 @@ public:
 				return Buf;
 			}
 
-			inline PORT_SERVICE_INTERATOR GetInfo() const
-			{
-				return GetSystemService(operator TPORT());
-			}
+			inline PORT_SERVICE_INTERATOR GetInfo() const { return GetSystemService(operator TPORT()); }
 		} LocalPort;
 
 		/*
@@ -2371,27 +2213,15 @@ public:
 		IPPROTO_ ...
 		This property specifies the protocol for the returned socket addresses.
 		*/
-		class
-		{
+		class{
 			_QUERY_URL_FIELDS1_;
-			inline int operator=(int NewVal)
-			{
-				return ProtocolType = NewVal;
-			}
+			inline int operator=(int NewVal) { return ProtocolType = NewVal; }
 		public:
-			operator int() const
-			{
-				return ProtocolType;
-			}
-			operator char*() const
-			{
-				return GetSystemProtocol(ProtocolType).Name;
-			}
+			operator int() const { return ProtocolType; }
 
-			inline PROTOCOL_INTERATOR GetInfo() const
-			{
-				return GetSystemProtocol(ProtocolType);
-			}
+			operator char*() const { return GetSystemProtocol(ProtocolType).Name; }
+
+			inline PROTOCOL_INTERATOR GetInfo() const { return GetSystemProtocol(ProtocolType); }
 		} Protocol;
 
 		/*
@@ -2430,27 +2260,19 @@ public:
 		/*
 		    Get count data in recive buffer.
 		*/
-		class 
-		{
+		class  {
 			_QUERY_URL_FIELDS1_;
 		public:
-			inline operator int() const
-			{
-				return __QUERY_URL_PROPERTY_THIS->EvntGetCountPandingData();
-			}
+			inline operator int() const { return __QUERY_URL_PROPERTY_THIS->EvntGetCountPandingData(); }
 		} CountPandingData;
 
 		/*
 		     Get open state.
 		*/
-		class
-		{			
+		class{			
 			_QUERY_URL_FIELDS1_;
 		public:
-			inline operator bool()
-			{
-				return hSocket != INVALID_SOCKET;
-			}
+			inline operator bool() const { return hSocket != INVALID_SOCKET; }
 		} IsOpen;
 
 		/*
@@ -2460,17 +2282,13 @@ public:
 		{
 		_QUERY_URL_FIELDS1_;
 		public:
-			inline operator TDESCR()
-			{
-			   return hSocket;
-			}
+			inline operator TDESCR() { return hSocket; }
 		} Descriptor;
 
 		/*
 			Is remote host send fin flag in packet.
 		*/
-		class
-		{			
+		class{			
 			_QUERY_URL_FIELDS1_;
 		public:
 			operator bool() const
@@ -2493,10 +2311,7 @@ public:
 		{			
 			_QUERY_URL_FIELDS1_;
 		public:
-			inline operator bool() const
-			{
-				return __QUERY_URL_PROPERTY_THIS->EvntIsNotHaveRecvData();
-			}
+			inline operator bool() const { return __QUERY_URL_PROPERTY_THIS->EvntIsNotHaveRecvData(); }
 		} IsNotHaveRecvData;
 
 		/*
@@ -2549,15 +2364,9 @@ public:
 			/*
 			Index as SO_ ...
 			*/
-			OPTION_INTERATOR operator[](int OptIndex)
-			{
-				return OPTION_INTERATOR(SOL_SOCKET, hSocket, OptIndex);
-			}
+			OPTION_INTERATOR operator[](int OptIndex) { return OPTION_INTERATOR(SOL_SOCKET, hSocket, OptIndex); }
 
-			OPTION_INTERATOR operator()(int OptIndex, int nLevel)
-			{
-				return OPTION_INTERATOR(nLevel, hSocket, OptIndex);
-			}
+			OPTION_INTERATOR operator()(int OptIndex, int nLevel) { return OPTION_INTERATOR(nLevel, hSocket, OptIndex); }
 
 		} Options;
 
@@ -3458,60 +3267,42 @@ public:
 	example:
 	char * ProtocolName = GetSystemProtocol(IPPROTO_TCP).Name; //ProtocolName eq. "tcp"
 	*/
-	static PROTOCOL_INTERATOR GetSystemProtocol(int Index)
-	{
-		return PROTOCOL_INTERATOR(getprotobynumber(Index));
-	}
+	static PROTOCOL_INTERATOR GetSystemProtocol(int Index) { return PROTOCOL_INTERATOR(getprotobynumber(Index)); }
 
 	/*
 	Get info about protocol by name string
 	example:
 	int ProtocolIndex = GetSystemProtocol("ip").Index; //ProtocolIndex eq. 0
 	*/
-	static PROTOCOL_INTERATOR GetSystemProtocol(const char * Name)
-	{
-		return PROTOCOL_INTERATOR(getprotobyname(Name));
-	}
+	static PROTOCOL_INTERATOR GetSystemProtocol(const char * Name) { return PROTOCOL_INTERATOR(getprotobyname(Name)); }
 
 	/*
 	Get info about service by port number
 	example:
 	char * PortServiceName = GetSystemService(80).Name; //ProtocolName eq. "http"
 	*/
-	static PORT_SERVICE_INTERATOR GetSystemService(int PortNumber, const char * Prot = nullptr)
-	{
-		return PORT_SERVICE_INTERATOR(getservbyport(htons(PortNumber), Prot));
-	}
+	static PORT_SERVICE_INTERATOR GetSystemService(int PortNumber, const char * Prot = nullptr) { return PORT_SERVICE_INTERATOR(getservbyport(htons(PortNumber), Prot)); }
 
 	/*
 	Get info about service by name
 	example:
 	int Port = GetSystemProtocol("http").Port; //ProtocolIndex eq. 80
 	*/
-	static PORT_SERVICE_INTERATOR GetSystemService(const char * Name, const char * Prot = nullptr)
-	{
-		return PORT_SERVICE_INTERATOR(getservbyname(Name, Prot));
-	}
+	static PORT_SERVICE_INTERATOR GetSystemService(const char * Name, const char * Prot = nullptr)  { return PORT_SERVICE_INTERATOR(getservbyname(Name, Prot)); }
 
 	/*
 	Get info about network by number
 	example:
 	int NumNet = GetSystemNetwork("loop").NumberNet; //ProtocolIndex eq. 127.0.0.0
 	*/
-	static NET_INTERATOR GetSystemNetwork(long net, int type)
-	{
-		return NET_INTERATOR(getnetbyaddr(net, type));
-	}
+	static NET_INTERATOR GetSystemNetwork(long net, int type) { return NET_INTERATOR(getnetbyaddr(net, type)); }
 
 	/*
 	Get info about network by Name
 	example:
 	int NumNet = GetSystemNetwork("loop").NumberNet; //ProtocolIndex eq. 127.0.0.0
 	*/
-	static NET_INTERATOR GetSystemNetwork(const char * Name)
-	{
-		return NET_INTERATOR(getnetbyname(Name));
-	}
+	static NET_INTERATOR GetSystemNetwork(const char * Name) { return NET_INTERATOR(getnetbyname(Name)); }
 
 	/*
 	Get info about host by address
@@ -3522,20 +3313,14 @@ public:
 	example:
 	std::string strAddr = Url.GetInfoAboutHost("google.com").Addresses[0]; //strAddr eq. "173.194.122.197"
 	*/
-	static INFO_HOST_INTERATOR GetInfoAboutHost(const void * Addr, int Len, int Type)
-	{
-		return INFO_HOST_INTERATOR(gethostbyaddr((const char*)Addr, Len, Type));
-	}
+	static INFO_HOST_INTERATOR GetInfoAboutHost(const void * Addr, int Len, int Type) { return INFO_HOST_INTERATOR(gethostbyaddr((const char*)Addr, Len, Type)); }
 
 	/*
 	Get info about host by name or address in string
 	example:
 	std::string strAddr = Url.GetInfoAboutHost("google.com").Addresses[0]; //strAddr eq. "173.194.122.197"
 	*/
-	static INFO_HOST_INTERATOR GetInfoAboutHost(const char * NameOrTextAddress)
-	{
-		return INFO_HOST_INTERATOR(gethostbyname(NameOrTextAddress));
-	}
+	static INFO_HOST_INTERATOR GetInfoAboutHost(const char * NameOrTextAddress) { return INFO_HOST_INTERATOR(gethostbyname(NameOrTextAddress)); }
 
 	/*
 	Connect with server at a specific address.
@@ -4205,10 +3990,7 @@ lblTryAgain:
 		return WritenSize;
 	}
 
-	inline int Send(const std::basic_string<char> & InQuery)
-	{
-		return Send((const void*)InQuery.c_str(), InQuery.length());
-	}
+	inline int Send(const std::basic_string<char> & InQuery) { return Send((const void*)InQuery.c_str(), InQuery.length()); }
 
 	/*
 	 Recive via recv socket function.
