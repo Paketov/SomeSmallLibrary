@@ -42,8 +42,6 @@ Example:
 
 	//Проверяем обученность
 	double Err = Net.Recognize(In, TestOut);
-
-
 */
 
 template<typename TypeNum = int>
@@ -140,7 +138,7 @@ private:
 				} SumWeigths;
 			};
 
-			/*Задать определённое значение всем входным весам*/
+			/*Задать определённое значение всем входным весам.*/
 			inline void SetWeights(TypeNum SetVal)
 			{
 				for(TypeNum* v = Count.v->get_row() + Count.i * Count.v->get_count_prev(), *m = v + Count.v->get_count_prev(); v < m; v++)
