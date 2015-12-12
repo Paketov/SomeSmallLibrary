@@ -47,8 +47,7 @@ class EX_ARG
 	bool i;\
 	}
 public:
-	union
-	{
+	union{
 		class{
 			friend EX_ARG;
 			_EX_ARG_FIELDS;
@@ -121,8 +120,6 @@ private:
 	}
 
 public:
-
-
 
 	class INTERATOR
 	{

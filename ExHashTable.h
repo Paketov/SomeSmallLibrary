@@ -7,73 +7,72 @@
 #include "ExTypeTraits.h"
 
 /*
-	ExHashTable
-	Paketov
-	2015
+ExHashTable
+Paketov
+2015
 
-	Low level hash table.
+Low level hash table.
 Example:
 
-	typedef struct HASH_ELEMENT
-	{
-		unsigned vKey;
-		double   Val;
+typedef struct HASH_ELEMENT
+{
+unsigned vKey;
+double   Val;
 
-		//Get key value
-		unsigned HashKey()    
-		{
-			return vKey;
-		}
+//Get key value
+unsigned HashKey()    
+{
+return vKey;
+}
 
-		bool SetKey(double nKey)
-		{
-			Val = nKey;
-		}
+bool SetKey(double nKey)
+{
+Val = nKey;
+}
 
-		//Get index in hash array by key value
-		static unsigned char IndexByHashKey(unsigned HashKey, unsigned char MaxCount)
-		{
-			return (unsigned)HashKey % MaxCount;
-		}	
+//Get index in hash array by key value
+static unsigned char IndexByHashKey(unsigned HashKey, unsigned char MaxCount)
+{
+return (unsigned)HashKey % MaxCount;
+}	
 
-		//Get key by value
-		inline static unsigned GenKey(double ValForKey)	
-		{
-			unsigned h = 0;
-			for (unsigned s = 0; s < sizeof(ValForKey); s++) 
-				h = 31 * h + ((char*)&ValForKey)[s];
-			return h;
-		}
+//Get key by value
+inline static unsigned GenKey(double ValForKey)	
+{
+unsigned h = 0;
+for (unsigned s = 0; s < sizeof(ValForKey); s++) 
+h = 31 * h + ((char*)&ValForKey)[s];
+return h;
+}
 
-		//Compare values
-		inline bool CmpKey(double EnotherVal)
-		{
-			return EnotherVal == Val;
-		}
-	}  HASH_ELEMENT;
+//Compare values
+inline bool CmpKey(double EnotherVal)
+{
+return EnotherVal == Val;
+}
+}  HASH_ELEMENT;
 
-	HASH_TABLE<HASH_ELEMENT> HashArray;
-	HASH_TABLE<HASH_ELEMENT>::New(HashArray, 12);
-	HashArray.Init(12);
+HASH_TABLE<HASH_ELEMENT> HashArray;
+HASH_TABLE<HASH_ELEMENT>::New(HashArray, 12);
+HashArray.Init(12);
 
-	HashArray.Insert(0.000012)->Val = 0.000012;
-	printf("%lf", HashArray.Search(0.000012)->Val); 
+HashArray.Insert(0.000012)->Val = 0.000012;
+printf("%lf", HashArray.Search(0.000012)->Val); 
 
 */
 
 
 template
-<
+	<
 	typename TElementStruct,
 	bool Type = false,
-	typename TIndex = decltype(TElementStruct::IndexByHashKey(std::variant_arg(), std::variant_arg())),
+	typename TIndex = decltype(TElementStruct::IndexByKey(std::variant_arg())),
 	TIndex NothingIndex = TIndex(-1)
->
+	>
 class HASH_TABLE
 {	
 public:
 	typedef TIndex											TINDEX,		      *LPTINDEX;
-	typedef decltype(std::declval<TElementStruct>().HashKey())	THASHKEY,	  *LPTHASHKEY;
 	typedef TElementStruct									TPROPERTY_STRUCT, *LPTPROPERTY_STRUCT;
 
 
@@ -83,31 +82,31 @@ public:
 		TINDEX iNext;
 	} THEADCELL, *LPTHEADCELL;		
 
-	typedef struct CELL :public THEADCELL, public TElementStruct 
-	{
+	typedef struct CELL :public THEADCELL, public TElementStruct {
+
 	} CELL, *LPCELL;
+
+	static inline void CopyElement(CELL& Dest, CELL& Source)
+	{
+		*((TElementStruct*)(((LPTHEADCELL)&Dest) + 1)) = *((TElementStruct*)(((LPTHEADCELL)&Source) + 1));
+	}
 
 protected:
 
-	struct
-	{
-		LPCELL	   Table;
-	};
-
-#define EXHASH_TABLE_FIELDS			\
-		struct						\
-		{							\
-			TINDEX		CountUsed;	\
-			TINDEX		MaxCount;	\
-			TINDEX		LastEmpty;	\
-		}
+#define EXHASH_TABLE_FIELDS	\
+	struct					\
+	{						\
+	TINDEX		CountUsed;	\
+	TINDEX		MaxCount;	\
+	TINDEX		LastEmpty;	\
+	LPCELL	   Table;		\
+	}
 
 public:
 
 	union
 	{
-		class
-		{
+		class{
 			friend HASH_TABLE;
 			EXHASH_TABLE_FIELDS;
 			inline TINDEX operator =(TINDEX NewVal) { return CountUsed = NewVal; }
@@ -115,25 +114,15 @@ public:
 			inline operator TINDEX() const { return CountUsed; }
 		} CountUsed;
 
-
-		class
-		{
+		class{
 			friend HASH_TABLE;
 			EXHASH_TABLE_FIELDS;
-
-			inline TINDEX operator =(TINDEX NewVal)
-			{
-				return MaxCount = NewVal;
-			}
+			inline TINDEX operator =(TINDEX NewVal) { return MaxCount = NewVal; }
 		public:
-			inline operator TINDEX() const
-			{
-				return MaxCount;
-			}
+			inline operator TINDEX() const { return MaxCount; }
 		} MaxCount;
 
-		class ___MAX_SIZE
-		{
+		class ___MAX_SIZE{
 			EXHASH_TABLE_FIELDS;
 		public:
 
@@ -152,21 +141,13 @@ public:
 			}
 		} MaxSize;
 
-
-		class
-		{
+		class{
 			friend HASH_TABLE;
 			EXHASH_TABLE_FIELDS;
 		public:
-
-			inline operator bool()
-			{
-				return LastEmpty == NothingIndex;
-			}
+			inline operator bool() const { return LastEmpty == NothingIndex; }
 		} IsFull;
 	};
-
-
 
 	typedef struct
 	{
@@ -177,15 +158,18 @@ public:
 
 	static const TINDEX EmptyElement = NothingIndex;
 
-	static inline bool isHaveChain(LPCELL pCell) { return pCell->iStart != NothingIndex; }
+	static inline bool IsHaveChain(LPCELL pCell) { return pCell->iStart != NothingIndex; }
 
-	static inline bool isHaveNextChain(LPCELL pCell) { return pCell->iNext != NothingIndex; }
+	static inline bool IsHaveNextChain(LPCELL pCell) { return pCell->iNext != NothingIndex; }
 
-	inline TINDEX IndexByHash(THASHKEY HashKey) const { return TElementStruct::IndexByHashKey(HashKey, MaxCount); }
+	template<typename TYPE_KEY>
+	inline TINDEX IndexByKey(TYPE_KEY Key) const { return TElementStruct::IndexByKey(Key, MaxCount); }
 
-	inline TINDEX StartIndexByHash(THASHKEY HashKey) const { return (GetTable() + TElementStruct::IndexByHashKey(HashKey, MaxCount))->iStart; }
+	template<typename TYPE_KEY>
+	inline TINDEX StartIndexByKey(TYPE_KEY Key) const { return (GetTable() + TElementStruct::IndexByKey(Key, MaxCount))->iStart; }
 
-	inline LPCELL ElementByHash(THASHKEY HashKey) { return GetTable() + TElementStruct::IndexByHashKey(HashKey, MaxCount); }
+	template<typename TYPE_KEY>
+	inline LPCELL ElementByKey(TYPE_KEY Key) { return GetTable() + TElementStruct::IndexByKey(Key, MaxCount); }
 
 	inline LPCELL operator[](TINDEX Index) { return GetTable() + Index; }
 
@@ -203,20 +187,15 @@ public:
 		return lpRetElem;
 	}
 
-	inline void StaticInit(TINDEX Count, LPTSTATIC_VAL StaticTable = NULL)
-	{
-		if(!Type)
-			Table = (LPCELL)StaticTable;
-		MaxCount = Count;
-		CountUsed = Count;
-		IsFull.LastEmpty = 0;
-		for(TINDEX i = 0;i < Count; i++)
-		{
-			LPCELL CurCell = GetTable() + i;
-			LPCELL HashCell = ElementByHash(CurCell->HashKey());
-			CurCell->iNext = HashCell->iStart;
-			HashCell->iStart = i;
-		}
+	inline LPCELL AddElement(LPCELL HashCell)
+	{	
+		TINDEX iRetElem;
+		LPCELL lpRetElem = GetTable() + (iRetElem = IsFull.LastEmpty);
+		CountUsed.CountUsed++;
+		IsFull.LastEmpty = lpRetElem->iNext;
+		lpRetElem->iNext = HashCell->iStart;
+		HashCell->iStart = iRetElem;
+		return lpRetElem;
 	}
 
 	inline void Init(TINDEX Count)
@@ -234,13 +213,12 @@ public:
 		GetTable()[i].iNext = GetTable()[i].iStart = NothingIndex;
 	}
 
-
 	template<typename T>
 	inline LPCELL InitInsert(T SearchKey)
 	{		
 		if(IsFull)
-			return NULL;
-		LPCELL HashCell = ElementByHash(TElementStruct::GenHashKey(SearchKey));	
+			return nullptr;
+		LPCELL HashCell = ElementByKey(SearchKey);	
 		TINDEX iRetElem;
 		LPCELL lpRetElem = GetTable() + (iRetElem = IsFull.LastEmpty);
 		if(!lpRetElem->SetKey(SearchKey))
@@ -255,13 +233,13 @@ public:
 	template<typename T>
 	inline LPCELL InitInsertEx(T SearchKey)
 	{
-		LPCELL p, HashCell = ElementByHash(TElementStruct::GenHashKey(SearchKey));
+		LPCELL p, HashCell = ElementByKey(SearchKey);
 		for(TINDEX i = HashCell->iStart; i != NothingIndex; i = p->iNext)
 			if((p = GetTable() + i)->CmpKey(SearchKey))
-				return p;
+				return &HaveVal;
 		if(IsFull)
-			return NULL;
-		
+			return nullptr;
+
 		TINDEX iRetElem;
 		LPCELL lpRetElem = GetTable() + (iRetElem = IsFull.LastEmpty);
 		if(!lpRetElem->SetKey(SearchKey))
@@ -276,28 +254,44 @@ public:
 	template<typename T>
 	inline LPCELL Insert(T SearchKey)
 	{
-		THASHKEY Hash = TElementStruct::GenHashKey(SearchKey);
 		LPCELL lpStart, p;
-
-		for(TINDEX i = (lpStart = ElementByHash(Hash))->iStart; i != NothingIndex; i = p->iNext)
+		for(TINDEX i = (lpStart = ElementByKey(SearchKey))->iStart; i != NothingIndex; i = p->iNext)
 			if((p = GetTable() + i)->CmpKey(SearchKey))
 				return p;
-		if(IsFull)
+		return AddElement(lpStart, SearchKey);
+	}
+
+	static bool ResizeBeforeInsert(HASH_TABLE *& This)
+	{
+		size_t MaxCount = This->MaxCount;
+		if(This->CountUsed >= MaxCount)
 		{
 			TINDEX NewSize = (TINDEX)(MaxCount * 1.61803398875f);
-			if(!Realloc(*this, NewSize))
-				return nullptr;
-			IncreaseTable(NewSize);
-			lpStart = ElementByHash(Hash);
+			if(!Realloc(This, NewSize))
+				return false;
+			This->IncreaseTable(NewSize);
 		}
-		return AddElement(lpStart, SearchKey);
+		return true;
+	}
+
+	static bool ResizeBeforeInsert(typename std::conditional<!Type, HASH_TABLE&, std::empty_type>::type This)
+	{
+		size_t MaxCount = This.MaxCount;
+		if(This.CountUsed >= MaxCount)
+		{
+			TINDEX NewSize = (TINDEX)(MaxCount * 1.61803398875f);
+			if(!Realloc(This, NewSize))
+				return false;
+			This.IncreaseTable(NewSize);
+		}
+		return true;
 	}
 
 	template<typename T>
 	inline LPCELL Search(T SearchKey)
 	{
 		LPCELL p;
-		for(TINDEX i = StartIndexByHash(TElementStruct::GenHashKey(SearchKey)); i != NothingIndex; i = p->iNext)
+		for(TINDEX i = StartIndexByKey(SearchKey); i != NothingIndex; i = p->iNext)
 			if((p = GetTable() + i)->CmpKey(SearchKey))
 				return p;
 		return nullptr;
@@ -313,11 +307,9 @@ public:
 		return nullptr;
 	}
 
-
-	bool EnumValues(bool (*EnumFunc)(void* UserData, TElementStruct* Element), void* UserData = nullptr)
+	inline bool EnumValues(bool (*EnumFunc)(void* UserData, TElementStruct* Element), void* UserData = nullptr)
 	{
-		auto Elements = GetTable();
-		decltype(Elements) l, m = Elements + MaxCount;
+		decltype(GetTable()) Elements = GetTable(), l, m = Elements + MaxCount;
 		for(auto p = Elements; p < m; p++)
 			for(auto i = p->iStart; i != EmptyElement; i = l->iNext)
 			{
@@ -328,11 +320,24 @@ public:
 		return true;
 	}
 
+	inline bool EnumValues(bool (*EnumFunc)(TElementStruct* Element))
+	{
+		decltype(GetTable()) Elements = GetTable(), l, m = Elements + MaxCount;
+		for(auto p = Elements; p < m; p++)
+			for(auto i = p->iStart; i != EmptyElement; i = l->iNext)
+			{
+				l = Elements + i;
+				if(!EnumFunc(l))
+					return false;
+			}
+		return true;
+	}
+
 	template<typename T>
 	LPCELL Remove(T SearchKey)
 	{
 		LPCELL p;
-		for(LPTINDEX i = &(ElementByHash(TElementStruct::GenHashKey(SearchKey))->iStart); *i != NothingIndex; i = &(p->iNext))
+		for(LPTINDEX i = &(ElementByKey(SearchKey)->iStart); *i != NothingIndex; i = &(p->iNext))
 		{
 			p = GetTable() + *i;
 			if(p->CmpKey(SearchKey))
@@ -344,63 +349,77 @@ public:
 				IsFull.CountUsed--;
 				return p;
 			}
-		}		
+		}
 		return nullptr;
+	}
+
+	static bool ResizeAfterRemove(HASH_TABLE *& This)
+	{
+		size_t CountUsed = This->CountUsed;
+		if((This->MaxCount > (size_t)(CountUsed *  1.61803398875f)) && (CountUsed > 3))
+		{
+			This->DecreaseTable();
+			return Realloc(This, CountUsed);
+		}
+		return true;
+	}
+
+	static bool ResizeAfterRemove(typename std::conditional<!Type, HASH_TABLE&, std::empty_type>::type This)
+	{
+		size_t CountUsed = This.CountUsed;
+		if((This.MaxCount > (size_t)(CountUsed *  1.61803398875f/*Golden ratio*/)) && (CountUsed > 3))
+		{
+			This.DecreaseTable();
+			return Realloc(This, CountUsed);
+		}
+		return true;
 	}
 
 	void IncreaseTable(TINDEX NewSize)
 	{
-		for(LPCELL p = GetTable(), m = GetTable() + NewSize;p < m;p++)
-			p->iStart = NothingIndex;
-
-		TINDEX i, m = MaxCount;
-		for(i = 0; i < m; i++)
-		{
-			LPCELL p = GetTable() + TElementStruct::IndexByHashKey(GetTable()[i].HashKey(), NewSize);
-			GetTable()[i].iNext = p->iStart;
-			p->iStart = i;
-		}
-		IsFull.LastEmpty = i;
+		decltype(GetTable()) Elements = GetTable();
 		MaxCount = NewSize;
+		for(LPCELL p = Elements, m = p + NewSize; p < m; p++)
+			p->iStart = NothingIndex;
+		TINDEX FullCount = CountUsed;
+		for(TINDEX i = 0; i < FullCount; i++)
+		{
+			auto j = Elements[i].IndexInBound(NewSize);
+			Elements[i].iNext = Elements[j].iStart;
+			Elements[j].iStart = i;
+		}
+		TINDEX i = IsFull.LastEmpty = FullCount;
 		for(NewSize--; i < NewSize; i++)
-			GetTable()[i].iNext = i + 1;
-		GetTable()[i].iNext = NothingIndex;
-
+			Elements[i].iNext = i + 1;
+		Elements[i].iNext = NothingIndex;
 	}
 
-	void DecreaseTable(TINDEX NewSize)
+	void DecreaseTable()
 	{
-		for(LPCELL p = GetTable(), m = GetTable() + MaxCount, l;p < m;p++)
-		{
-			for(TINDEX i = p->iStart; i != NothingIndex; i = l->iNext)
+		TINDEX NewSize = CountUsed;
+		auto LastEmpty = IsFull.LastEmpty;
+		decltype(GetTable()) Elements = GetTable(), l, m = Elements + MaxCount;
+		for(auto p = Elements; p < m; p++)
+			for(auto i = p->iStart; i != EmptyElement; i = l->iNext)
 			{
-				l = GetTable() + i;
-				//Если элемент не входит за границы используемого диапозона
-				if(i >= CountUsed) 
+				l = Elements + i;
+				if(i >= NewSize) 
 				{
-					//Ищем в списке пустых первый элемент входящий в состав используемого диапозона
-					while(IsFull.LastEmpty >= CountUsed)
-						IsFull.LastEmpty = GetTable()[IsFull.LastEmpty].iNext;
-					//Копируем выходящий за пределы елемент в свободный внутри массива
-					IsFull.LastEmpty = GetTable()[i = IsFull.LastEmpty].iNext;
-					GetTable()[i] = *l;
-					l = GetTable() + i;
+					for(;LastEmpty >= NewSize; LastEmpty = Elements[LastEmpty].iNext);
+					CopyElement(Elements[LastEmpty], Elements[i]);
+					LastEmpty = Elements[LastEmpty].iNext;
 				}
 			}
-			p->iStart = NothingIndex;
-		}
-		TINDEX i;
-		for(i = 0;i < CountUsed;i++)
+		for(TINDEX i = 0; i < NewSize;i++)
+			Elements[i].iStart = EmptyElement;
+		for(TINDEX i = 0; i < NewSize; i++)
 		{
-			LPCELL p = GetTable() + TElementStruct::IndexByHashKey(GetTable()[i].HashKey(), NewSize);
-			GetTable()[i].iNext = p->iStart;
-			p->iStart = i;
+			auto j = Elements[i].IndexInBound(NewSize);
+			Elements[i].iNext = Elements[j].iStart;
+			Elements[j].iStart = i;
 		}
-		IsFull.LastEmpty = i;
+		IsFull.LastEmpty = EmptyElement;
 		MaxCount = NewSize;
-		for(NewSize--;i < NewSize;i++)
-			GetTable()[i].iNext = i + 1;
-		GetTable()[i].iNext = NothingIndex;
 	}
 
 	//========================================================
@@ -416,7 +435,7 @@ public:
 			{
 				friend TINTER;
 				friend HASH_TABLE;
-		    	TINDEX CurStartList;
+				TINDEX CurStartList;
 				TINDEX CurElementInList;
 			public:
 				inline operator bool() const { return CurStartList == EmptyElement; }
@@ -424,7 +443,6 @@ public:
 		};
 
 		void StartAgain() { IsEnd.CurStartList = EmptyElement; }
-
 		TINTER() { StartAgain(); }
 	} TINTER, *LPTINTER;
 
@@ -480,7 +498,7 @@ public:
 	bool InteratorByKey(TKey SearchKey, LPTINTER Interator)
 	{
 		LPCELL p, Elements = GetTable();
-		TINDEX s = StartIndexByHash(TElementStruct::GenHashKey(SearchKey)), i = s;
+		TINDEX s = StartIndexByKey(SearchKey), i = s;
 		for(; i != NothingIndex; i = p->iNext)
 			if((p = Elements + i)->CmpKey(SearchKey))
 			{
@@ -508,7 +526,7 @@ public:
 	LPCELL GetNextCellByKey(TKey SearchKey) const
 	{
 		LPCELL Elements = GetTable(), p;
-		TINDEX s = IndexByHash(TElementStruct::GenHashKey(SearchKey)), i = Elements[s].iStart;
+		TINDEX s = IndexByKey(SearchKey), i = Elements[s].iStart;
 		for(; i != NothingIndex; i = p->iNext)
 			if((p = Elements + i)->CmpKey(SearchKey))
 				break;
@@ -547,7 +565,7 @@ public:
 		This->CountUsed.CountUsed = Another.CountUsed.CountUsed;
 		return true;
 	}
-		
+
 	template<bool TypeAnother>
 	static bool Copy(HASH_TABLE & This,  HASH_TABLE<TElementStruct, TypeAnother, TIndex, NothingIndex>& Another)
 	{
@@ -567,41 +585,36 @@ public:
 		return true;
 	}
 
-
 	inline LPCELL GetTable() const
 	{
 		if(Type)
-			return (LPCELL)&Table;
-		return Table;
+			return (LPCELL)&CountUsed.Table;
+		return CountUsed.Table;
 	}
 
 	inline void Free()
 	{
 		if(!Type)
 		{
-			free(Table);
-			Table = nullptr;
+			free(CountUsed.Table);
+			CountUsed.Table = nullptr;
 		}else
 			free(this);
 	}
 
-
-	static bool Realloc(HASH_TABLE & Val, TINDEX NewSize)
+	static bool Realloc(typename std::conditional<!Type, HASH_TABLE&, std::empty_type>::type Val, TINDEX NewSize)
 	{
-		if(!Type)
-			return (Val.Table = (LPCELL)realloc(Val.Table, NewSize * sizeof(CELL))) != NULL;
-		else
-			return false;
+		return (Val.CountUsed.Table = (LPCELL)realloc(Val.CountUsed.Table, NewSize * sizeof(CELL))) != NULL;
 	}
 
 	static bool Realloc(HASH_TABLE *& Val, TINDEX NewCount)
 	{
 		if(!Type)
 		{
-			LPCELL Table = (LPCELL)realloc((*Val)->Table , NewCount * sizeof(CELL));
+			LPCELL Table = (LPCELL)realloc((*Val)->CountUsed.Table , NewCount * sizeof(CELL));
 			if(!Table)
 				return false;
-			Val->Table = Table;
+			Val->CountUsed.Table = Table;
 		}else
 		{
 			HASH_TABLE * NewTable;
@@ -612,12 +625,9 @@ public:
 		return true;
 	}
 
-	static bool New(HASH_TABLE & Val, TINDEX NewCount)
+	static bool New(typename std::conditional<!Type, HASH_TABLE&, std::empty_type>::type Val, TINDEX NewCount)
 	{
-		if(!Type)
-			return (Val.Table = (LPCELL)malloc(NewCount * sizeof(CELL))) != NULL;
-		else
-			return false;
+		return (Val.CountUsed.Table = (LPCELL)malloc(NewCount * sizeof(CELL))) != NULL;
 	}
 
 	static bool New(HASH_TABLE *& Val, TINDEX NewCount)
@@ -628,8 +638,8 @@ public:
 			NewTable = (HASH_TABLE*)malloc(sizeof(HASH_TABLE));
 			if(!NewTable)
 				return false;
-			NewTable->Table = (LPCELL)malloc(NewCount * sizeof(CELL));
-			if(!NewTable->Table)
+			NewTable->CountUsed.Table = (LPCELL)malloc(NewCount * sizeof(CELL));
+			if(!NewTable->CountUsed.Table)
 				return false;
 		}else
 		{	
@@ -640,15 +650,10 @@ public:
 		return true;
 	}
 
-	static bool New(HASH_TABLE & Val)
+	static bool New(typename std::conditional<!Type, HASH_TABLE&, std::empty_type>::type Val)
 	{
-		if(!Type)
-		{
-			Val.Table = nullptr;
-			return true;
-		}
-		else
-			return false;
+		Val.CountUsed.Table = nullptr;
+		return true;
 	}
 
 	static bool New(HASH_TABLE *& Val)
@@ -659,7 +664,7 @@ public:
 			NewTable = (HASH_TABLE*)malloc(sizeof(HASH_TABLE));
 			if(!NewTable)
 				return false;
-			NewTable->Table = nullptr;
+			NewTable->CountUsed.Table = nullptr;
 		}else
 		{	
 			if(NewTable = (HASH_TABLE*)malloc(sizeof(HASH_TABLE)))
@@ -706,13 +711,17 @@ struct HASH_ELEMENT_STRING
 {
 	CharType* KeyVal;
 	DataType  Val;
-
-	//Get hash key
-	unsigned HashKey() { return GenHashKey(KeyVal); }
-
 	/*
-		Set key value for Insert() function
+	For Remove function.
 	*/
+	inline void DeleteKey()
+	{
+		if(IsDynamicKey)
+			free(KeyVal);
+	}
+
+	///////////////////
+
 	bool SetKey(const CharType* vKey)
 	{
 		if(!IsDynamicKey)
@@ -726,25 +735,17 @@ struct HASH_ELEMENT_STRING
 		return false;
 	}
 
-	/*
-	 For Remove function.
-	*/
-	inline void DeleteKey()
-	{
-		if(IsDynamicKey)
-			free(KeyVal);
+	inline static unsigned short IndexByKey(const CharType* k, unsigned char MaxCount) 
+	{ 
+		unsigned h = 0;
+		for (unsigned s = 0; k[s] != CHAR_TYPE(CharType, '\0'); s++) 
+			h = 31 * h + k[s];
+		return h % MaxCount; 
 	}
 
-	//Get index in hash array by key value
-	static unsigned short IndexByHashKey(unsigned k, unsigned char MaxCount) { return k % MaxCount; }	
-
-	//Get hash key by key value
-	inline static unsigned GenHashKey(const CharType* vKey)	
+	inline unsigned short IndexInBound(unsigned char MaxCount) const
 	{
-		unsigned h = 0;
-		for (unsigned s = 0; vKey[s] != CHAR_TYPE(CharType, '\0'); s++) 
-			h = 31 * h + vKey[s];
-		return h;
+		return IndexByKey(KeyVal, MaxCount);
 	}
 
 	//Compare values
@@ -758,7 +759,7 @@ struct HASH_ELEMENT_STRING
 
 
 /*
-	Hi level hash table using with key as string.
+Hi level hash table using with key as string.
 */
 template<typename CharType, typename DataType, bool IsDynamicKey = true, typename IndexType = unsigned short>
 class HASH_TABLE_STRING_KEY: private HASH_TABLE<HASH_ELEMENT_STRING<CharType, DataType, IsDynamicKey>, false, IndexType>
@@ -791,17 +792,17 @@ public:
 		Init(Another.MaxCount);
 		Clear();
 		Another.EnumValues 
-		(
+			(
 			[](void* UsrData, typename HASH_TABLE_STRING_KEY<CharType,DataType,isdyn,ti>::HASH_ELEMENT* El) 
-			{
-				auto r = ((HASH_TABLE_STRING_KEY*)(UsrData))->Insert(El->KeyVal);
-				if(r == nullptr)
-					return false;
-				*r = El->Val;
-				return true;
-			},
+		{
+			auto r = ((HASH_TABLE_STRING_KEY*)(UsrData))->Insert(El->KeyVal);
+			if(r == nullptr)
+				return false;
+			*r = El->Val;
+			return true;
+		},
 			this
-		);
+			);
 	}
 
 	template<bool isdyn, typename ti>
@@ -809,17 +810,17 @@ public:
 	{
 		Clear();
 		Another.EnumValues 
-		(
+			(
 			[](void* UsrData, typename HASH_TABLE_STRING_KEY<CharType,DataType,isdyn,ti>::HASH_ELEMENT* El) 
-			{
-				auto r = ((HASH_TABLE_STRING_KEY*)(UsrData))->Insert(El->KeyVal);
-				if(r == nullptr)
-					return false;
-				*r = El->Val;
-				return true;
-			},
+		{
+			auto r = ((HASH_TABLE_STRING_KEY*)(UsrData))->Insert(El->KeyVal);
+			if(r == nullptr)
+				return false;
+			*r = El->Val;
+			return true;
+		},
 			this
-		);
+			);
 		return *this;
 	}
 
@@ -828,12 +829,12 @@ public:
 		if(IsDynamicKey)
 		{
 			EnumValues
-			(
+				(
 				[](void*, HASH_ELEMENT* El) 
-				{
-					El->DeleteKey();
-					return true;
-				}
+			{
+				El->DeleteKey();
+				return true;
+			}
 			);
 		}
 		PARENT::Free();
@@ -866,22 +867,23 @@ public:
 	{
 		struct DAT
 		{ 
-			  decltype(EnumFunc) func;
-			  void* data;
+			decltype(EnumFunc) func;
+			void* data;
 		};
 		DAT Cur = {EnumFunc, UserData};
 		return EnumValues
-		(
+			(
 			[](void* Data, HASH_ELEMENT* El)
-			{
-				return ((DAT*)Data)->func(((DAT*)Data)->data, El->KeyVal, &(El->Val));
-			},
+		{
+			return ((DAT*)Data)->func(((DAT*)Data)->data, El->KeyVal, &(El->Val));
+		},
 			&Cur
-		);
+			);
 	}
 
 	DataType* Insert(const CharType* NewKey)
 	{
+		PARENT::ResizeBeforeInsert(*this);
 		auto Cell = PARENT::Insert(NewKey);
 		if(Cell == nullptr)
 			return nullptr;
@@ -893,12 +895,12 @@ public:
 		if(IsDynamicKey)
 		{
 			EnumValues
-			(
+				(
 				[](void*, HASH_ELEMENT* El) 
-				{
-					El->DeleteKey();
-					return true;
-				}
+			{
+				El->DeleteKey();
+				return true;
+			}
 			);
 		}
 		if(PARENT::MaxCount > 10)
@@ -915,8 +917,7 @@ public:
 		if(Res == nullptr)
 			return;
 		Res->DeleteKey();
-		if(PARENT::MaxCount < (unsigned)(CountUsed *  1.61803398875f))
-			PARENT::DecreaseTable(CountUsed);
+		PARENT::ResizeAfterRemove(*this);
 	}
 
 	DataType* operator [](const CharType* SearchKey)
