@@ -16,40 +16,29 @@ Example:
 
 typedef struct HASH_ELEMENT
 {
-unsigned vKey;
-double   Val;
+	unsigned vKey;
+	double   Val;
 
-//Get key value
-unsigned HashKey()    
-{
-return vKey;
-}
+	bool SetKey(unsigned k)
+	{
+		vKey = k;
+		return false;
+	}
 
-bool SetKey(double nKey)
-{
-Val = nKey;
-}
+	inline static unsigned short IndexByKey(unsigned k, unsigned char MaxCount) 
+	{ 
+		return k % MaxCount; 
+	}
 
-//Get index in hash array by key value
-static unsigned char IndexByHashKey(unsigned HashKey, unsigned char MaxCount)
-{
-return (unsigned)HashKey % MaxCount;
-}	
+	inline unsigned short IndexInBound(unsigned char MaxCount) const
+	{
+		return IndexByKey(KeyVal, MaxCount);
+	}
 
-//Get key by value
-inline static unsigned GenKey(double ValForKey)	
-{
-unsigned h = 0;
-for (unsigned s = 0; s < sizeof(ValForKey); s++) 
-h = 31 * h + ((char*)&ValForKey)[s];
-return h;
-}
-
-//Compare values
-inline bool CmpKey(double EnotherVal)
-{
-return EnotherVal == Val;
-}
+	inline bool CmpKey(unsigned k)
+	{
+		return k == vKey;
+	}
 }  HASH_ELEMENT;
 
 HASH_TABLE<HASH_ELEMENT> HashArray;
@@ -791,34 +780,31 @@ public:
 		PARENT::New(*this, Another.MaxCount);
 		Init(Another.MaxCount);
 		Clear();
-		Another.EnumValues 
-			(
+		Another.EnumValues(
 			[](void* UsrData, typename HASH_TABLE_STRING_KEY<CharType,DataType,isdyn,ti>::HASH_ELEMENT* El) 
-		{
-			auto r = ((HASH_TABLE_STRING_KEY*)(UsrData))->Insert(El->KeyVal);
-			if(r == nullptr)
-				return false;
-			*r = El->Val;
-			return true;
-		},
-			this
-			);
+			{
+				auto r = ((HASH_TABLE_STRING_KEY*)(UsrData))->Insert(El->KeyVal);
+				if(r == nullptr)
+					return false;
+				*r = El->Val;
+				return true;
+			},
+			this);
 	}
 
 	template<bool isdyn, typename ti>
 	HASH_TABLE_STRING_KEY& operator =(HASH_TABLE_STRING_KEY<CharType,DataType,isdyn,ti>& Another)
 	{
 		Clear();
-		Another.EnumValues 
-			(
+		Another.EnumValues(
 			[](void* UsrData, typename HASH_TABLE_STRING_KEY<CharType,DataType,isdyn,ti>::HASH_ELEMENT* El) 
-		{
-			auto r = ((HASH_TABLE_STRING_KEY*)(UsrData))->Insert(El->KeyVal);
-			if(r == nullptr)
-				return false;
-			*r = El->Val;
-			return true;
-		},
+			{
+				auto r = ((HASH_TABLE_STRING_KEY*)(UsrData))->Insert(El->KeyVal);
+				if(r == nullptr)
+					return false;
+				*r = El->Val;
+				return true;
+			},
 			this
 			);
 		return *this;
@@ -828,14 +814,12 @@ public:
 	{			
 		if(IsDynamicKey)
 		{
-			EnumValues
-				(
+			EnumValues(
 				[](void*, HASH_ELEMENT* El) 
-			{
-				El->DeleteKey();
-				return true;
-			}
-			);
+				{
+					El->DeleteKey();
+					return true;
+				});
 		}
 		PARENT::Free();
 	}
@@ -895,12 +879,12 @@ public:
 		if(IsDynamicKey)
 		{
 			EnumValues
-				(
+			(
 				[](void*, HASH_ELEMENT* El) 
-			{
-				El->DeleteKey();
-				return true;
-			}
+				{
+					El->DeleteKey();
+					return true;
+				}
 			);
 		}
 		if(PARENT::MaxCount > 10)
