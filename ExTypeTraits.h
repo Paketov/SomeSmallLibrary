@@ -62,7 +62,7 @@
 
 
 namespace std
-{		
+{	
 
 	struct make_default_pointer
 	{

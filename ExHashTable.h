@@ -64,16 +64,13 @@ public:
 	typedef TIndex											TINDEX,		      *LPTINDEX;
 	typedef TElementStruct									TPROPERTY_STRUCT, *LPTPROPERTY_STRUCT;
 
-
 	typedef struct
 	{
 		TINDEX iStart;
 		TINDEX iNext;
 	} THEADCELL, *LPTHEADCELL;		
 
-	typedef struct CELL :public THEADCELL, public TElementStruct {
-
-	} CELL, *LPCELL;
+	typedef struct CELL :public THEADCELL, public TElementStruct {} CELL, *LPCELL;
 
 	static inline void CopyElement(CELL& Dest, CELL& Source)
 	{
@@ -144,12 +141,11 @@ public:
 		TPROPERTY_STRUCT		v;
 	} TSTATIC_VAL, *LPTSTATIC_VAL;
 
-
 	static const TINDEX EmptyElement = NothingIndex;
 
-	static inline bool IsHaveChain(LPCELL pCell) { return pCell->iStart != NothingIndex; }
+	inline static bool IsHaveChain(LPCELL pCell) { return pCell->iStart != NothingIndex; }
 
-	static inline bool IsHaveNextChain(LPCELL pCell) { return pCell->iNext != NothingIndex; }
+	inline static bool IsHaveNextChain(LPCELL pCell) { return pCell->iNext != NothingIndex; }
 
 	template<typename TYPE_KEY>
 	inline TINDEX IndexByKey(TYPE_KEY Key) const { return TElementStruct::IndexByKey(Key, MaxCount); }
@@ -193,7 +189,7 @@ public:
 		CountUsed = 0;
 		Count--;
 		TINDEX i;
-		for(IsFull.LastEmpty = i = 0;i < Count;i++)
+		for(IsFull.LastEmpty = i = 0; i < Count; i++)
 		{
 			LPCELL p;
 			(p = GetTable() + i)->iStart = NothingIndex;
@@ -250,6 +246,13 @@ public:
 		return AddElement(lpStart, SearchKey);
 	}
 
+	template<typename T>
+	inline LPCELL OnlyInsert(T SearchKey)
+	{
+		LPCELL lpStart = ElementByKey(SearchKey);
+		return AddElement(lpStart, SearchKey);
+	}
+
 	static bool ResizeBeforeInsert(HASH_TABLE *& This)
 	{
 		size_t MaxCount = This->MaxCount;
@@ -298,11 +301,10 @@ public:
 
 	inline bool EnumValues(bool (*EnumFunc)(void* UserData, TElementStruct* Element), void* UserData = nullptr)
 	{
-		decltype(GetTable()) Elements = GetTable(), l, m = Elements + MaxCount;
-		for(auto p = Elements; p < m; p++)
-			for(auto i = p->iStart; i != EmptyElement; i = l->iNext)
+		for(decltype(GetTable()) Elements = GetTable(), l, p = Elements, m = p + MaxCount; p < m; p++)
+			for(auto i = p->iStart; i != EmptyElement;)
 			{
-				l = Elements + i;
+				i = (l = Elements + i)->iNext;
 				if(!EnumFunc(UserData, l))
 					return false;
 			}
@@ -311,15 +313,50 @@ public:
 
 	inline bool EnumValues(bool (*EnumFunc)(TElementStruct* Element))
 	{
-		decltype(GetTable()) Elements = GetTable(), l, m = Elements + MaxCount;
-		for(auto p = Elements; p < m; p++)
-			for(auto i = p->iStart; i != EmptyElement; i = l->iNext)
+		for(decltype(GetTable()) Elements = GetTable(), l, p = Elements, m = p + MaxCount; p < m; p++)
+			for(auto i = p->iStart; i != EmptyElement;)
 			{
-				l = Elements + i;
-				if(!EnumFunc(l))
+				i = (l = Elements + i)->iNext;
+				if(!EnumFunc(l)) 
 					return false;
 			}
 		return true;
+	}
+
+	inline void EnumDelete(bool (*IsDeleteProc)(void* UserData, TElementStruct* Element), void* UserData = nullptr)
+	{
+		for(decltype(GetTable()) Elements = GetTable(), l, p = Elements, m = p + MaxCount; p < m; p++)
+			for(auto i = &(p->iStart); *i != EmptyElement; )
+			{	
+				l = Elements + *i;
+				if(IsDeleteProc(UserData, l))
+				{
+					auto e = *i;
+					*i = l->iNext;
+					l->iNext = IsFull.LastEmpty;
+					IsFull.LastEmpty = e;
+					IsFull.CountUsed--;
+				}else
+					i = &(l->iNext);
+			}
+	}
+
+	inline void EnumDelete(bool (*IsDeleteProc)(TElementStruct* Element))
+	{
+		for(decltype(GetTable()) Elements = GetTable(), l, p = Elements, m = p + MaxCount; p < m; p++)
+			for(auto i = &(p->iStart); *i != EmptyElement; )
+			{	
+				l = Elements + *i;
+				if(IsDeleteProc(l))
+				{
+					auto e = *i;
+					*i = l->iNext;
+					l->iNext = IsFull.LastEmpty;
+					IsFull.LastEmpty = e;
+					IsFull.CountUsed--;
+				}else
+					i = &(l->iNext);
+			}
 	}
 
 	template<typename T>
@@ -340,6 +377,24 @@ public:
 			}
 		}
 		return nullptr;
+	}
+
+	template<typename T>
+	void RemoveAll(T SearchKey)
+	{
+		LPCELL p;
+		for(LPTINDEX i = &(ElementByKey(SearchKey)->iStart); *i != NothingIndex; i = &(p->iNext))
+		{
+			p = GetTable() + *i;
+			if(p->CmpKey(SearchKey))
+			{
+				TINDEX j = *i;
+				*i = p->iNext;
+				p->iNext = IsFull.LastEmpty;
+				IsFull.LastEmpty = j;
+				IsFull.CountUsed--;
+			}	
+		}
 	}
 
 	static bool ResizeAfterRemove(HASH_TABLE *& This)
@@ -472,7 +527,7 @@ public:
 		return false;
 	}
 
-	bool CheckInterator(const LPTINTER Interator) const
+	inline bool CheckInterator(const LPTINTER Interator) const
 	{
 		if(Interator->IsEnd)
 			return false;
@@ -481,7 +536,7 @@ public:
 		return true;
 	}
 
-	LPCELL CellByInterator(const LPTINTER SetInterator) const { return GetTable() + SetInterator->IsEnd.CurElementInList; }
+	inline LPCELL CellByInterator(const LPTINTER SetInterator) const { return GetTable() + SetInterator->IsEnd.CurElementInList; }
 
 	template<typename TKey>
 	bool InteratorByKey(TKey SearchKey, LPTINTER Interator)
@@ -499,7 +554,7 @@ public:
 	}
 
 	//Interate by key val
-	LPCELL GetStartCell() const
+	inline LPCELL GetStartCell() const
 	{
 		LPCELL Elements = GetTable();
 		for(TINDEX p = 0, m = MaxCount; p < m; p++)
@@ -581,17 +636,32 @@ public:
 		return CountUsed.Table;
 	}
 
-	inline void Free()
+	inline static void Free(typename std::conditional<!Type, HASH_TABLE&, std::empty_type>::type This)
+	{
+		if(This.CountUsed.Table != nullptr)
+		{
+			free(This.CountUsed.Table);
+			This.CountUsed.Table = nullptr;
+		}
+	}
+
+	inline static void Free(HASH_TABLE* This)
 	{
 		if(!Type)
 		{
-			free(CountUsed.Table);
-			CountUsed.Table = nullptr;
+			if(This->CountUsed.Table != nullptr)
+			{
+				free(This->CountUsed.Table);
+				This->CountUsed.Table = nullptr;
+			}
 		}else
-			free(this);
+		{
+			if(This != nullptr)
+				free(This);
+		}
 	}
 
-	static bool Realloc(typename std::conditional<!Type, HASH_TABLE&, std::empty_type>::type Val, TINDEX NewSize)
+	static inline bool Realloc(typename std::conditional<!Type, HASH_TABLE&, std::empty_type>::type Val, TINDEX NewSize)
 	{
 		return (Val.CountUsed.Table = (LPCELL)realloc(Val.CountUsed.Table, NewSize * sizeof(CELL))) != NULL;
 	}
@@ -614,7 +684,7 @@ public:
 		return true;
 	}
 
-	static bool New(typename std::conditional<!Type, HASH_TABLE&, std::empty_type>::type Val, TINDEX NewCount)
+	static inline bool New(typename std::conditional<!Type, HASH_TABLE&, std::empty_type>::type Val, TINDEX NewCount)
 	{
 		return (Val.CountUsed.Table = (LPCELL)malloc(NewCount * sizeof(CELL))) != NULL;
 	}
@@ -639,7 +709,7 @@ public:
 		return true;
 	}
 
-	static bool New(typename std::conditional<!Type, HASH_TABLE&, std::empty_type>::type Val)
+	static inline bool New(typename std::conditional<!Type, HASH_TABLE&, std::empty_type>::type Val)
 	{
 		Val.CountUsed.Table = nullptr;
 		return true;
@@ -821,7 +891,7 @@ public:
 					return true;
 				});
 		}
-		PARENT::Free();
+		PARENT::Free(this);
 	}
 
 	bool DataByInterator(const LPTINTER Interator, CharType** Key, DataType* Value)
