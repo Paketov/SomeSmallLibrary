@@ -79,13 +79,11 @@ public:
 
 protected:
 
-#define EXHASH_TABLE_FIELDS	\
-	struct					\
-	{						\
-	TINDEX		CountUsed;	\
-	TINDEX		MaxCount;	\
-	TINDEX		LastEmpty;	\
-	LPCELL	   Table;		\
+#define EXHASH_TABLE_FIELDS						\
+	struct										\
+	{											\
+	TINDEX		CountUsed, MaxCount, LastEmpty;	\
+	LPCELL	   Table;							\
 	}
 
 public:
@@ -111,14 +109,12 @@ public:
 		class ___MAX_SIZE{
 			EXHASH_TABLE_FIELDS;
 		public:
-
 			inline operator size_t() const
 			{
 				if(Type)
 					return MaxCount * sizeof(CELL) + sizeof(HASH_TABLE) - sizeof(LPCELL);
 				return MaxCount * sizeof(CELL);
 			}
-
 			inline static size_t ByCount(TINDEX CountElement)
 			{
 				if(Type)
@@ -802,10 +798,7 @@ struct HASH_ELEMENT_STRING
 		return h % MaxCount; 
 	}
 
-	inline unsigned short IndexInBound(unsigned char MaxCount) const
-	{
-		return IndexByKey(KeyVal, MaxCount);
-	}
+	inline unsigned short IndexInBound(unsigned char MaxCount) const { return IndexByKey(KeyVal, MaxCount); }
 
 	//Compare values
 	inline bool CmpKey(const CharType* EnotherKeyVal)

@@ -51,18 +51,10 @@
 		return 0;
 	}
 */
-#define DEF_FUNC(RetType, Name, ArgS, Body)				\
-	struct												\
-	{													\
-		static RetType Func ArgS Body					\
-		typedef decltype(&Func) TFUNC;					\
-		inline operator TFUNC() const {return &Func;}	\
-	} Name
-
-
 
 namespace std
 {	
+
 
 	struct make_default_pointer
 	{
@@ -82,26 +74,17 @@ namespace std
 	public:
 		typedef TypeHaveConstructor TVAL;
 
-		inline TypeHaveConstructor * operator->()
-		{
-		   return (TypeHaveConstructor*)_Data;
-		}
+		inline TypeHaveConstructor * operator->() {  return (TypeHaveConstructor*)_Data; }
 
-		operator TypeHaveConstructor&()
-		{
-		   return *(TypeHaveConstructor*)_Data;
-		}
+		inline operator TypeHaveConstructor&() { return *(TypeHaveConstructor*)_Data; }
 
-		TypeHaveConstructor& operator =(TypeHaveConstructor& Data)
+		inline TypeHaveConstructor& operator =(TypeHaveConstructor& Data)
 		{
 			*(TypeHaveConstructor*)_Data = Data;
 		   return *(TypeHaveConstructor*)_Data;
 		}
 
-		TypeHaveConstructor* operator &()
-		{
-		   return (TypeHaveConstructor*)_Data;
-		}
+		inline TypeHaveConstructor* operator &() {  return (TypeHaveConstructor*)_Data; }
 
 		template<typename SetType>
 		TypeHaveConstructor & operator =(SetType & Val)
@@ -112,113 +95,14 @@ namespace std
 
 	};
 
-
-	template <typename Type, unsigned Offset = 0>
-	struct decl_spec_val
-	{
-	private:
-		char __a[Offset];
-	public:
-		Type Val;
-
-		inline Type operator()() const
-		{
-			return Val;
-		}
-
-		inline Type operator()(const Type NewVal)
-		{
-			return Val = NewVal;
-		}
-	};
-
-	template <typename Type>
-	struct decl_spec_val<Type, 0>
-	{ 	
-		Type Val;
-
-		inline Type operator()() const
-		{
-			return Val;
-		}
-
-		inline Type operator()(const Type NewVal)
-		{
-			return Val = NewVal;
-		}
-	};
-
-	template <typename Type, unsigned Offset, size_t Len>
-	struct decl_spec_val<Type[Len], Offset>
-	{
-	private:
-		char __a[Offset];
-	public:
-
-		Type Val[Len];
-
-		inline Type * operator()()
-		{
-			return Val;
-		}
-
-		inline Type * operator()(Type * NewVal)
-		{
-			memcpy(Val, NewVal, sizeof(Val));
-			return NewVal;
-		}
-	};
-
-	template <typename Type, size_t Len>
-	struct decl_spec_val<Type[Len], 0>
-	{ 	
-		Type Val[Len];
-
-		inline Type * operator()()
-		{
-			return Val;
-		}
-
-		inline Type * operator()(Type * NewVal)
-		{
-			memcpy(Val, NewVal, sizeof(Val));
-			return NewVal;
-		}
-	};
-
-	template <typename Type, Type InitVal, bool OnWriteErr = false>
-	struct decl_const_val
-	{	
-		static const Type Val = InitVal;
-
-		inline Type operator()() const
-		{
-			return Val;
-		}
-
-		inline typename  enable_if<!OnWriteErr,Type>::type 
-		operator()(const Type NewVal) const
-		{
-			return NewVal;
-		}
-
-	};
-	
 	struct variant_arg
 	{
 		template<typename RetVal>
-		operator RetVal() const
-		{
-			return declval<RetVal>();
-		}
+		operator RetVal() const  { return declval<RetVal>(); }
 	};
-
 
 	template<typename ElemType, size_t CountElements>
-	struct make_array
-	{
-	    typedef ElemType type[CountElements];
-	};
+	struct make_array {  typedef ElemType type[CountElements]; };
 
 	template<typename T1, typename T2>
 	struct is_equal: is_same<T1, T2> {};
@@ -226,26 +110,19 @@ namespace std
 	struct empty_type {};
 
 	template<bool Cond, typename RetType>
-	struct not_empty_if
-	{
-		typedef typename conditional<Cond, RetType, empty_type>::type type; 
-	};
+	struct not_empty_if { typedef typename conditional<Cond, RetType, empty_type>::type type;  };
 
 	template<bool Cond, typename RetType> 
 	struct gen_err_type  	
 	{ 
 	private: 
-		class type__ 
-		{ 
-			RetType * v; 
-		}; 
+		class type__ { RetType * v; }; 
 	public: 
 		typedef typename conditional<Cond, RetType, type__>::type type; 
 	}; 
 
 	template<long long Num>
-	struct not_less_zero: integral_constant<unsigned long long, ((Num < 0)?0:Num)>
-	{};
+	struct not_less_zero: integral_constant<unsigned long long, ((Num < 0)?0:Num)> {};
 
 	/*
 	*IsFraction
@@ -253,34 +130,21 @@ namespace std
 
 	template<typename TypeNumber>
 	typename  enable_if<is_floating_point<TypeNumber>::value, bool>::type  
-	IsFraction(TypeNumber Val)
-	{
-		return Val != (TypeNumber)((long long)(Val));
-	}
+	IsFraction(TypeNumber Val) { return Val != (TypeNumber)((long long)(Val)); }
 
 	template<typename TypeNumber>
 	typename enable_if<!is_floating_point<TypeNumber>::value, bool>::type  
-	IsFraction(TypeNumber Val)
-	{
-		return false;
-	}
+	IsFraction(TypeNumber Val) { return false; }
 
 	/*
 	  countof
 	*/
 
 	template <typename Type>
-	inline const size_t countof(Type)
-	{ 	
-		return 1;
-	}
+	inline const size_t countof(Type) { return 1; }
 
 	template <typename Type, size_t Len>
-	inline const size_t countof(Type (&)[Len])
-	{ 	
-		return Len;
-	}
-
+	inline const size_t countof(Type (&)[Len]) { return Len; }
 
 	template <typename Type>
 	struct arr_count: integral_constant<size_t, 1>{};
@@ -314,16 +178,10 @@ namespace std
 	*/
 
 	template<typename SourceType, unsigned Count>
-	struct add_count_pointers
-	{
-		typedef typename add_count_pointers<SourceType*, Count - 1>::type type;
-	};
+	struct add_count_pointers { typedef typename add_count_pointers<SourceType*, Count - 1>::type type; };
 
 	template<typename SourceType>
-	struct add_count_pointers<SourceType, 0>
-	{
-	   typedef SourceType type;
-	};
+	struct add_count_pointers<SourceType, 0> { typedef SourceType type; };
 
 
 	/*
@@ -436,46 +294,25 @@ namespace std
 	*/
 
 	template<typename DestType, typename>
-	struct move_pointers_ref_arr
-	{
-		typedef DestType type;
-	};
+	struct move_pointers_ref_arr { typedef DestType type; };
 
 	template<typename DestType, typename SourceType>
-	struct move_pointers_ref_arr<DestType, SourceType&>
-	{
-		typedef typename move_pointers_ref_arr<DestType, SourceType>::type  &type;
-	};
+	struct move_pointers_ref_arr<DestType, SourceType&> { typedef typename move_pointers_ref_arr<DestType, SourceType>::type  &type; };
 
 	template<typename DestType, typename SourceType>
-	struct move_pointers_ref_arr<DestType, SourceType&&>
-	{
-		typedef typename move_pointers_ref_arr<DestType, SourceType>::type  &&type;
-	};
+	struct move_pointers_ref_arr<DestType, SourceType&&> { typedef typename move_pointers_ref_arr<DestType, SourceType>::type  &&type; };
 
 	template<typename DestType, typename SourceType>
-	struct move_pointers_ref_arr<DestType, SourceType*>
-	{
-		typedef typename move_pointers_ref_arr<DestType, SourceType>::type  *type;
-	};
+	struct move_pointers_ref_arr<DestType, SourceType*> { typedef typename move_pointers_ref_arr<DestType, SourceType>::type  *type; };
 
 	template<typename DestType, typename SourceType>
-	struct move_pointers_ref_arr<DestType, SourceType * const>
-	{
-		typedef typename move_pointers_ref_arr<DestType, SourceType>::type  * const type;
-	};
+	struct move_pointers_ref_arr<DestType, SourceType * const> { typedef typename move_pointers_ref_arr<DestType, SourceType>::type  * const type; };
 
 	template<typename DestType, typename SourceType>
-	struct move_pointers_ref_arr<DestType, SourceType const *>
-	{
-		typedef typename move_pointers_ref_arr<DestType, SourceType>::type  const * type;
-	};
+	struct move_pointers_ref_arr<DestType, SourceType const *> { typedef typename move_pointers_ref_arr<DestType, SourceType>::type  const * type; };
 
 	template<typename DestType, typename SourceType, size_t Len>
-	struct move_pointers_ref_arr<DestType, SourceType[Len]>
-	{
-		typedef typename move_pointers_ref_arr<DestType, SourceType>::type  type[Len];
-	};
+	struct move_pointers_ref_arr<DestType, SourceType[Len]> { typedef typename move_pointers_ref_arr<DestType, SourceType>::type  type[Len]; };
 
 	/*
 		Example: 
@@ -486,10 +323,7 @@ namespace std
 		std::remove_ref_pointers_arr<decltype(v)>::type eq. int
 	*/
 	template<typename Type>
-	struct sizeof_value
-	{
-		static const size_t value = sizeof(typename remove_modifiers<Type, rem_mod::POI_POICONST_VOLA_REF_RVREF>::type);
-	};
+	struct sizeof_value { static const size_t value = sizeof(typename remove_modifiers<Type, rem_mod::POI_POICONST_VOLA_REF_RVREF>::type); };
 
 
 	/*
@@ -529,22 +363,13 @@ namespace std
 	*/
 
 	template<typename TypeArr, bool IsConvertPointer = false, size_t Count = 1>
-	struct arr_to_single_dimension
-	{
-		  typedef TypeArr type[Count];
-	};
+	struct arr_to_single_dimension { typedef TypeArr type[Count]; };
 
 	template<typename TypeArr>
-	struct arr_to_single_dimension<TypeArr*, true>
-	{
-		  typedef typename arr_to_single_dimension<TypeArr, true, 1>::type type;
-	};
+	struct arr_to_single_dimension<TypeArr*, true> { typedef typename arr_to_single_dimension<TypeArr, true, 1>::type type; };
 
 	template<typename TypeArr,  bool IsConvertPointer ,size_t Count, size_t Len>
-	struct arr_to_single_dimension<TypeArr[Len], IsConvertPointer, Count>
-	{
-		  typedef typename arr_to_single_dimension<TypeArr, IsConvertPointer, Count * Len>::type type;
-	};
+	struct arr_to_single_dimension<TypeArr[Len], IsConvertPointer, Count> { typedef typename arr_to_single_dimension<TypeArr, IsConvertPointer, Count * Len>::type type; };
 
 	/*
 	* arr_count_dimension
@@ -603,17 +428,11 @@ namespace std
 		is_pointer<Type>::value, 
 		typename remove_modifiers<Type, rem_mod::POI_POICONST_VOLA_REF_RVREF>::type&
 	>::type  
-	valueof(Type & Pointer)
-	{
-		return valueof(*Pointer);
-	}
+	valueof(Type & Pointer) { return valueof(*Pointer); }
 
 	template <typename Type>
 	inline typename enable_if<!is_pointer<Type>::value, Type &>::type  
-	valueof(Type & Value)
-	{
-		return Value;
-	}
+	valueof(Type & Value) { return Value; }
 
 	/*
 	* arr_valueof_singd
@@ -660,9 +479,6 @@ namespace std
 		return (RET_TYPE&)valueof(Pointer);
 	}
 
-
-
-
 	/*
 	Example: 
 	 double a = 123.456, b, *c = &b;
@@ -686,10 +502,7 @@ namespace std
 	}
 
 	template<typename DestType, typename SourceType>
-	inline void val_copy(DestType & Dest, SourceType & Source, size_t LenCopy)
-	{
-		memcpy(&valueof(Dest), &valueof(Source), LenCopy);
-	}
+	inline void val_copy(DestType & Dest, SourceType & Source, size_t LenCopy) { memcpy(&valueof(Dest), &valueof(Source), LenCopy); }
 
 	template<typename DestType, typename SourceType>
 	inline typename enable_if
@@ -888,6 +701,37 @@ namespace std
 		for(size_t i = 0, m = countof(rDest); i < m; i++)
 			val_copy(rDest[i], Val);
 	}
+
+	/*
+	Get dynamic unique id for any type.
+	Warning! On each running function generate different id. 
+	Not use this function for save id type in file or other external storage.
+	*/	
+	template<typename>
+	unsigned __get_id_for_type_id_generator() { static unsigned i = 0; return i++; }
+
+	template<typename>
+	unsigned get_id_for_type() { static unsigned Id = __get_id_for_type_id_generator<empty_type>(); return Id; }
+
+
+	template<typename, typename ASSOC_TYPE>
+	ASSOC_TYPE __assoc_type_val_saver(ASSOC_TYPE* NewVal = nullptr)
+	{
+	     static ASSOC_TYPE v;
+		 if(NewVal != nullptr)
+			 v = *NewVal;
+		 return v;
+	}
+
+	/*
+	Associate some data with type
+	*/
+
+	template<typename TYPE, typename ASSOC_TYPE>
+	void assoc_type_set(ASSOC_TYPE NewV)  { __assoc_type_val_saver<TYPE, ASSOC_TYPE>(&NewV); }
+
+	template<typename TYPE, typename ASSOC_TYPE>
+	ASSOC_TYPE assoc_type_get() { return __assoc_type_val_saver<TYPE, ASSOC_TYPE>(); }
 
 };
 #endif

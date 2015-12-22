@@ -1728,14 +1728,10 @@ protected:
 	struct INFO_HOST_INTERATOR
 	{
 #define INFO_HOST_INTERATOR_FIELDS struct hostent * Cur;
-		inline INFO_HOST_INTERATOR(struct hostent *New)
-		{
-			Name.Cur = New;
-		}
+		inline INFO_HOST_INTERATOR(struct hostent *New) { Name.Cur = New; }
 
 		union
 		{
-
 			class
 			{
 				friend INFO_HOST_INTERATOR;
