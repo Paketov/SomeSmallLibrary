@@ -919,13 +919,10 @@ public:
 		};
 		DAT Cur = {EnumFunc, UserData};
 		return EnumValues
-			(
-			[](void* Data, HASH_ELEMENT* El)
-		{
-			return ((DAT*)Data)->func(((DAT*)Data)->data, El->KeyVal, &(El->Val));
-		},
+		(
+			[](void* Data, HASH_ELEMENT* El){return ((DAT*)Data)->func(((DAT*)Data)->data, El->KeyVal, &(El->Val));},
 			&Cur
-			);
+		);
 	}
 
 	DataType* Insert(const CharType* NewKey)

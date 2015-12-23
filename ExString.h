@@ -55,10 +55,7 @@ struct RET_STAT
 	bool		Success;
 	ResultType	Result;
 
-	inline operator bool() const
-	{
-		return Success;
-	}
+	inline operator bool() const { return Success; }
 
 	inline RET_STAT()
 	{
@@ -236,52 +233,17 @@ struct __stream_io
 	}
 
 	template<typename TypeChar>
-	static inline void UnGetChar(std::basic_istream<TypeChar> & s, TypeChar v)
-	{
-		s.unget();
-	}
-
-	static inline void UnGetChar(FILE * s, wchar_t v)
-	{
-		ungetwc(v, s);
-	}
-
-	static inline void UnGetChar(FILE * s, char v)
-	{
-		ungetc(v, s);
-	}
-
-	static inline bool PutChar(FILE * s, char v)
-	{
-	  return fputc(v, s) != EOF;
-	}
-
-	static inline bool PutChar(FILE * s, wchar_t v)
-	{
-	  return fputwc(v, s) != WEOF;
-	}
-
+	static inline void UnGetChar(std::basic_istream<TypeChar> & s, TypeChar v) { s.unget(); }
+	static inline void UnGetChar(FILE * s, wchar_t v) { ungetwc(v, s);}
+	static inline void UnGetChar(FILE * s, char v) { ungetc(v, s);}
+	static inline bool PutChar(FILE * s, char v) { return fputc(v, s) != EOF;}
+	static inline bool PutChar(FILE * s, wchar_t v) { return fputwc(v, s) != WEOF;}
 	template<typename TypeChar>
-	static inline bool PutChar(std::basic_ostream<TypeChar> & s, TypeChar c)
-	{
-		return !s.put(c).fail();
-	}	
-
-	static inline bool Write(FILE * s,  char * Str, size_t Len)
-	{
-		return fputs(Str, s) != EOF;
-	}
-
-	static inline bool Write(FILE * s,  wchar_t * Str, size_t Len)
-	{
-		return fputws(Str, s) != WEOF;
-	}	
-	
+	static inline bool PutChar(std::basic_ostream<TypeChar> & s, TypeChar c) { return !s.put(c).fail();}	
+	static inline bool Write(FILE * s,  char * Str, size_t Len) { return fputs(Str, s) != EOF;}
+	static inline bool Write(FILE * s,  wchar_t * Str, size_t Len) { return fputws(Str, s) != WEOF; }		
 	template<typename TypeChar>
-	static inline bool Write(std::basic_ostream<TypeChar> & s, TypeChar * Str, size_t Len)
-	{
-		return !s.write(Str, Len).fail();
-	}	
+	static inline bool Write(std::basic_ostream<TypeChar> & s, TypeChar * Str, size_t Len) { return !s.write(Str, Len).fail(); }	
 };
 
 
@@ -334,72 +296,29 @@ inline size_t _SkipSpace(StreamType Stream);
 
 
 template<typename TypeChar>
-inline STR_STAT NumberToString(int Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
-{
-	return _i_NumberToString(Number, Str, Len, Radix);
-}
-
+inline STR_STAT NumberToString(int Number, TypeChar * Str, size_t Len, unsigned char Radix = 10) { return _i_NumberToString(Number, Str, Len, Radix); }
 template<typename TypeChar>
-inline STR_STAT NumberToString(unsigned Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
-{
-	return _i_NumberToString(Number, Str, Len, Radix);
-}
-
+inline STR_STAT NumberToString(unsigned Number, TypeChar * Str, size_t Len, unsigned char Radix = 10) {	return _i_NumberToString(Number, Str, Len, Radix); }
 template<typename TypeChar>
-inline STR_STAT NumberToString(long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
-{
-	return _i_NumberToString(Number, Str, Len, Radix);
-}
-
+inline STR_STAT NumberToString(long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10) { return _i_NumberToString(Number, Str, Len, Radix); }
 template<typename TypeChar>
-inline STR_STAT NumberToString(unsigned long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
-{
-	return _i_NumberToString(Number, Str, Len, Radix);
-}
-
-
+inline STR_STAT NumberToString(unsigned long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10) { return _i_NumberToString(Number, Str, Len, Radix);}
 template<typename TypeChar>
-inline STR_STAT NumberToString(long long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
-{
-	return _i_NumberToString(Number, Str, Len, Radix);
-}
-
+inline STR_STAT NumberToString(long long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10) { return _i_NumberToString(Number, Str, Len, Radix);}
 template<typename TypeChar>
-inline STR_STAT NumberToString(unsigned long long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
-{
-	return _i_NumberToString(Number, Str, Len, Radix);
-}
+inline STR_STAT NumberToString(unsigned long long Number, TypeChar * Str, size_t Len, unsigned char Radix = 10) { return _i_NumberToString(Number, Str, Len, Radix);}
 
 ///Float point
 template<typename TypeChar>
-inline STR_STAT NumberToString(float Val, TypeChar * Str, size_t LenBuf, unsigned char RadX, long double Eps)
-{
-	return _d_NumberToString<false>((long double)Val, Str, LenBuf, RadX, Eps);
-}
-
+inline STR_STAT NumberToString(float Val, TypeChar * Str, size_t LenBuf, unsigned char RadX, long double Eps) { return _d_NumberToString<false>((long double)Val, Str, LenBuf, RadX, Eps);}
 template<typename TypeChar>
-inline STR_STAT NumberToString(float Val, TypeChar * Str, size_t LenBuf, unsigned char RadX = 10)
-{
-	return _d_NumberToString<true>((long double)Val, Str, LenBuf, RadX, 0.000000001);
-}
-
+inline STR_STAT NumberToString(float Val, TypeChar * Str, size_t LenBuf, unsigned char RadX = 10) { return _d_NumberToString<true>((long double)Val, Str, LenBuf, RadX, 0.000000001);}
 template<typename TypeChar>
-inline STR_STAT NumberToString(double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX, long double Eps)
-{
-	return _d_NumberToString<false>((long double)Val, Str, LenBuf, RadX, Eps);
-}
-
+inline STR_STAT NumberToString(double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX, long double Eps) { return _d_NumberToString<false>((long double)Val, Str, LenBuf, RadX, Eps);}
 template<typename TypeChar>
-inline STR_STAT NumberToString(double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX = 10)
-{
-	return _d_NumberToString<true>((long double)Val, Str, LenBuf, RadX, 0.00000000000000001);
-}
-
+inline STR_STAT NumberToString(double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX = 10) { return _d_NumberToString<true>((long double)Val, Str, LenBuf, RadX, 0.00000000000000001);}
 template<typename TypeChar>
-inline STR_STAT NumberToString(long double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX, long double Eps)
-{
-	return _d_NumberToString<false>(Val, Str, LenBuf, RadX, Eps);
-}
+inline STR_STAT NumberToString(long double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX, long double Eps) { return _d_NumberToString<false>(Val, Str, LenBuf, RadX, Eps); }
 
 template<typename TypeChar>
 inline STR_STAT NumberToString(long double Val, TypeChar * Str, size_t LenBuf, unsigned char RadX = 10)
@@ -426,10 +345,7 @@ inline STR_STAT NumberToString(TypeNumber Val, std::basic_string<TypeChar> & Str
 }
 
 template<typename TypeChar, typename TypeNumber, size_t BufSize>
-inline STR_STAT NumberToString(TypeNumber Val, TypeChar (&Buf)[BufSize])
-{
-   return NumberToString(Val, (TypeChar*)Buf, BufSize, 10);
-}
+inline STR_STAT NumberToString(TypeNumber Val, TypeChar (&Buf)[BufSize]) { return NumberToString(Val, (TypeChar*)Buf, BufSize, 10); }
 
 template<typename TypeNumber, typename TypeChar>
 STR_STAT _i_NumberToString(TypeNumber Number, TypeChar * Str, size_t Len, unsigned char Radix = 10)
@@ -608,8 +524,8 @@ inline STR_STAT StringToNumber(TypeNumber * Number, const TypeChar (&Buf)[BufSiz
 
 template<typename TypeChar, typename TypeNumber>
 inline STR_STAT StringToNumber(TypeNumber * Number, const std::basic_string<TypeChar> & Str, size_t Len = 0, unsigned char Radix = 10)
-{
-     return StringToNumber(Number, Str.c_str(), Str.length(), Radix);
+{ 
+	return StringToNumber(Number, Str.c_str(), Str.length(), Radix);
 }
 
 //From string to number
@@ -841,16 +757,10 @@ inline STR_STAT StreamDoubleToNumber(TypeNumber * Dest, std::basic_istream<TypeC
 }
 
 template<typename TypeChar, typename TypeNumber>
-inline STR_STAT StringDoubleToNumber(TypeNumber * Number, const TypeChar * Str, size_t Len, unsigned char Radix = 10)
-{
-	   return _d_StringToNumber<true, true>(Number, Str, Len, Radix);
-}
+inline STR_STAT StringDoubleToNumber(TypeNumber * Number, const TypeChar * Str, size_t Len, unsigned char Radix = 10){return _d_StringToNumber<true, true>(Number, Str, Len, Radix);}
 
 template<typename TypeChar, typename TypeNumber, size_t BufSize>
-inline STR_STAT StringDoubleToNumber(TypeNumber * Number, const TypeChar (&Buf)[BufSize])
-{
-	return StringDoubleToNumber(Number, Buf, BufSize, 10);
-}
+inline STR_STAT StringDoubleToNumber(TypeNumber * Number, const TypeChar (&Buf)[BufSize]) { return StringDoubleToNumber(Number, Buf, BufSize, 10); }
 
 template<typename TypeChar, typename TypeNumber>
 inline STR_STAT StringDoubleToNumber(TypeNumber * Number, const std::basic_string<TypeChar> & Str, size_t Len = 0, unsigned char Radix = 10)
@@ -953,14 +863,12 @@ STR_STAT _d_StreamToNumber(TypeNumber * Dest, StreamType InStream, unsigned char
 				CountReaded++;
 				switch(Cur)
 				{
-				case 'F':
-				case 'f':
+				case 'F': case 'f':
 					Result = IntegerPart * Inf;
 					Cur = GetChar(InStream);
 					CountReaded++;
 					goto lblSingOut;
-				case 'D':
-				case 'd':
+				case 'D': case 'd':
 					Result = IntegerPart * Ind;
 					Cur = GetChar(InStream);
 					CountReaded++;
@@ -1062,7 +970,6 @@ inline STR_STAT NumberToStream(TypeNumber Number, std::basic_ostream<TypeChar> &
 	return STR_STAT(CountWrited, __stream_io::Write(Stream, Buf, CountWrited));
 }
 
-
 template<typename TypeNumber>
 inline STR_STAT NumberToStream(TypeNumber Number, FILE * Stream, unsigned char Radix, long double Eps)
 {
@@ -1070,7 +977,6 @@ inline STR_STAT NumberToStream(TypeNumber Number, FILE * Stream, unsigned char R
 	size_t CountWrited = NumberToString((long double)Number, Buf, 70, Radix, Eps).Result;
 	return STR_STAT(CountWrited, __stream_io::Write(Stream, Buf, CountWrited));
 }
-
 
 inline size_t StringLength(const char * Str) { return strlen(Str); }
 inline size_t StringLength(const wchar_t * Str) { return wcslen(Str); }
@@ -1150,29 +1056,8 @@ inline size_t _SkipSpace(StreamType Stream)
 }
 
 template<typename TypeChar>
-inline size_t SkipSpace(std::basic_istream<TypeChar> & Stream)
-{
-	return _SkipSpace
-			<
-				TypeChar, 
-				std::basic_istream<TypeChar> &, 
-				__stream_io::GetChar, 
-				__stream_io::UnGetChar
-			>
-			(Stream);
-}
-
-inline size_t SkipSpace(FILE * Stream)
-{
-	return _SkipSpace
-			<
-				wchar_t, 
-				FILE *, 
-				__stream_io::GetChar, 
-				__stream_io::UnGetChar
-			>
-			(Stream);
-}
+inline size_t SkipSpace(std::basic_istream<TypeChar> & Stream){return _SkipSpace<TypeChar, std::basic_istream<TypeChar>&, __stream_io::GetChar, __stream_io::UnGetChar>(Stream);}
+inline size_t SkipSpace(FILE * Stream){return _SkipSpace<wchar_t, FILE*, __stream_io::GetChar, __stream_io::UnGetChar>(Stream);}
 
 template<typename TypeChar>
 inline size_t SkipSpace(const TypeChar * String, size_t Len)
