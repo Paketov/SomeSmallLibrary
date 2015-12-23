@@ -928,9 +928,7 @@ public:
 				int operator =(int nErr) { return iError = nErr;}
 			public:
 				operator const char *() { return strerror(iError); }
-
 				int GetNumber() { return iError; }
-
 				void Clear() { iError = 0; }
 			} LastError;
 
@@ -940,13 +938,11 @@ public:
 				ADDRESS_INFO_FIELDS;
 			public:
 				operator const char*() { return HostName->c_str(); }
-
 				const char* operator= (const char* New)
 				{
 					HostName->operator=(New);
 					return New;
 				}
-
 				std::basic_string<char>& operator= (std::basic_string<char>& New)
 				{
 					PortName->operator=(New);
@@ -957,16 +953,13 @@ public:
 			class 
 			{
 				ADDRESS_INFO_FIELDS;
-
 			public:
 				operator const char*() { return PortName->c_str(); }
-
 				const char* operator= (const char* New)
 				{
 					PortName->operator=(New);
 					return New;
 				}
-
 				std::basic_string<char>& operator= (std::basic_string<char>& New)
 				{
 					PortName->operator=(New);
@@ -1051,12 +1044,9 @@ public:
 		{
 			unsigned char f;
 			TDESCR        d;
-			inline TDESCR GetDescriptor() { return d;}
-
+			inline TDESCR GetDescriptor() { return d; }
 			inline void SetDescriptor(TDESCR nd) { d = nd; }
-						
 			inline __QUERY_URL* GetSock() { return nullptr; }
-
 			inline void SetSock(__QUERY_URL* ns) { d = ns->RemoteIp.hSocket; }
 		};
 				
@@ -1065,11 +1055,8 @@ public:
 			unsigned char f;
 			__QUERY_URL*   s;
 			inline TDESCR GetDescriptor() { return s->RemoteIp.hSocket; }
-
-			inline void SetDescriptor(TDESCR nd) { s->RemoteIp.hSocket = nd; }
-						
+			inline void SetDescriptor(TDESCR nd) { s->RemoteIp.hSocket = nd; }			
 			inline __QUERY_URL* GetSock() { return s; }
-			
 			inline void SetSock(__QUERY_URL* ns) { s = ns; }
 		};
 
@@ -1749,8 +1736,7 @@ protected:
 			Type net address.
 			AF_INET or another AF_ - like
 			*/
-			class
-			{
+			class{
 				INFO_HOST_INTERATOR_FIELDS;
 			public:
 				inline operator short()
@@ -1761,11 +1747,10 @@ protected:
 				}
 			} AddrType;
 
-			class
-			{
+			class{
 				INFO_HOST_INTERATOR_FIELDS;
 			public:
-				inline operator short()
+				inline operator short() const
 				{
 					if(Cur == nullptr)
 						return -1;
@@ -1773,8 +1758,7 @@ protected:
 				}
 			} LengthAddress;
 
-			class
-			{
+			class{
 				INFO_HOST_INTERATOR_FIELDS;
 			public:
 				inline operator bool() const { return Cur == nullptr; }
@@ -1835,8 +1819,7 @@ protected:
 				};
 
 			public:
-				class
-				{
+				class{
 					friend P_ADDRESES;
 					INFO_HOST_INTERATOR_FIELDS;
 				public:
@@ -1908,10 +1891,7 @@ protected:
 	}
 
 	template<typename SetType>
-	static inline int SetOption(int hSocket, int Level, int Option, SetType& New)
-	{
-		return setsockopt(hSocket, Level, Option, (char*)&New, sizeof(SetType));
-	}
+	static inline int SetOption(int hSocket, int Level, int Option, SetType& New) { return setsockopt(hSocket, Level, Option, (char*)&New, sizeof(SetType)); }
 
 	static inline int GetOption(int hSocket, int Level, int Option, bool& New)
 	{										
@@ -1942,7 +1922,6 @@ public:
 			_QUERY_URL_FIELDS1_;
 
 			int operator =(int nErr) { return iError = nErr; }
-
 		public:
 			//Get string description error
 			inline operator const char *() { return strerror(iError); }
@@ -2002,10 +1981,7 @@ public:
 			}
 
 			//Get more info about remote port
-			inline PORT_SERVICE_INTERATOR GetInfo() const
-			{
-				return GetSystemService(operator TPORT());
-			}
+			inline PORT_SERVICE_INTERATOR GetInfo() const { return GetSystemService(operator TPORT()); }
 		} RemotePort;
 
 		/*
@@ -2214,9 +2190,7 @@ public:
 			inline int operator=(int NewVal) { return ProtocolType = NewVal; }
 		public:
 			operator int() const { return ProtocolType; }
-
 			operator char*() const { return GetSystemProtocol(ProtocolType).Name; }
-
 			inline PROTOCOL_INTERATOR GetInfo() const { return GetSystemProtocol(ProtocolType); }
 		} Protocol;
 
@@ -3705,10 +3679,7 @@ public:
 	@Count - Size of sending data
 	@Offset - Offsen data in file descriptor
 	*/
-	virtual long long SendFile(__QUERY_URL& InSocket, size_t Count)
-	{
-	  return SendFile(InSocket.RemoteIp.hSocket, Count, 0);
-	}
+	virtual long long SendFile(__QUERY_URL& InSocket, size_t Count) { return SendFile(InSocket.RemoteIp.hSocket, Count, 0); }
 
 	virtual long long SendFile(TDESCR InFileDescriptor, size_t Count, off_t Offset = 0)
 	{

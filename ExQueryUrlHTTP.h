@@ -56,10 +56,7 @@ private:
 			friend _HEADERS;
 			__HTTP_RECIVE_QUERY_FIELDS;
 		public:
-			operator size_t()
-			{
-				return Headers->CountUsed;
-			}
+			operator size_t() { return Headers->CountUsed; }
 		} Count;
 
 		const char* operator[](const char* Key)
@@ -70,20 +67,11 @@ private:
 			return *r;
 		}
 
-		inline const char* In(const char* Key = nullptr)
-		{
-			return Count.Headers->In(Key);
-		}
+		inline const char* In(const char* Key = nullptr) { return Count.Headers->In(Key); }
 
-		bool Interate(TINTER* Interator)
-		{
-			return Count.Headers->Interate(Interator);
-		}
+		bool Interate(TINTER* Interator) { return Count.Headers->Interate(Interator); }
 
-		bool DataByInterator(TINTER* Interator, const char** Key, const char** Val)
-		{
-			return Count.Headers->DataByInterator(Interator, Key, Val);
-		}
+		bool DataByInterator(TINTER* Interator, const char** Key, const char** Val) { return Count.Headers->DataByInterator(Interator, Key, Val); }
 
 	};
 
@@ -131,7 +119,11 @@ private:
 		if(HTTPMethods.CountUsed == 0)
 		{
 			for(unsigned char i = 0; i < METHODS::WRONG; i++)
-				*HTTPMethods.Insert(GetMethodName(i)) = i;
+			{
+				const char* r =  GetMethodName(i);
+				if(r[0] != '\0')
+					*HTTPMethods.Insert(GetMethodName(i)) = i;
+			}
 		}
 		new(&TypeMethod.FilteredMethod)  THASH_METHODS(HTTPMethods);
 	}
@@ -164,7 +156,7 @@ private:
 		if(CurMethod == METHODS::WRONG)
 			return false;
 		if(CurMethod == METHODS::RESPONSE) 
-			return (s[i] == ' ') || (s[i] == '\t') || (s[i] == '/') && IsDigit(s[i]);
+			return (s[i] == ' ') || (s[i] == '\t') || (s[i] == '/') && IsDigit(s[i + 1]);
 		return (s[i] == ' ') || (s[i] == '\t');
 	}
 
@@ -232,7 +224,7 @@ private:
 					if((s[i] == '\r') && (s[i + 1] == '\n'))
 						return -1;
 					*Ver = s + (e + 1);
-					s[i] = '\0';
+					e = i;
 				}
 			}
 
@@ -1777,10 +1769,10 @@ public:
 	static int SendResponseRow
 	(
 		QUERY_URL*  QueryUrl,
-		int Stat, 
-		const char* StatMsg, 
+		int Stat, 		
 		TypeUserData UsrData, 
 		bool (*HeadersEnumFunc)(TypeUserData UsrData, char ** Key, char ** Val),
+		const char* StatMsg = nullptr, 
 		const char* ProtoVersion = "1.1"
 	)
 	{

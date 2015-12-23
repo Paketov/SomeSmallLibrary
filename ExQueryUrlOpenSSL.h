@@ -20,7 +20,7 @@ struct{\
 
 
 template<bool = true>
-class __QUERY_URL_OPEN_SSL : public QUERY_URL
+class __QUERY_URL_OPEN_SSL : public virtual QUERY_URL
 {
 
 	bool EvntConnect()
@@ -114,32 +114,12 @@ public:
 		{
 			friend __QUERY_URL_OPEN_SSL;
 			__QUERY_URL_OPEN_SSL_FIELDS;
-
-			decltype(ERR_get_error()) operator=(decltype(ERR_get_error()) NewErr)
-			{		
-				return iError = NewErr;
-			}
-
-			void Set()
-			{
-				iError = ERR_get_error();
-			}
+			decltype(ERR_get_error()) operator=(decltype(ERR_get_error()) NewErr) { return iError = NewErr; }
+			void Set() { iError = ERR_get_error(); }
 		public:
-
-			int GetNumber()
-			{
-				return iError;
-			}
-
-			operator const char*()
-			{
-				return ERR_error_string(iError, nullptr);
-			}
-
-			void Clear()
-			{
-				iError = 0;
-			}
+			int GetNumber() { return iError; }
+			operator const char*() { return ERR_error_string(iError, nullptr); }
+			void Clear() { iError = 0; }
 		} SSLLastError;
 
 
@@ -258,15 +238,8 @@ public:
 				} IsHave;
 			};
 
-			inline operator X509*()
-			{
-				return SSL_get_peer_certificate(SubjectName.ssl);
-			}
-
-			static void Free(X509* Cert)
-			{
-				X509_free(Cert);
-			}
+			inline operator X509*() { return SSL_get_peer_certificate(SubjectName.ssl); }
+			static void Free(X509* Cert) { X509_free(Cert); }
 		} RemoteHostCertificate;
 
 
@@ -385,15 +358,9 @@ public:
 				} IsHave;
 			};
 
-			inline operator X509*()
-			{
-				return SSL_get_certificate(SubjectName.ssl);
-			}
+			inline operator X509*() { return SSL_get_certificate(SubjectName.ssl); }
 
-			static void Free(X509* Cert)
-			{
-				X509_free(Cert);
-			}
+			static void Free(X509* Cert) { X509_free(Cert); }
 		} LocalHostCertificate;
 
 
@@ -401,13 +368,8 @@ public:
 		{
 			__QUERY_URL_OPEN_SSL_FIELDS;
 		public:
-
-			operator const char*()
-			{
-				return SSL_get_cipher(ssl);
-			}
+			operator const char*() { return SSL_get_cipher(ssl); }
 		} Cipher;
-
 
 		class 
 		{
@@ -474,11 +436,7 @@ public:
 		{
 			__QUERY_URL_OPEN_SSL_FIELDS;
 		public:
-
-			operator SSL_CTX* ()
-			{
-				return ctx;
-			}
+			operator SSL_CTX* () { return ctx; }
 		} CTX;
 
 		/*
@@ -488,10 +446,7 @@ public:
 		{
 			__QUERY_URL_OPEN_SSL_FIELDS;
 		public:
-			operator SSL* ()
-			{
-				return ssl;
-			}		
+			operator SSL* () { return ssl; }		
 		} SSL;
 	};
 
@@ -627,11 +582,11 @@ lblErr:
 	}
 
 	virtual int Recive
-		(
+	(
 		std::basic_string<char>& StrBuf, 
 		std::basic_string<char>::size_type MaxLen = std::numeric_limits<std::basic_string<char>::size_type>::max(), 
 		int Flags = 0
-		)
+	)
 	{
 		if(SSLLastError.ssl == nullptr)
 			goto lblErr;

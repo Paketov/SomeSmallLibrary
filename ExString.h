@@ -1072,45 +1072,14 @@ inline STR_STAT NumberToStream(TypeNumber Number, FILE * Stream, unsigned char R
 }
 
 
-inline size_t StringLength(const char * Str)
-{
-  return strlen(Str);
-}
-
-inline size_t StringLength(const wchar_t * Str)
-{
-  return wcslen(Str);
-}
-
-inline const char * StringSearch(const char * BaseStr, const char * SubStr)
-{
-  return strstr(BaseStr, SubStr);
-}
-
-inline const wchar_t * StringSearch(const wchar_t * BaseStr, const wchar_t * SubStr)
-{
-  return wcsstr(BaseStr, SubStr);
-}
-
-inline int StringCompare(const char * Str1, const char * Str2, size_t MaxCount)
-{
-  return strncmp(Str1, Str2, MaxCount);
-}
-
-inline int StringCompare(const wchar_t * Str1, const wchar_t * Str2, size_t MaxCount)
-{
-  return wcsncmp(Str1, Str2, MaxCount);
-}
-
-inline int StringCompare(const char * Str1, const char * Str2)
-{
-  return strcmp(Str1, Str2);
-}
-
-inline int StringCompare(const wchar_t * Str1, const wchar_t * Str2)
-{
-  return wcscmp(Str1, Str2);
-}
+inline size_t StringLength(const char * Str) { return strlen(Str); }
+inline size_t StringLength(const wchar_t * Str) { return wcslen(Str); }
+inline const char * StringSearch(const char * BaseStr, const char * SubStr) { return strstr(BaseStr, SubStr); }
+inline const wchar_t * StringSearch(const wchar_t * BaseStr, const wchar_t * SubStr) { return wcsstr(BaseStr, SubStr); }
+inline int StringCompare(const char * Str1, const char * Str2, size_t MaxCount) { return strncmp(Str1, Str2, MaxCount); }
+inline int StringCompare(const wchar_t * Str1, const wchar_t * Str2, size_t MaxCount) { return wcsncmp(Str1, Str2, MaxCount); }
+inline int StringCompare(const char * Str1, const char * Str2) { return strcmp(Str1, Str2); }
+inline int StringCompare(const wchar_t * Str1, const wchar_t * Str2) { return wcscmp(Str1, Str2); }
 
 
 inline int StringICompare(const char * Str1, const char * Str2, size_t MaxCount)
@@ -1149,77 +1118,20 @@ inline int StringICompare(const wchar_t * Str1, const wchar_t * Str2)
 #endif
 }
 
-inline char * StringUpper(char * Dest)
-{
-    return strupr(Dest);
-}
-
-inline wchar_t * StringUpper(wchar_t * Dest)
-{
-    return wcsupr(Dest);
-}
-
-inline char * StringLower(char * Dest)
-{
-    return strlwr(Dest);
-}
-
-inline wchar_t * StringLower(wchar_t * Dest)
-{
-    return wcslwr(Dest);
-}
-
-inline char * StringAppend(char * Dest, const char * Source)
-{
-    return strcat(Dest, Source);
-}
-
-inline wchar_t * StringAppend(wchar_t * Dest, const wchar_t * Source)
-{
-    return wcscat(Dest, Source);
-}
-
-inline char * StringAppend(char * Dest, const char * Source, size_t Count)
-{
-    return strncat(Dest, Source, Count);
-}
-
-inline wchar_t * StringAppend(wchar_t * Dest, const wchar_t * Source, size_t Count)
-{
-    return wcsncat(Dest, Source, Count);
-}
-
-
-inline char * StringCopy(char * Dest, const char * Source, size_t MaxCount)
-{
-  return strncpy(Dest, Source, MaxCount);
-}
-
-inline wchar_t * StringCopy(wchar_t * Dest, const wchar_t * Source, size_t MaxCount)
-{
-  return wcsncpy(Dest, Source, MaxCount);
-}
-
-inline char * StringCopy(char * Dest, const char * Source)
-{
-  return strcpy(Dest, Source);
-}
-
-inline wchar_t * StringCopy(wchar_t * Dest, const wchar_t * Source)
-{
-  return wcscpy(Dest, Source);
-}
-
-
-inline char * StringDuplicate(const char * Source)
-{
-   return strdup(Source);
-}
-
-inline wchar_t * StringDuplicate(const wchar_t * Source)
-{
-   return wcsdup(Source);
-}
+inline char * StringUpper(char * Dest) { return strupr(Dest); }
+inline wchar_t * StringUpper(wchar_t * Dest) { return wcsupr(Dest); }
+inline char * StringLower(char * Dest) { return strlwr(Dest); }
+inline wchar_t * StringLower(wchar_t * Dest) { return wcslwr(Dest); }
+inline char * StringAppend(char * Dest, const char * Source) { return strcat(Dest, Source); }
+inline wchar_t * StringAppend(wchar_t * Dest, const wchar_t * Source) { return wcscat(Dest, Source); }
+inline char * StringAppend(char * Dest, const char * Source, size_t Count) { return strncat(Dest, Source, Count); }
+inline wchar_t * StringAppend(wchar_t * Dest, const wchar_t * Source, size_t Count) { return wcsncat(Dest, Source, Count); }
+inline char * StringCopy(char * Dest, const char * Source, size_t MaxCount) { return strncpy(Dest, Source, MaxCount); }
+inline wchar_t * StringCopy(wchar_t * Dest, const wchar_t * Source, size_t MaxCount) { return wcsncpy(Dest, Source, MaxCount); }
+inline char * StringCopy(char * Dest, const char * Source) { return strcpy(Dest, Source); }
+inline wchar_t * StringCopy(wchar_t * Dest, const wchar_t * Source) { return wcscpy(Dest, Source); }
+inline char * StringDuplicate(const char * Source) { return strdup(Source); }
+inline wchar_t * StringDuplicate(const wchar_t * Source) { return wcsdup(Source); }
 
 template<typename TypeChar, typename StreamType, TypeChar (*GetChar)(StreamType), void (*UngetChar)(StreamType, TypeChar)>
 inline size_t _SkipSpace(StreamType Stream)
@@ -1276,21 +1188,9 @@ inline size_t SkipSpace(const TypeChar * String, size_t Len)
 }
 
 template<typename TypeChar>
-inline bool IsDigit(TypeChar c)
-{
-	return (CHAR_TYPE(TypeChar, '0') <= c) && (CHAR_TYPE(TypeChar, '9') >= c);
-}
-
-inline bool IsLatter(wchar_t c)
-{
-	return iswalpha(c) != 0;
-}
-
-inline bool IsLatter(char c)
-{
-	return isalpha(c) != 0;
-}
-
+inline bool IsDigit(TypeChar c) { return (CHAR_TYPE(TypeChar, '0') <= c) && (CHAR_TYPE(TypeChar, '9') >= c); }
+inline bool IsLatter(wchar_t c) { return iswalpha(c) != 0; }
+inline bool IsLatter(char c) { return isalpha(c) != 0; }
 
 template<typename TypeChar>
 inline bool IsSpace(TypeChar c)
