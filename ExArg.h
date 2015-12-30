@@ -112,7 +112,7 @@ private:
 			return false;
 		Name = Arg + Count.PrefixLen;
 		const TypeChar * Sep = StringSearch(Name, Count.Separator);
-		if(Sep != NULL)
+		if(Sep != nullptr)
 			Value = (TypeChar*)Sep + Count.SeparatorLen;
 		else 
 			Value = Arg + Len;
@@ -164,13 +164,13 @@ public:
 			NameArg.NameArg = Name;
 		}
 
-		inline operator bool() const { return NameArg.arg != NULL; } 
+		inline operator bool() const { return NameArg.arg != nullptr; } 
 
 		inline operator TypeChar *() { return NameArg.Value; }
 
 		bool operator==(TypeChar * Enother) const
 		{
-			if(NameArg.arg == NULL)
+			if(NameArg.arg == nullptr)
 				return false;
 			if(StringCompare(NameArg.Value, Enother) == 0)
 				return true;
@@ -221,8 +221,8 @@ public:
 
 	EX_ARG()
 	{
-		Count.arg = NULL;
-		Count._Count = NULL;
+		Count.arg = nullptr;
+		Count._Count = 0;
 		Count.PrefixLen = 0;
 		Count.SeparatorLen = 0;
 		Count.Prefix[0] = 0;
@@ -287,7 +287,7 @@ public:
 	{
 		for(int i = 0, j = 0;i < Count._Count; i++)
 		{
-			TypeChar *Name = NULL, *Value = NULL;
+			TypeChar *Name = nullptr, *Value = nullptr;
 			if(!Get(Count.arg[i], StringLength(Count.arg[i]), Name, Value))
 			{
 				if(j == Index)

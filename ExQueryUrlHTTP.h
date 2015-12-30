@@ -271,7 +271,66 @@ lblReadKey:
 	}
 
 public:
-		
+	struct URI_REGEX
+	{
+		/*
+		RegEx based on RFC 3987 https://www.ietf.org/rfc/rfc3987.txt
+		*/
+
+		static std::basic_string<char> Scheme;
+		static std::basic_string<char> PctEncodedChar;
+		static std::basic_string<char> UnreservedChar;
+		static std::basic_string<char> SubDelimsChar;
+		static std::basic_string<char> PcharChar;
+		static std::basic_string<char> RegNameChar;
+		static std::basic_string<char> QueryChar;
+		static std::basic_string<char> QueryKeyValChar;
+		static std::basic_string<char> FragmentChar;
+
+
+		static std::basic_string<char> UserInfo;//iuserinfo = iunreserved | pct-encoded | sub-delims | ":"
+
+
+		static std::basic_string<char> IPv4Segment;
+		static std::basic_string<char> IPv4Address;
+		static std::basic_string<char> IPv4RegEx;
+
+		static std::basic_string<char> IPv6Segment;
+
+		static std::basic_string<char> IPv6Full;
+		static std::basic_string<char> IPv6Short1;    //1::
+		static std::basic_string<char> IPv6Short2;
+		static std::basic_string<char> IPv6Short3;
+		static std::basic_string<char> IPv6Short4;
+		static std::basic_string<char> IPv6Short5;
+		static std::basic_string<char> IPv6Short6;
+		static std::basic_string<char> IPv6Short7;
+		static std::basic_string<char> IPv6Short8; //::2:3:4:5:6:7:8
+		static std::basic_string<char> IPv6_IPv4Mapped; //::255.255.255.255 отображённый IPv4
+		static std::basic_string<char> IPv6_IPv4Embedded; //2001:db8:3:4::192.0.2.33 встроенный IPv4
+
+		static std::basic_string<char> IPv6Address;
+
+		static std::basic_string<char> IPv6RegEx;
+
+		static std::basic_string<char> SchemeRegEx;
+		static std::basic_string<char> HostRegEx;//ihost = IP-literal | IPv4address | ireg-name
+		static std::basic_string<char> PortRegEx;
+		static std::basic_string<char> PathRegEx;
+		static std::basic_string<char> ArgRegEx;
+		static std::basic_string<char> QueryRegEx;
+		static std::basic_string<char> FragmentRegEx;
+
+		static std::basic_string<char> AuthorityRegEx;//iauthority = [ iuserinfo "@" ] ihost [ ":" port ]
+
+		static std::basic_string<char> HierPart;
+
+		static std::basic_string<char> IRIRegEx;
+
+	};
+
+
+
 	/*
 	Date functions;
 	*/
@@ -623,15 +682,16 @@ public:
 		return *r;
 	}
 
-	
+
+
 	template<typename TypeUserData>
 	static int Recive
 	(
 		QUERY_URL* QueryUrl,
 		TypeUserData UsrData,
-		bool (*ResponseFunc)(TypeUserData UsrData, int Status, const char * Msg, const char* ProtoVer),
+		bool (*ResponseFunc)(TypeUserData UsrData, int Status, const char* Msg, const char* ProtoVer),
 		bool (*QueryFunc)(TypeUserData UsrData, const char* Method, const char* Path, const char* ProtoVer),
-		bool (*HeadersFunc)(TypeUserData UsrData, const char * Key, const char * Val),
+		bool (*HeadersFunc)(TypeUserData UsrData, const char* Key, const char* Val),
 		size_t* Readed = std::make_default_pointer(),
 		bool IsPeek = false,
 		size_t MaxLenBuf = 4096	
@@ -844,6 +904,69 @@ lblOut:
 		const char* ProtoVersion = "1.1"
 	) {return SendResponse<char>(QueryUrl, Stat, 0, [](char, char**,char**){ return false;}, StatMsg, ProtoVersion);}
 };
+
+
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::Scheme = "(?:[:alpha:][[:alnum:]+-.]*)";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::PctEncodedChar = "(?:%[0-9a-fA-F]{2})";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::UnreservedChar = "[[:alnum:]-._~]";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::SubDelimsChar = "[!&'()*+,;=\\$]";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::PcharChar = "(?:[[:alnum:]-._~!&'()*+,;=:@\\$]|(?:%[0-9a-fA-F]{2}))";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::RegNameChar = "(?:[[:alnum:]-._~!&'()*+,;=\\$]|(?:%[0-9a-fA-F]{2}))";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::QueryChar = "(?:[[:alnum:]-._~!&'()/?*+,;=:@\\$]|(?:%[0-9a-fA-F]{2}))";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::QueryKeyValChar = "(?:[[:alnum:]-._~!'()/?*+,;:@\\$]|(?:%[0-9a-fA-F]{2}))";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::FragmentChar = "(?:[[:alnum:]-._~!&'/?()*+,;=:@\\$]|(?:%[0-9a-fA-F]{2}))";
+
+
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::UserInfo = "(?:[[:alnum:]-._~!&'()*+,;:=\\$]|(?:%[0-9a-fA-F]{2}))";//iuserinfo = iunreserved | pct-encoded | sub-delims | ":"
+
+
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::IPv4Segment = "(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::IPv4Address = "(?:(?:"+IPv4Segment+"\\.){3,3}"+IPv4Segment+")";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::IPv4RegEx = "("+IPv4Address+")";
+
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::IPv6Segment = "[0-9a-fA-F]{1,4}";
+
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::IPv6Full = "(?:(?:"+IPv6Segment+":){7,7}"+IPv6Segment+")";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::IPv6Short1 = "(?:(?:"+IPv6Segment+":){1,7}:)";    //1::
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::IPv6Short2 = "(?:(?:"+IPv6Segment+":){1,6}:"+IPv6Segment+")";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::IPv6Short3 = "(?:(?:"+IPv6Segment+":){1,5}(?::"+IPv6Segment+"){1,2})";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::IPv6Short4 = "(?:(?:"+IPv6Segment+":){1,4}(?::"+IPv6Segment+"){1,3})";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::IPv6Short5 = "(?:(?:"+IPv6Segment+":){1,3}(?::"+IPv6Segment+"){1,4})";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::IPv6Short6 = "(?:(?:"+IPv6Segment+":){1,2}(?::"+IPv6Segment+"){1,5})";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::IPv6Short7 = "(?:"+IPv6Segment+":(?:(?::"+IPv6Segment+"){1,6}))";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::IPv6Short8 = "(?::(?:(?::"+IPv6Segment+"){1,7}|:))"; //::2:3:4:5:6:7:8
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::IPv6_IPv4Mapped = "(?:::(?:ffff(?::0{1,4}){0,1}:){0,1}"+IPv4Address+")"; //::255.255.255.255 отображённый IPv4
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::IPv6_IPv4Embedded = "(?:(?:"+IPv6Segment+":){1,4}:"+IPv4Address+")"; //2001:db8:3:4::192.0.2.33 встроенный IPv4
+
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::IPv6Address = "(?:"
+	+IPv6Full+"|"
+	+IPv6Short1+"|"
+	+IPv6Short2+"|"
+	+IPv6Short3+"|"
+	+IPv6Short4+"|"
+	+IPv6Short5+"|"
+	+IPv6Short6+"|"
+	+IPv6Short7+"|"
+	+IPv6Short8+"|"
+	+IPv6_IPv4Mapped+"|"
+	+IPv6_IPv4Embedded+
+	")";
+
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::IPv6RegEx = "(?:\\[("+IPv6Address+")\\])";
+
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::SchemeRegEx = "(?:("+Scheme+")://)";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::HostRegEx = "(?:"+IPv4RegEx+"|"+IPv6RegEx+"|("+RegNameChar+"+))";//ihost = IP-literal | IPv4address | ireg-name
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::PortRegEx = "(?::(\\d{1,5}))";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::PathRegEx = "((?:/"+PcharChar+"*)+)";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::ArgRegEx = "(?:("+QueryKeyValChar+"+)=("+QueryKeyValChar+"+)(?:&|$))";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::QueryRegEx = "(?:\\?("+QueryChar+"*)+)";
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::FragmentRegEx = "(?:#("+FragmentChar+"*))";
+
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::AuthorityRegEx = "(?:(?:("+UserInfo+"+)@)?"+HostRegEx+PortRegEx+"?)";//iauthority = [ iuserinfo "@" ] ihost [ ":" port ]
+
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::HierPart = "(?://"+AuthorityRegEx+PathRegEx+")";
+
+std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::IRIRegEx = "(?:"+SchemeRegEx+"?"+AuthorityRegEx+")?"+PathRegEx+"?"+QueryRegEx+"?"+FragmentRegEx+"?";
 
 typedef ___EX_HTTP<char> EX_HTTP;
 #endif

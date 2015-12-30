@@ -631,7 +631,7 @@ public:
 		sockaddr_in			AddrInet;\
 		sockaddr_in6		AddrInet6;\
 		sockaddr_storage	AddrStorage;\
-	}
+		}
 
 		template<typename RetType>
 		inline operator RetType*() { return (RetType*)this; }
@@ -1462,6 +1462,45 @@ public:
 		}
 	};
 
+
+	struct IPv6ADDR
+	{
+		unsigned short Addr[8];
+		inline bool operator==(IPv6ADDR& Another) { return memcmp(Addr, Another.Addr, sizeof(Addr)) == 0; }
+		inline bool operator!=(IPv6ADDR& Another) { return !operator==(Another); }
+
+		inline bool FromString(const char* Str) { return StringToAddr(Str, Addr, AF_INET6); }
+		inline bool FromString(const std::basic_string<char>& Str) { return FromString(Str.c_str()); }
+
+		bool ToString(std::basic_string<char>& Dest)
+		{
+			Dest.resize(INET6_ADDRSTRLEN + 1);
+			auto r = QUERY_URL::AddrToString(Addr, (char*)Dest.c_str(), INET6_ADDRSTRLEN,  AF_INET6);
+			Dest.resize(StringLength(Dest.c_str()));
+			return r;
+		}
+		bool ToString(char* Dest, size_t Len) { return AddrToString(Addr, Dest, Len,  AF_INET6); }
+	};
+
+	struct IPv4ADDR
+	{
+		unsigned char Addr[4];
+		inline bool operator==(IPv4ADDR& Another) { return memcmp(Addr, Another.Addr, sizeof(Addr)) == 0; }
+		inline bool operator!=(IPv4ADDR& Another) { return !operator==(Another); }
+
+		inline bool FromString(const char* Str) { return StringToAddr(Str, Addr, AF_INET); }
+		inline bool FromString(const std::basic_string<char>& Str) { return FromString(Str.c_str()); }
+
+		bool ToString(std::basic_string<char>& Dest)
+		{
+			Dest.resize(INET_ADDRSTRLEN + 1);
+			auto r = AddrToString(Addr, (char*)Dest.c_str(), INET6_ADDRSTRLEN,  AF_INET);
+			Dest.resize(StringLength(Dest.c_str()));
+			return r;
+		}
+		bool ToString(char* Dest, size_t Len) { return AddrToString(Addr, Dest, Len,  AF_INET); }
+	};
+
 protected:
 
 	struct PROTOCOL_INTERATOR
@@ -1536,10 +1575,7 @@ protected:
 	struct PORT_SERVICE_INTERATOR
 	{
 #define PORT_SERVICE_INTERATOR_FIELDS struct servent * Cur;
-		inline PORT_SERVICE_INTERATOR(struct servent * New)
-		{
-			Name.Cur = New;
-		}
+		inline PORT_SERVICE_INTERATOR(struct servent * New) { Name.Cur = New; }
 
 		union
 		{
@@ -3292,6 +3328,10 @@ public:
 	*/
 	static INFO_HOST_INTERATOR GetInfoAboutHost(const char * NameOrTextAddress) { return INFO_HOST_INTERATOR(gethostbyname(NameOrTextAddress)); }
 
+
+
+	static bool StringToAddr(const char* Str, void* Dest, int Family = AF_INET) { return inet_pton(Family, Str, Dest) == 1; }
+	static bool AddrToString(void* Src, char* Dest, size_t BufSize,  int Family = AF_INET) { return inet_ntop(Family, Src, Dest, BufSize) != nullptr; }
 	/*
 	Connect with server at a specific address.
 	*/

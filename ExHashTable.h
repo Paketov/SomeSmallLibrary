@@ -55,7 +55,7 @@ template
 	<
 	typename TElementStruct,
 	bool Type = false,
-	typename TIndex = decltype(TElementStruct::IndexByKey(std::variant_arg())),
+	typename TIndex = decltype(TElementStruct::IndexByKey(std::variant_arg(), std::variant_arg())),
 	TIndex NothingIndex = TIndex(-1)
 	>
 class HASH_TABLE
@@ -63,19 +63,9 @@ class HASH_TABLE
 public:
 	typedef TIndex											TINDEX,		      *LPTINDEX;
 	typedef TElementStruct									TPROPERTY_STRUCT, *LPTPROPERTY_STRUCT;
-
-	typedef struct
-	{
-		TINDEX iStart;
-		TINDEX iNext;
-	} THEADCELL, *LPTHEADCELL;		
-
-	typedef struct CELL :public THEADCELL, public TElementStruct {} CELL, *LPCELL;
-
-	static inline void CopyElement(CELL& Dest, CELL& Source)
-	{
-		*((TElementStruct*)(((LPTHEADCELL)&Dest) + 1)) = *((TElementStruct*)(((LPTHEADCELL)&Source) + 1));
-	}
+	typedef struct { TINDEX iStart, iNext; } THEADCELL, *LPTHEADCELL;		
+	typedef struct CELL : public THEADCELL, public TElementStruct {} CELL, *LPCELL;
+	static inline void CopyElement(CELL& Dest, CELL& Source) { *((TElementStruct*)(((LPTHEADCELL)&Dest) + 1)) = *((TElementStruct*)(((LPTHEADCELL)&Source) + 1)); }
 
 protected:
 
@@ -659,7 +649,7 @@ public:
 
 	static inline bool Realloc(typename std::conditional<!Type, HASH_TABLE&, std::empty_type>::type Val, TINDEX NewSize)
 	{
-		return (Val.CountUsed.Table = (LPCELL)realloc(Val.CountUsed.Table, NewSize * sizeof(CELL))) != NULL;
+		return (Val.CountUsed.Table = (LPCELL)realloc(Val.CountUsed.Table, NewSize * sizeof(CELL))) != nullptr;
 	}
 
 	static bool Realloc(HASH_TABLE *& Val, TINDEX NewCount)
@@ -682,7 +672,7 @@ public:
 
 	static inline bool New(typename std::conditional<!Type, HASH_TABLE&, std::empty_type>::type Val, TINDEX NewCount)
 	{
-		return (Val.CountUsed.Table = (LPCELL)malloc(NewCount * sizeof(CELL))) != NULL;
+		return (Val.CountUsed.Table = (LPCELL)malloc(NewCount * sizeof(CELL))) != nullptr;
 	}
 
 	static bool New(HASH_TABLE *& Val, TINDEX NewCount)

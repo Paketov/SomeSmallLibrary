@@ -55,15 +55,10 @@
 namespace std
 {	
 
-
 	struct make_default_pointer
 	{
 		template<typename RetVal>
-		inline operator RetVal*() const
-		{
-			static RetVal v;
-			return &v;
-		} 
+		inline operator RetVal*() const { static RetVal v; return &v; } 
 	};
 
 	template<typename TypeHaveConstructor>
