@@ -1299,8 +1299,7 @@ public:
 				   inline operator decltype(std::declval<pollfd>().revents)() const { return This->Count.pfd[Index].revents; }
 			   } ReturnedEvents;
 
-			   class
-			   {
+			   class {
 				   __INTERATOR_FIELDS__;
 			   public:
 				   inline operator decltype(std::declval<pollfd>().events)() const { return This->Count.pfd[Index].events; }
@@ -1312,15 +1311,13 @@ public:
 				   }
 			   } RequestedEvents;
 
-			   class
-			   {
+			   class{
 					__INTERATOR_FIELDS__;
 			   public:
 				   inline operator decltype(std::declval<pollfd>().fd)() const { return This->Count.pfd[Index].fd; }	   
 			   } Descriptor;
 
-			   class
-			   {
+			   class {
 				   __INTERATOR_FIELDS__;
 			   public:
 				   inline operator __QUERY_URL*()
@@ -1385,8 +1382,7 @@ public:
 				free(Count.Elements);
 		}
 
-		union
-		{
+		union{
 			class{
 				friend CHECK_EVENTS_POL;
 				__WAIT_CHANGES_FIELDS__
