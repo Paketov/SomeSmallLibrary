@@ -61,6 +61,12 @@ namespace std
 		inline operator RetVal*() const { static RetVal v; return &v; } 
 	};
 
+	struct make_default_reference
+	{
+		template<typename RetVal>
+		inline operator RetVal&() const { static RetVal v; return v; } 
+	};
+
 	template<typename TypeHaveConstructor>
 	struct def_var_in_union_with_constructor
 	{

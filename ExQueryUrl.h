@@ -12,7 +12,11 @@
 
 
 #include "ExString.h"
+#include "ExDynamicBuf.h"
+#include "ExHashTable.h"
 #include <limits>
+
+
 #ifdef _WIN32
 
 #	include <winsock.h>
@@ -1227,22 +1231,22 @@ public:
 		}
 	};
 
-	template<bool IsUseQuerUrl = true>
+	template<bool IsUseAssocData = true, typename AssocDataType = std::empty_type>
 	class CHECK_EVENTS_POL
 	{
-#	define __WAIT_CHANGES_FIELDS__ 	struct{unsigned CountSockets; pollfd * pfd; __QUERY_URL** Elements;};
+	public:
 
 		class INTERATOR
 		{
-			
 #	define __INTERATOR_FIELDS__ struct{CHECK_EVENTS_POL* This; unsigned Index;}
-			
-		public:
+			friend CHECK_EVENTS_POL;
+
 			inline INTERATOR(CHECK_EVENTS_POL* w, unsigned i)
 			{
 				IsFollowWrite.This = w;
 				IsFollowWrite.Index = i;
 			}
+		public:
 
 			inline INTERATOR()
 			{
@@ -1252,16 +1256,15 @@ public:
 
 			union
 			{
-
 #define __INTERATOR_PROPERTY__e(Name, Opt)												\
-			   class{friend INTERATOR;__INTERATOR_FIELDS__;								\
+			   class{friend CHECK_EVENTS_POL;friend INTERATOR;__INTERATOR_FIELDS__;		\
 			   public:																	\
-				   inline operator bool() const {return This->Count.pfd[Index].events & Opt;}	\
+				   inline operator bool() const {return This->Count.pfd[Index].events & Opt;}\
 				   inline bool operator=(bool v){										\
 				   This->Count.pfd[Index].events |= ((v)?Opt:0);return v;}				\
 			   } Name
 #define __INTERATOR_PROPERTY__r(Name, Opt)												\
-			   class{friend INTERATOR;__INTERATOR_FIELDS__;								\
+			   class{friend CHECK_EVENTS_POL;friend INTERATOR;__INTERATOR_FIELDS__;		\
 			   public:																	\
 				   inline operator bool() const{return This->Count.pfd[Index].revents & Opt;}\
 			   } Name
@@ -1306,141 +1309,105 @@ public:
 
 				   inline decltype(std::declval<pollfd>().events) operator=(decltype(std::declval<pollfd>().events) v)
 				   {
-					   This->Count.pfd[Index].events = v;
-					   return v;
+					   return This->Count.pfd[Index].events = v;
 				   }
 			   } RequestedEvents;
 
 			   class{
 					__INTERATOR_FIELDS__;
 			   public:
-				   inline operator decltype(std::declval<pollfd>().fd)() const { return This->Count.pfd[Index].fd; }	   
+				   inline operator TDESCR() const { return This->Count.pfd[Index].fd; }	   
 			   } Descriptor;
 
 			   class {
 				   __INTERATOR_FIELDS__;
 			   public:
-				   inline operator __QUERY_URL*()
-				   {
-					   if(!IsUseQuerUrl || (This->Count.Elements == nullptr))
-						   return nullptr;
-					   return This->Count.Elements[Index];
-				   }
+				   inline operator AssocDataType() { return This->Count.data[Index]; }
 
-				   inline __QUERY_URL* operator->()
+				   inline AssocDataType operator=(AssocDataType NewVal)
 				   {
-					   if(!IsUseQuerUrl || (This->Count.Elements == nullptr))
-						   return nullptr;
-					   return This->Count.Elements[Index];
+					   This->Count.data[Index] = NewVal;
+					   return This->Count.data[Index];
 				   }
-			   } Connection;
+			   } Data;
+
+			   class{
+			    __INTERATOR_FIELDS__;
+			   public:
+				   inline operator bool() const { return This == nullptr; }
+			   } IsEmpty;
+
+			   class{
+			    __INTERATOR_FIELDS__;
+			   public:
+				   inline operator unsigned() const { return Index; }
+			   } Index;
 			};
 
+			inline void ClearReturnedEvents() { IsFollowWrite.This->Count.pfd[IsFollowWrite.Index].revents = 0; }
+
 			void Remove()
-			{
-				if(IsFollowWrite.Index >= IsFollowWrite.This->Count)
-					return;	
-				unsigned From = --IsFollowWrite.This->Count.CountSockets;
-				if(From != IsFollowWrite.Index)
-				{
-					IsFollowWrite.This->Count.pfd[IsFollowWrite.Index] = IsFollowWrite.This->Count.pfd[From];
-					if(IsUseQuerUrl)
-						IsFollowWrite.This->Count.Elements[IsFollowWrite.Index] = IsFollowWrite.This->Count.Elements[From];
-				}
-				void * New = realloc(IsFollowWrite.This->Count.pfd, From * sizeof(IsFollowWrite.This->Count.pfd[0]));
-				IsFollowWrite.This->Count.pfd = (pollfd*)New;
-				if(IsUseQuerUrl)
-				{
-					New = realloc(IsFollowWrite.This->Count.Elements, From * sizeof(IsFollowWrite.This->Count.Elements[0]));
-					IsFollowWrite.This->Count.Elements = (__QUERY_URL**)New;
-				}
+			{	
+				if(IsFollowWrite.This == nullptr)
+					return;
+				IsFollowWrite.This->Count.pfd.RemoveSubstituting(IsFollowWrite.Index);
+				if(IsUseAssocData)
+					IsFollowWrite.This->Count.data.RemoveSubstituting(IsFollowWrite.Index);
+				if(IsFollowWrite.Index <= 0)
+					IsFollowWrite.This == nullptr;
+				else
+					IsFollowWrite.Index--;
 			}
 
 			int Check(unsigned WaitTime = 0)
 			{
 				if(IsFollowWrite.This == nullptr)
 					return 0;
-				return poll(IsFollowWrite.This->Count.pfd + IsFollowWrite.Index, 1, WaitTime);
+				return poll(&IsFollowWrite.This->Count.pfd[IsFollowWrite.Index], 1, WaitTime);
 			}
 		};
-
 		friend INTERATOR;
-	public:
+		CHECK_EVENTS_POL(){}
 
-		CHECK_EVENTS_POL()
+		class{
+			friend CHECK_EVENTS_POL;
+			friend INTERATOR;
+			DYNAMIC_BUF<pollfd>			pfd;
+			DYNAMIC_BUF<AssocDataType>	data;
+		public:
+			inline operator size_t() const { return pfd.Count; }
+		} Count;
+
+		int AddConnection(__QUERY_URL* Sock, long lNetworkEvents = POLLIN, AssocDataType AssocData = AssocDataType())
 		{
-			Count.CountSockets = 0;
-			Count.pfd = nullptr;
-			Count.Elements = nullptr;
+			return AddConnection(Sock->RemoteIp.hSocket, lNetworkEvents, AssocData);
 		}
 
-		~CHECK_EVENTS_POL()
+		int AddConnection(TDESCR SocketDescriptor, long lNetworkEvents = POLLIN, AssocDataType AssocData = AssocDataType())
 		{
-			if(Count.pfd != nullptr)
-				free(Count.pfd);
-			if(IsUseQuerUrl && (Count.Elements != nullptr))
-				free(Count.Elements);
+			pollfd& pfd = Count.pfd.Append();
+			pfd.fd = SocketDescriptor;
+			pfd.revents = 0;
+			pfd.events = lNetworkEvents;
+			if(IsUseAssocData)
+				Count.data.Append() = AssocData;
+			return Count - 1;
 		}
 
-		union{
-			class{
-				friend CHECK_EVENTS_POL;
-				__WAIT_CHANGES_FIELDS__
-			public:
-				inline operator unsigned() { return CountSockets; }
-			} Count;
-		};
-
-		int AddConnection(__QUERY_URL& Sock)
+		INTERATOR EnumWhoHasEvents()
 		{
-			unsigned i = Count.CountSockets, j = i + 1;
-			void * New = realloc(Count.pfd, j * sizeof(Count.pfd[0]));
-			if(New == nullptr)
-				return -1;
-			Count.pfd = (pollfd*)New;
-			Count.pfd[i].fd = Sock.RemoteIp.hSocket;
-			Count.pfd[i].events = 0;
-			Count.pfd[i].revents = 0;
-			if(IsUseQuerUrl)
-			{
-				New = realloc(Count.Elements, j * sizeof(Count.Elements[0]));
-				if(New == nullptr)
-					return -1;
-				Count.Elements = (__QUERY_URL**)New;
-				Count.Elements[i] = &Sock;
-			}
-			Count.CountSockets = j;
-			return i;
+			for(size_t i = 0, m = Count; i < m; i++)
+				if(Count.pfd[i].revents != 0)
+					return INTERATOR(this, i);
+			return INTERATOR();
 		}
 
-		int AddConnection(decltype(std::declval<pollfd>().fd) SocketDescriptor)
+		INTERATOR EnumWhoHasEvents(INTERATOR& Prev)
 		{
-			if(IsUseQuerUrl)
-				return -1;
-			unsigned i = Count.CountSockets, j = i + 1;
-			void * New = realloc(Count.pfd, j * sizeof(Count.pfd[0]));
-			if(New == nullptr)
-				return -1;
-			Count.pfd = (pollfd*)New;
-			Count.pfd[i].fd = SocketDescriptor;
-			Count.pfd[i].events = 0;
-			Count.pfd[i].revents = 0;
-			Count.CountSockets = j;
-			return i;
-		}
-
-		void UpdateDescriptor()
-		{
-			if(IsUseQuerUrl)
-				for(unsigned i = 0, m = Count;i < m;i++)
-					Count.pfd[i].fd = Count.Elements[i].RemoteIp.hSocket;
-		}
-
-		void UpdateDescriptor(unsigned Index)
-		{
-			if(!IsUseQuerUrl || (Index >= Count))
-				return;
-			Count.pfd[Index].fd = Count.Elements[Index].RemoteIp.hSocket;
+			for(size_t i = Prev.IsFollowWrite.Index + 1, m = Count; i < m; i++)
+				if(Count.pfd[i].revents != 0)
+					return INTERATOR(this, i);
+			return INTERATOR();
 		}
 
 		inline INTERATOR operator[](unsigned Index)
@@ -1452,11 +1419,12 @@ public:
 
 		int Check(unsigned WaitTime = 0)
 		{
-			if((Count == 0) || (Count.pfd == nullptr))
+			if(Count == 0)
 				return 0;
-			return poll(Count.pfd, Count, WaitTime);
+			return poll(Count.pfd.BeginBuf, Count, WaitTime);
 		}
 	};
+
 
 
 	struct IPv6ADDR
@@ -2600,7 +2568,7 @@ public:
 #ifdef SO_ACCEPTCONN
 			DEF_SOCKET_OPTION_PROPERTY_GET(IsAcceptConnection, bool, SOL_SOCKET, SO_ACCEPTCONN);
 #else
-			DEF_SOCKET_EMPTY_OPTION_GET(IsAcceptConnection, bool, bool);
+			DEF_SOCKET_EMPTY_OPTION_GET(IsAcceptConnection, bool);
 #endif
 			/*
 			Use the local loopback address when sending data from this socket. 

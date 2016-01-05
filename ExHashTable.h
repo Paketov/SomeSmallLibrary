@@ -55,14 +55,14 @@ template
 	<
 	typename TElementStruct,
 	bool Type = false,
-	typename TIndex = decltype(TElementStruct::IndexByKey(std::variant_arg(), std::variant_arg())),
+	typename TIndex = decltype(std::declval<TElementStruct>().IndexInBound(0)),
 	TIndex NothingIndex = TIndex(-1)
 	>
 class HASH_TABLE
 {	
 public:
-	typedef TIndex											TINDEX,		      *LPTINDEX;
-	typedef TElementStruct									TPROPERTY_STRUCT, *LPTPROPERTY_STRUCT;
+	typedef TIndex	TINDEX, *LPTINDEX;
+	typedef TElementStruct	TPROPERTY_STRUCT, *LPTPROPERTY_STRUCT;
 	typedef struct { TINDEX iStart, iNext; } THEADCELL, *LPTHEADCELL;		
 	typedef struct CELL : public THEADCELL, public TElementStruct {} CELL, *LPCELL;
 	static inline void CopyElement(CELL& Dest, CELL& Source) { *((TElementStruct*)(((LPTHEADCELL)&Dest) + 1)) = *((TElementStruct*)(((LPTHEADCELL)&Source) + 1)); }

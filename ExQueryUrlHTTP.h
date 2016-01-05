@@ -284,7 +284,8 @@ public:
 		static const std::basic_string<char> PcharChar;
 		static const std::basic_string<char> RegNameChar;
 		static const std::basic_string<char> QueryChar;
-		static const std::basic_string<char> QueryKeyValChar;
+		static const std::basic_string<char> QueryKeyChar;
+		static const std::basic_string<char> QueryValChar;
 		static const std::basic_string<char> FragmentChar;
 
 
@@ -913,7 +914,9 @@ const std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::SubDelimsChar = "[!&'
 const std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::PcharChar = "(?:[[:alnum:]-._~!&'()*+,;=:@\\$]|(?:%[0-9a-fA-F]{2}))";
 const std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::RegNameChar = "(?:[[:alnum:]-._~!&'()*+,;=\\$]|(?:%[0-9a-fA-F]{2}))";
 const std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::QueryChar = "(?:[[:alnum:]-._~!&'()/?*+,;=:@\\$]|(?:%[0-9a-fA-F]{2}))";
-const std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::QueryKeyValChar = "(?:[[:alnum:]-._~!'()/?*+,;:@\\$]|(?:%[0-9a-fA-F]{2}))";
+const std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::QueryKeyChar = "(?:[[:alnum:]-._~!'()/?*+,;:@\\$]|(?:%[0-9a-fA-F]{2}))";
+const std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::QueryValChar = "(?:[[:alnum:]-._~!'()/?*+,;:@=\\$]|(?:%[0-9a-fA-F]{2}))";
+
 const std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::FragmentChar = "(?:[[:alnum:]-._~!&'/?()*+,;=:@\\$]|(?:%[0-9a-fA-F]{2}))";
 
 
@@ -958,7 +961,7 @@ const std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::SchemeRegEx = "(?:("+
 const std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::HostRegEx = "(?:"+IPv4RegEx+"|"+IPv6RegEx+"|("+RegNameChar+"+))";//ihost = IP-literal | IPv4address | ireg-name
 const std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::PortRegEx = "(?::(\\d{1,5}))";
 const std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::PathRegEx = "((?:/"+PcharChar+"*)+)";
-const std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::ArgRegEx = "(?:("+QueryKeyValChar+"+)=("+QueryKeyValChar+"+)(?:&|$))";
+const std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::ArgRegEx = "(?:("+QueryKeyChar+"+)(?:=("+QueryValChar+"*))?(?:&|$))";
 const std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::QueryRegEx = "(?:\\?("+QueryChar+"*)+)";
 const std::basic_string<char> ___EX_HTTP<char>::URI_REGEX::FragmentRegEx = "(?:#("+FragmentChar+"*))";
 

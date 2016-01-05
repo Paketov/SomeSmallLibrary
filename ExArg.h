@@ -185,7 +185,12 @@ public:
 			StringDoubleToNumber(&Res, NameArg.Value, 0xffff);
 			return Res;
 		}
-
+		operator unsigned() const
+		{
+			unsigned Res = 0;
+			StringDoubleToNumber(&Res, NameArg.Value, 0xffff);
+			return Res;
+		}
 		operator double() const
 		{
 			double Res = 0;
