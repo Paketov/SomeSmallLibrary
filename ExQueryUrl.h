@@ -15,15 +15,19 @@
 #include "ExDynamicBuf.h"
 #include "ExHashTable.h"
 #include <limits>
+#include <atomic>
+
+//#define HAVE_KEVENT___
 
 
 #ifdef _WIN32
 
+//#define WIN_PLATFORM
 #	include <winsock.h>
 #	include <io.h>
 #	include <fcntl.h>
 
-
+#	define WIN_PLATFORM
 #	ifndef WSA_VERSION
 #		define WSA_VERSION MAKEWORD(2, 2)
 #	endif
@@ -657,8 +661,6 @@ public:
 			Len.AddrInet6 = New;
 			return Len.AddrInet6;
 		}
-
-
 		union
 		{
 
@@ -1044,6 +1046,8 @@ public:
 	template<bool IsUseQuerUrl = true>
 	class CHECK_EVENTS_SEL
 	{
+
+
 		struct ELEM_DESCR
 		{
 			unsigned char f;
@@ -1053,7 +1057,7 @@ public:
 			inline __QUERY_URL* GetSock() { return nullptr; }
 			inline void SetSock(__QUERY_URL* ns) { d = ns->RemoteIp.hSocket; }
 		};
-				
+
 		struct ELEM_SOCK
 		{
 			unsigned char f;
@@ -1066,7 +1070,7 @@ public:
 
 		typedef typename std::conditional<IsUseQuerUrl, ELEM_SOCK, ELEM_DESCR>::type ELEM;
 #	define __WAIT_CHANGES_FIELDS__	struct{ unsigned CountSockets; fd_set rdf, wdf, edf; ELEM * e;};
-		
+
 		class INTERATOR
 		{		
 #	define __INTERATOR_FIELDS__ struct{CHECK_EVENTS_SEL* This; unsigned Index;}
@@ -1088,58 +1092,58 @@ public:
 			{
 
 #define __INTERATOR_PROPERTY__e(Name, FdSet, BitTest)									\
-			   class{friend INTERATOR;__INTERATOR_FIELDS__;								\
-			   public:																	\
-				   inline operator bool() const {return This->Count.e[Index].f & BitTest;}\
-				   inline bool operator=(bool v){										\
-				   if(v){																\
-						FD_SET(This->Count.e[Index].GetDescriptor(), &This->Count.FdSet);\
-						This->Count.e[Index].f |= BitTest;								\
-				   }else{																\
-						FD_CLR(This->Count.e[Index].GetDescriptor(), &This->Count.FdSet);\
-						This->Count.e[Index].f &= (~((unsigned char)BitTest));		    \
-				   }return v;}															\
-			   } Name
+				class{friend INTERATOR;__INTERATOR_FIELDS__;								\
+				public:																	\
+				inline operator bool() const {return This->Count.e[Index].f & BitTest;}\
+				inline bool operator=(bool v){										\
+				if(v){																\
+				FD_SET(This->Count.e[Index].GetDescriptor(), &This->Count.FdSet);\
+				This->Count.e[Index].f |= BitTest;								\
+				}else{																\
+				FD_CLR(This->Count.e[Index].GetDescriptor(), &This->Count.FdSet);\
+				This->Count.e[Index].f &= (~((unsigned char)BitTest));		    \
+				}return v;}															\
+				} Name
 
 #define __INTERATOR_PROPERTY__r(Name, FdSet)											\
-			   class{friend INTERATOR;__INTERATOR_FIELDS__;								\
-			   public:																	\
-				   inline operator bool() const{return FD_ISSET(This->Count.e[Index].GetDescriptor(), &This->Count.FdSet);}\
-			   } Name
+				class{friend INTERATOR;__INTERATOR_FIELDS__;								\
+				public:																	\
+				inline operator bool() const{return FD_ISSET(This->Count.e[Index].GetDescriptor(), &This->Count.FdSet);}\
+				} Name
 
-			   __INTERATOR_PROPERTY__e(IsFollowWrite, wdf, 0x1);
-			   __INTERATOR_PROPERTY__e(IsFollowRead,  rdf, 0x2);
-			   __INTERATOR_PROPERTY__e(IsFollowError, edf, 0x4);
+				__INTERATOR_PROPERTY__e(IsFollowWrite, wdf, 0x1);
+				__INTERATOR_PROPERTY__e(IsFollowRead,  rdf, 0x2);
+				__INTERATOR_PROPERTY__e(IsFollowError, edf, 0x4);
 
 
-			   __INTERATOR_PROPERTY__r(IsAdoptedWrite, wdf);
-			   __INTERATOR_PROPERTY__r(IsAdoptedRead,  rdf);
-			   __INTERATOR_PROPERTY__r(IsAdoptedError, edf);
+				__INTERATOR_PROPERTY__r(IsAdoptedWrite, wdf);
+				__INTERATOR_PROPERTY__r(IsAdoptedRead,  rdf);
+				__INTERATOR_PROPERTY__r(IsAdoptedError, edf);
 
-			   class {
+				class {
 					__INTERATOR_FIELDS__;
-			   public:
-				   inline operator TDESCR() const { return This->Count.e[Index].GetDescriptor(); }
-			   } Descriptor;
+				public:
+					inline operator TDESCR() const { return This->Count.e[Index].GetDescriptor(); }
+				} Descriptor;
 
-			   class
-			   {
-				   __INTERATOR_FIELDS__;
-			   public:
-				   inline operator __QUERY_URL*()
-				   {
-					   if(This->Count.e == nullptr)
-						   return nullptr;
-					   return This->Count.e[Index].GetSock();
-				   }
+				class
+				{
+					__INTERATOR_FIELDS__;
+				public:
+					inline operator __QUERY_URL*()
+					{
+						if(This->Count.e == nullptr)
+							return nullptr;
+						return This->Count.e[Index].GetSock();
+					}
 
-				   inline __QUERY_URL* operator->()
-				   {
-					   if(This->Count.e == nullptr)
-						   return nullptr;
-					   return This->Count.e[Index].GetSock();
-				   }
-			   } Connection;
+					inline __QUERY_URL* operator->()
+					{
+						if(This->Count.e == nullptr)
+							return nullptr;
+						return This->Count.e[Index].GetSock();
+					}
+				} Connection;
 			};
 
 			void Remove()
@@ -1175,7 +1179,7 @@ public:
 			if(Count.e != nullptr)
 				free(Count.e);
 		}
-	
+
 		union
 		{
 			class
@@ -1186,7 +1190,7 @@ public:
 				inline operator unsigned() { return CountSockets; }
 			} Count;
 		};
-				
+
 		int AddConnection(__QUERY_URL& Sock)
 		{
 			unsigned i = Count.CountSockets, j = i + 1;
@@ -1234,6 +1238,7 @@ public:
 	template<bool IsUseAssocData = true, typename AssocDataType = std::empty_type>
 	class CHECK_EVENTS_POL
 	{
+
 	public:
 
 		class INTERATOR
@@ -1257,91 +1262,91 @@ public:
 			union
 			{
 #define __INTERATOR_PROPERTY__e(Name, Opt)												\
-			   class{friend CHECK_EVENTS_POL;friend INTERATOR;__INTERATOR_FIELDS__;		\
-			   public:																	\
-				   inline operator bool() const {return This->Count.pfd[Index].events & Opt;}\
-				   inline bool operator=(bool v){										\
-				   This->Count.pfd[Index].events |= ((v)?Opt:0);return v;}				\
-			   } Name
+				class{friend CHECK_EVENTS_POL;friend INTERATOR;__INTERATOR_FIELDS__;		\
+				public:																	\
+				inline operator bool() const {return This->Count.pfd[Index].events & Opt;}\
+				inline bool operator=(bool v){										\
+				This->Count.pfd[Index].events |= ((v)?Opt:0);return v;}				\
+				} Name
 #define __INTERATOR_PROPERTY__r(Name, Opt)												\
-			   class{friend CHECK_EVENTS_POL;friend INTERATOR;__INTERATOR_FIELDS__;		\
-			   public:																	\
-				   inline operator bool() const{return This->Count.pfd[Index].revents & Opt;}\
-			   } Name
+				class{friend CHECK_EVENTS_POL;friend INTERATOR;__INTERATOR_FIELDS__;		\
+				public:																	\
+				inline operator bool() const{return This->Count.pfd[Index].revents & Opt;}\
+				} Name
 
-			   __INTERATOR_PROPERTY__e(IsFollowWrite, POLLIN);
-			   __INTERATOR_PROPERTY__e(IsFollowWriteNorm, POLLRDNORM);
-			   __INTERATOR_PROPERTY__e(IsFollowWriteBand, POLLRDBAND);
-			   __INTERATOR_PROPERTY__e(IsFollowWritePrior,POLLPRI);
+				__INTERATOR_PROPERTY__e(IsFollowWrite, POLLIN);
+				__INTERATOR_PROPERTY__e(IsFollowWriteNorm, POLLRDNORM);
+				__INTERATOR_PROPERTY__e(IsFollowWriteBand, POLLRDBAND);
+				__INTERATOR_PROPERTY__e(IsFollowWritePrior,POLLPRI);
 
-			   __INTERATOR_PROPERTY__e(IsFollowRead, POLLOUT);
-			   __INTERATOR_PROPERTY__e(IsFollowReadNorm, POLLWRNORM);
-			   __INTERATOR_PROPERTY__e(IsFollowReadBand, POLLWRBAND);
+				__INTERATOR_PROPERTY__e(IsFollowRead, POLLOUT);
+				__INTERATOR_PROPERTY__e(IsFollowReadNorm, POLLWRNORM);
+				__INTERATOR_PROPERTY__e(IsFollowReadBand, POLLWRBAND);
 
-			   __INTERATOR_PROPERTY__e(IsFollowError, POLLERR);
-			   __INTERATOR_PROPERTY__e(IsFollowDisconnected, POLLHUP);
-			   __INTERATOR_PROPERTY__e(IsFollowNotFile, POLLNVAL);
+				__INTERATOR_PROPERTY__e(IsFollowError, POLLERR);
+				__INTERATOR_PROPERTY__e(IsFollowDisconnected, POLLHUP);
+				__INTERATOR_PROPERTY__e(IsFollowNotFile, POLLNVAL);
 
 
-			   __INTERATOR_PROPERTY__r(IsAdoptedWrite, POLLIN);
-			   __INTERATOR_PROPERTY__r(IsAdoptedWriteNorm, POLLRDNORM);
-			   __INTERATOR_PROPERTY__r(IsAdoptedWriteBand, POLLRDBAND);
-			   __INTERATOR_PROPERTY__r(IsAdoptedWritePrior, POLLPRI);
+				__INTERATOR_PROPERTY__r(IsAdoptedWrite, POLLIN);
+				__INTERATOR_PROPERTY__r(IsAdoptedWriteNorm, POLLRDNORM);
+				__INTERATOR_PROPERTY__r(IsAdoptedWriteBand, POLLRDBAND);
+				__INTERATOR_PROPERTY__r(IsAdoptedWritePrior, POLLPRI);
 
-			   __INTERATOR_PROPERTY__r(IsAdoptedRead, POLLOUT);
-			   __INTERATOR_PROPERTY__r(IsAdoptedReadNorm, POLLWRNORM);
-			   __INTERATOR_PROPERTY__r(IsAdoptedReadBand, POLLWRBAND);
-			   
-			   __INTERATOR_PROPERTY__r(IsAdoptedError, POLLERR);
-			   __INTERATOR_PROPERTY__r(IsAdoptedDisconnected, POLLHUP);
-			   __INTERATOR_PROPERTY__r(IsAdoptedNotFile, POLLNVAL);
+				__INTERATOR_PROPERTY__r(IsAdoptedRead, POLLOUT);
+				__INTERATOR_PROPERTY__r(IsAdoptedReadNorm, POLLWRNORM);
+				__INTERATOR_PROPERTY__r(IsAdoptedReadBand, POLLWRBAND);
 
-			   class{
-				   __INTERATOR_FIELDS__;
-			   public:
-				   inline operator decltype(std::declval<pollfd>().revents)() const { return This->Count.pfd[Index].revents; }
-			   } ReturnedEvents;
+				__INTERATOR_PROPERTY__r(IsAdoptedError, POLLERR);
+				__INTERATOR_PROPERTY__r(IsAdoptedDisconnected, POLLHUP);
+				__INTERATOR_PROPERTY__r(IsAdoptedNotFile, POLLNVAL);
 
-			   class {
-				   __INTERATOR_FIELDS__;
-			   public:
-				   inline operator decltype(std::declval<pollfd>().events)() const { return This->Count.pfd[Index].events; }
-
-				   inline decltype(std::declval<pollfd>().events) operator=(decltype(std::declval<pollfd>().events) v)
-				   {
-					   return This->Count.pfd[Index].events = v;
-				   }
-			   } RequestedEvents;
-
-			   class{
+				class{
 					__INTERATOR_FIELDS__;
-			   public:
-				   inline operator TDESCR() const { return This->Count.pfd[Index].fd; }	   
-			   } Descriptor;
+				public:
+					inline operator decltype(std::declval<pollfd>().revents)() const { return This->Count.pfd[Index].revents; }
+				} ReturnedEvents;
 
-			   class {
-				   __INTERATOR_FIELDS__;
-			   public:
-				   inline operator AssocDataType() { return This->Count.data[Index]; }
+				class {
+					__INTERATOR_FIELDS__;
+				public:
+					inline operator decltype(std::declval<pollfd>().events)() const { return This->Count.pfd[Index].events; }
 
-				   inline AssocDataType operator=(AssocDataType NewVal)
-				   {
-					   This->Count.data[Index] = NewVal;
-					   return This->Count.data[Index];
-				   }
-			   } Data;
+					inline decltype(std::declval<pollfd>().events) operator=(decltype(std::declval<pollfd>().events) v)
+					{
+						return This->Count.pfd[Index].events = v;
+					}
+				} RequestedEvents;
 
-			   class{
-			    __INTERATOR_FIELDS__;
-			   public:
-				   inline operator bool() const { return This == nullptr; }
-			   } IsEmpty;
+				class{
+					__INTERATOR_FIELDS__;
+				public:
+					inline operator TDESCR() const { return This->Count.pfd[Index].fd; }	   
+				} Descriptor;
 
-			   class{
-			    __INTERATOR_FIELDS__;
-			   public:
-				   inline operator unsigned() const { return Index; }
-			   } Index;
+				class {
+					__INTERATOR_FIELDS__;
+				public:
+					inline operator AssocDataType() { return This->Count.data[Index]; }
+
+					inline AssocDataType operator=(AssocDataType NewVal)
+					{
+						This->Count.data[Index] = NewVal;
+						return This->Count.data[Index];
+					}
+				} Data;
+
+				class{
+					__INTERATOR_FIELDS__;
+				public:
+					inline operator bool() const { return This == nullptr; }
+				} IsEmpty;
+
+				class{
+					__INTERATOR_FIELDS__;
+				public:
+					inline operator unsigned() const { return Index; }
+				} Index;
 			};
 
 			inline void ClearReturnedEvents() { IsFollowWrite.This->Count.pfd[IsFollowWrite.Index].revents = 0; }
@@ -1425,7 +1430,366 @@ public:
 		}
 	};
 
+	template<bool IsUseAssocData = true>
+	class CHECK_EVENTS
+	{
+		typedef decltype(socket(std::variant_arg(), std::variant_arg(), std::variant_arg())) TDESCR;
 
+#ifdef WIN_PLATFORM	
+	public:
+		enum
+		{
+			WRITE = FD_WRITE | FD_CONNECT,	/*Ready for write*/
+			READ = FD_ACCEPT | FD_READ,		/*Ready for read*/
+			DISCONNECT = FD_CLOSE			/*Connection disconnected*/
+		};
+	private:
+		struct EVENT_ELEMENT { TDESCR fd; void* Data; };
+		DYNAMIC_BUF<WSAEVENT>		Events;
+		DYNAMIC_BUF<EVENT_ELEMENT>	Data;
+#elif defined(HAVE_KEVENT___)
+
+
+#define EV_ADD		0x0001		/* add event to kq (implies enable) */
+#define EV_DELETE	0x0002		/* delete event from kq */
+#define EV_ENABLE	0x0004		/* enable event */
+#define EV_DISABLE	0x0008		/* disable event (not reported) */
+#define EV_RECEIPT	0x0040		/* force EV_ERROR on success, data == 0 */
+		struct kevent {
+			uintptr_t	ident;		/* identifier for this event */
+			int16_t		filter;		/* filter for event */
+			uint16_t	flags;		/* general flags */
+			uint32_t	fflags;		/* filter-specific flags */
+			intptr_t	data;		/* filter-specific data */
+			void		*udata;		/* opaque user data identifier */
+		};
+		int kqueue(void){ return 0; }
+		int kevent(int kq, const struct kevent *changelist, int nchanges, struct kevent *eventlist, int nevents,const struct timespec *timeout){ return 0; }
+
+		struct EVENT_ELEMENT
+		{
+			TDESCR	 fd;
+			void*	 Data;
+		};
+
+		int									kq;
+		DYNAMIC_BUF<EVENT_ELEMENT>			Data;
+		DYNAMIC_BUF<struct kevent>			REvents;
+		int									CountREvents;
+#elif defined(HAVE_EPOLL___)			
+
+#endif
+
+		std::atomic_flag				SetEventLocker;
+		bool IsHaveSignal;
+		bool IsSignalSended;
+
+	public:
+
+		CHECK_EVENTS()
+		{
+			SetEventLocker.clear();
+			IsHaveSignal = IsSignalSended = false;
+#if defined(HAVE_KEVENT___)
+			kq = kqueue();
+			CountREvents = 0;
+#elif defined(HAVE_EPOLL___)			
+
+#endif
+		}
+
+		~CHECK_EVENTS()
+		{
+#if defined(WIN_PLATFORM)
+			for(size_t i = 0, m = Events.Count; i < m; i++)
+				winsock::WSACloseEvent(Events[i]);
+#elif defined(HAVE_KEVENT___)
+			close(kq);
+#endif
+		}
+
+		inline int AddConnection(__QUERY_URL* Sock, long lNetworkEvents = POLLIN, void* AssocData = nullptr)
+		{
+			return AddConnection(Sock->RemoteIp.hSocket, lNetworkEvents, AssocData);
+		}
+
+		int AddConnection(TDESCR SocketDescriptor, long lNetworkEvents = POLLIN, void* AssocData = nullptr)
+		{
+#if defined(WIN_PLATFORM)
+			HANDLE Event = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+			if(Event == WSA_INVALID_EVENT)
+				return -1;
+			if(winsock::WSAEventSelect(SocketDescriptor, Event, lNetworkEvents) ==  SOCKET_ERROR)
+			{
+				CloseHandle(Event);
+				return -1;
+			}
+			Events.Append() = Event;
+			auto& r = Data.Append();
+			r.fd = SocketDescriptor;
+			r.Data = AssocData;
+#elif defined(HAVE_KEVENT___)
+			REvents.Append();
+			auto& elem = Data.Append();
+			elem.Data = AssocData;
+			elem.fd = SocketDescriptor;
+			struct kevent ke;
+			EV_SET(&ke, SocketDescriptor, lNetworkEvents, EV_ADD | EV_ENABLE, 0, 0, AssocData);
+			if(kevent(kq, &ke, 1, nullptr, 0, nullptr) == -1)
+				return -1;
+#elif defined(HAVE_EPOLL___)
+#endif
+			return Events.Count - 1;
+		}
+
+		int EnumWhoHasEvents(long* REvents = std::make_default_pointer())
+		{
+#if defined(WIN_PLATFORM)
+			winsock::WSANETWORKEVENTS e;
+			for(size_t i = (IsHaveSignal)? 1: 0, m = Data.Count; i < m; i++)
+			{
+				winsock::WSAEnumNetworkEvents(Data[i].fd, Events[i], &e);
+				if(e.lNetworkEvents != 0)
+				{
+					*REvents = e.lNetworkEvents;
+					return i;
+				}
+			}
+#elif defined(HAVE_KEVENT___)
+			for(size_t i = 0, m = CountREvents; i < m; i++)
+			{
+				if(REvents[i].filter != 0)
+				{
+					*REvents = REvents[i].filter;
+					return i;
+				}
+			}
+#elif defined(HAVE_EPOLL___)
+#endif
+			return -1;
+		}
+
+		int EnumWhoHasEvents(int Prev, long* REvents = std::make_default_pointer())
+		{
+#if defined(WIN_PLATFORM)
+			winsock::WSANETWORKEVENTS e;
+			for(size_t i = Prev + 1, m = Data.Count; i < m; i++)
+			{
+				winsock::WSAEnumNetworkEvents(Data[i].fd, Events[i], &e);
+				if(e.lNetworkEvents != 0)
+				{
+					*REvents = e.lNetworkEvents;
+					return i;
+				}
+			}
+#elif defined(HAVE_KEVENT___)
+			for(size_t i = Prev, m = CountREvents; i < m; i++)
+			{
+				if(REvents[i].filter != 0)
+				{
+					*REvents = REvents[i].filter;
+					return i;
+				}
+			}
+#elif defined(HAVE_EPOLL___)
+#endif
+			return -1;
+		}
+
+		inline TDESCR DescriptorByEnumIndex(int Index) 
+		{ 
+#if defined(WIN_PLATFORM)
+			return Data[Index].fd;
+#elif defined(HAVE_KEVENT___)
+			return REvents[Index].ident;
+#elif defined(HAVE_EPOLL___)
+
+#endif
+		}
+
+		inline void*& DataByEnumIndex(int Index) 
+		{ 
+#if defined(WIN_PLATFORM)
+			return Data[Index].Data;
+#elif defined(HAVE_KEVENT___)
+			return REvents[Index].udata;
+#elif defined(HAVE_EPOLL___)
+
+#endif
+		}
+
+		int RemoveByEnumIndex(int Index) 
+		{ 
+#if defined(WIN_PLATFORM)
+			CloseHandle(Events[Index]);	
+			Events.RemoveSubstituting(Index);
+			Data.RemoveSubstituting(Index);
+			if((Index <= 1) && IsHaveSignal)
+				return -1;
+			return Index - 1;
+#elif defined(HAVE_KEVENT___)	
+			auto& elem = REvents[Index];
+			elem.flags = EV_DELETE;
+			kevent(kq, &elem, 1, nullptr, 0, nullptr);
+			Data.RemoveSubstituting(Index);
+			REvents.RemoveSubstituting(Index);
+#elif defined(HAVE_EPOLL___)
+#endif
+		}
+
+		inline TDESCR DescriptorByIndex(int Index) 
+		{ 
+#if defined(WIN_PLATFORM) || defined(HAVE_KEVENT___)
+			return Data[Index].fd;
+#elif defined(HAVE_EPOLL___)
+
+#endif
+		}
+
+		inline void*& DataByIndex(int Index) { return Data[Index].Data; }
+
+		size_t Count() const
+		{
+#if defined(WIN_PLATFORM) || defined(HAVE_KEVENT___)	
+				return Data.Count;
+#elif defined(HAVE_EPOLL___)
+#endif
+		}
+
+		void Remove(int Index) 
+		{ 
+#if defined(WIN_PLATFORM)
+			CloseHandle(Events[Index]);	
+			Events.RemoveSubstituting(Index);
+			Data.RemoveSubstituting(Index);
+#elif defined(HAVE_KEVENT___)	
+			auto& elem = Data[Index];
+			struct kevent ke;
+			EV_SET(&ke, elem.fd, 0, EV_DELETE, 0, 0, elem.Data);
+			kevent(kq, &ke, 1, nullptr, 0, nullptr);
+			Data.RemoveSubstituting(Index);
+			REvents.Pop();
+#elif defined(HAVE_EPOLL___)
+#endif
+		}
+
+		/*Signals thread save*/
+		void EnableSignal()
+		{
+			while(SetEventLocker.test_and_set(std::memory_order_acquire));
+			if(!IsHaveSignal)
+			{
+#if defined(WIN_PLATFORM)
+				Events.InsertInPositionSubstituting(0) = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+				auto& r = Data.InsertInPositionSubstituting(0);
+				r.fd = 0;
+#elif defined(HAVE_KEVENT___)	
+#elif defined(HAVE_EPOLL___)
+#endif
+				IsHaveSignal = true;
+			}
+			SetEventLocker.clear(std::memory_order_release);
+		}
+
+		void DisableSignal()
+		{
+			while(SetEventLocker.test_and_set(std::memory_order_acquire));
+			if(IsHaveSignal)
+			{
+#if defined(WIN_PLATFORM)
+				CloseHandle(Events[0]);
+				Events.RemoveSubstituting(0);
+				Data.RemoveSubstituting(0);
+#elif defined(HAVE_KEVENT___)	
+#elif defined(HAVE_EPOLL___)
+#endif	
+				IsSignalSended = IsHaveSignal = false;
+			}
+			SetEventLocker.clear(std::memory_order_release);
+		}
+
+		bool IsSignalEnabled()
+		{
+			while(SetEventLocker.test_and_set(std::memory_order_acquire));
+			auto r = IsHaveSignal;
+			SetEventLocker.clear(std::memory_order_release);
+			return r;
+		}
+
+		void SetSignal()
+		{
+			while(SetEventLocker.test_and_set(std::memory_order_acquire));
+			if(IsHaveSignal)
+			{			
+				IsSignalSended = true;
+#if defined(WIN_PLATFORM)
+				SetEvent(Events[0]);	
+#elif defined(HAVE_KEVENT___)	
+#elif defined(HAVE_EPOLL___)
+#endif	
+			}
+			SetEventLocker.clear(std::memory_order_release);
+		}
+
+		void ResetSignal()
+		{
+
+			while(SetEventLocker.test_and_set(std::memory_order_acquire));
+			if(IsHaveSignal)
+			{	
+				IsSignalSended = false;
+#if defined(WIN_PLATFORM)
+				ResetEvent(Events[0]);
+#elif defined(HAVE_KEVENT___)	
+#elif defined(HAVE_EPOLL___)
+#endif	
+			}
+			SetEventLocker.clear(std::memory_order_release);
+		}
+
+		inline bool IsSignalSet() 
+		{ 
+			while(SetEventLocker.test_and_set(std::memory_order_acquire));
+			auto r = IsSignalSended;
+			SetEventLocker.clear(std::memory_order_release);
+			return IsSignalSended; 
+		}
+
+		inline bool CheckSignalAndReset() 
+		{ 
+			while(SetEventLocker.test_and_set(std::memory_order_acquire));
+			auto r = IsSignalSended;
+			if(r)
+			{
+				IsSignalSended = false;
+#if defined(WIN_PLATFORM)
+				ResetEvent(Events[0]);
+#elif defined(HAVE_KEVENT___)	
+#elif defined(HAVE_EPOLL___)
+#endif	
+			}
+			SetEventLocker.clear(std::memory_order_release);
+			return r; 
+		}
+
+		/*
+		*/
+		bool Check(unsigned WaitTime = 0)
+		{			
+			if(Events.Count == 0)
+				return true;
+#if defined(WIN_PLATFORM)
+			return WaitForMultipleObjectsEx(Data.Count, Events.BeginBuf, FALSE, WaitTime, FALSE) != WSA_WAIT_FAILED;
+#elif defined(HAVE_KEVENT___)
+			timespec ts;
+			ts.tv_sec = WaitTime / 1000;
+			ts.tv_nsec = (WaitTime - ts.tv_sec * 1000) * 1000000;
+			if((CountREvents = kevent(kq, nullptr, 0, REvents.BeginBuf, REvents.Count, &ts)) == -1)
+				return -1;
+#elif defined(HAVE_EPOLL___)
+#endif
+		}
+	};
 
 	struct IPv6ADDR
 	{
@@ -3847,7 +4211,7 @@ public:
 	*/
 	int Write(const void * Buf, size_t SizeBuf)
 	{
-#ifdef _WIN32
+#ifdef WIN_PLATFORM
 		DWORD Written;
 		OVERLAPPED Overlap = {0}, *ovlp = nullptr;
 lblTryAgain:

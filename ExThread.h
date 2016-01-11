@@ -34,6 +34,8 @@ enum PRIORITY
 		REALTIME = 81,
 };
 #endif
+#include "ExTypeTraits.h"
+
 
 inline void SetThreadPrior(std::thread& Thread, PRIORITY priority)
 {
@@ -46,5 +48,39 @@ inline void SetThreadPrior(std::thread& Thread, PRIORITY priority)
 #endif
 }
 
+inline void SetThreadPrior(PRIORITY priority)
+{
+#ifdef _WIN32
+
+	SetThreadPriority(GetCurrentThread(), priority);
+#else
+	sched_param schedparams;
+	schedparams.sched_priority=priority;
+	pthread_setschedparam(pthread_self(), SCHED_OTHER, &schedparams);
+#endif
+}
+
+
+inline PRIORITY GetThreadPrior(std::thread& Thread)
+{
+#ifdef _WIN32
+	return (PRIORITY)GetThreadPriority(Thread.native_handle());
+#else
+	sched_param schedparams;
+	pthread_getschedparam(Thread.native_handle(), std::make_default_pointer(), &schedparams);
+	return schedparams.sched_priority;
+#endif
+}
+
+inline PRIORITY GetThreadPrior()
+{
+#ifdef _WIN32
+	return (PRIORITY)GetThreadPriority(GetCurrentThread());
+#else
+	sched_param schedparams;
+	pthread_getschedparam(pthread_self(), std::make_default_pointer(), &schedparams);
+	return schedparams.sched_priority;
+#endif
+}
 
 #endif

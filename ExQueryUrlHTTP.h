@@ -512,6 +512,7 @@ public:
 			HEADER_NOT_HAVE_URI,
 			NOT_READED_FROM_SOCKET,
 			NOT_HAVE_DATA_IN_SOCKET,
+			SOCKET_HAS_DISCONNECTED,
 			INVALID_START_LINE,
 			USER_INTERRUPT,
 			INVALID_HEADER
@@ -699,7 +700,7 @@ public:
 	)
 	{
 		if(QueryUrl->IsNotHaveRecvData)
-			return false;
+			return ERRORS::SOCKET_HAS_DISCONNECTED;
 
 		int CountReaded, Result = ERRORS::SUCCESS, i;
 		char* EndHeader = nullptr;

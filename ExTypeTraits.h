@@ -3,7 +3,7 @@
 
 #include <malloc.h>
 #include <type_traits>
-
+#include <functional>
 
 /*
 	Paketov
@@ -54,19 +54,6 @@
 
 namespace std
 {	
-
-	struct make_default_pointer
-	{
-		template<typename RetVal>
-		inline operator RetVal*() const { static RetVal v; return &v; } 
-	};
-
-	struct make_default_reference
-	{
-		template<typename RetVal>
-		inline operator RetVal&() const { static RetVal v; return v; } 
-	};
-
 	template<typename TypeHaveConstructor>
 	struct def_var_in_union_with_constructor
 	{
@@ -703,6 +690,9 @@ namespace std
 			val_copy(rDest[i], Val);
 	}
 
+
+	template<typename Type>
+	inline Type& lref(Type& Val) { return Val; }
 	/*
 	Get dynamic unique id for any type.
 	Warning! On each running function generate different id. 
@@ -711,28 +701,44 @@ namespace std
 	template<typename>
 	unsigned __get_id_for_type_id_generator() { static unsigned i = 0; return i++; }
 
+
 	template<typename>
 	unsigned get_id_for_type() { static unsigned Id = __get_id_for_type_id_generator<empty_type>(); return Id; }
-
-
-	template<typename, typename ASSOC_TYPE>
-	ASSOC_TYPE __assoc_type_val_saver(ASSOC_TYPE* NewVal = nullptr)
-	{
-	     static ASSOC_TYPE v;
-		 if(NewVal != nullptr)
-			 v = *NewVal;
-		 return v;
-	}
 
 	/*
 	Associate some data with type
 	*/
 
 	template<typename TYPE, typename ASSOC_TYPE>
-	void assoc_type_set(ASSOC_TYPE NewV)  { __assoc_type_val_saver<TYPE, ASSOC_TYPE>(&NewV); }
+	struct assoc_type { static ASSOC_TYPE value; };
 
-	template<typename TYPE, typename ASSOC_TYPE>
-	ASSOC_TYPE assoc_type_get() { return __assoc_type_val_saver<TYPE, ASSOC_TYPE>(); }
+	template<typename TYPE,  typename ASSOC_TYPE>
+	ASSOC_TYPE assoc_type<TYPE, ASSOC_TYPE>::value;
+
+	template<typename TYPE, TYPE Val,  typename ASSOC_TYPE>
+	struct assoc_val { static ASSOC_TYPE value; };
+
+	template<typename TYPE, TYPE Val,  typename ASSOC_TYPE>
+	ASSOC_TYPE assoc_val<TYPE, Val, ASSOC_TYPE>::value;
+
+	struct make_default_pointer{
+		template<typename RetVal>
+		inline operator RetVal*() const { struct s{}; return &assoc_type<s, RetVal>::value; } 
+	};
+
+	struct make_default_reference{
+		template<typename RetVal>
+		inline operator RetVal&() const { struct s{}; return assoc_type<s, RetVal>::value; } 
+	};
+
+
+	struct on_scope_out_caller
+	{
+		std::function<void()> Func;
+		inline on_scope_out_caller(std::function<void()> f): Func(f){}
+		inline ~on_scope_out_caller() { Func(); }
+	};
+
 
 };
 #endif
