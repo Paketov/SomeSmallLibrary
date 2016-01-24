@@ -1038,6 +1038,8 @@ inline char * StringCopy(char * Dest, const char * Source) { return strcpy(Dest,
 inline wchar_t * StringCopy(wchar_t * Dest, const wchar_t * Source) { return wcscpy(Dest, Source); }
 inline char * StringDuplicate(const char * Source) { return strdup(Source); }
 inline wchar_t * StringDuplicate(const wchar_t * Source) { return wcsdup(Source); }
+template<typename TypeChar>
+std::basic_string<TypeChar> StringDuplicate(std::basic_string<TypeChar>& SourceStr) { return SourceStr; }
 
 template<typename TypeChar, typename StreamType, TypeChar (*GetChar)(StreamType), void (*UngetChar)(StreamType, TypeChar)>
 inline size_t _SkipSpace(StreamType Stream)
@@ -1053,6 +1055,28 @@ inline size_t _SkipSpace(StreamType Stream)
 	}
 	UngetChar(Stream, c);
 	return CountSkiped;
+}
+
+
+template<typename TypeChar>
+std::basic_string<TypeChar>& StringReplace(std::basic_string<TypeChar>& Source, const TypeChar* SrchSubStr,  const TypeChar* ReplSubStr)
+{
+	size_t LenSearchStr = StringLength(SrchSubStr);
+	if(LenSearchStr == 0)
+		return Source;
+	size_t FoundedIndex = Source.find(SrchSubStr, LenSearchStr);
+	if(FoundedIndex != std::basic_string<TypeChar>::npos)
+		Source.replace(FoundedIndex, LenSearchStr, ReplSubStr);
+	return Source;
+}
+
+template<typename TypeChar>
+std::basic_string<TypeChar>& StringReplace(
+	std::basic_string<TypeChar>& Source, 
+	const std::basic_string<TypeChar>& SrchSubStr,  
+	const std::basic_string<TypeChar>& ReplSubStr)
+{
+	return StringReplace(Source, SrchSubStr.c_str(), ReplSubStr.c_str());
 }
 
 template<typename TypeChar>

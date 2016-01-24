@@ -1618,6 +1618,28 @@ public:
 #endif
 		}
 
+		inline int GetBeginIndex() const
+		{
+#if defined(WIN_PLATFORM)
+			return (IsHaveSignal)?1:0;
+#elif defined(HAVE_KEVENT___)
+			return REvents[Index].ident;
+#elif defined(HAVE_EPOLL___)
+
+#endif
+		}
+
+		inline int GetEndIndex() const
+		{
+#if defined(WIN_PLATFORM)
+			return Data.Count;
+#elif defined(HAVE_KEVENT___)
+			return REvents[Index].ident;
+#elif defined(HAVE_EPOLL___)
+
+#endif
+		}
+
 		int RemoveByEnumIndex(int Index) 
 		{ 
 #if defined(WIN_PLATFORM)
@@ -1648,12 +1670,9 @@ public:
 
 		inline void*& DataByIndex(int Index) { return Data[Index].Data; }
 
-		size_t Count() const
-		{
-#if defined(WIN_PLATFORM) || defined(HAVE_KEVENT___)	
-				return Data.Count;
-#elif defined(HAVE_EPOLL___)
-#endif
+		inline size_t Count() const
+		{	
+			return GetEndIndex() - GetBeginIndex();
 		}
 
 		void Remove(int Index) 

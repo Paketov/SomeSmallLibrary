@@ -244,7 +244,7 @@ public:
 		size_t MaxCount = This->MaxCount;
 		if(This->CountUsed >= MaxCount)
 		{
-			TINDEX NewSize = (TINDEX)(MaxCount * 1.61803398875f);
+			TINDEX NewSize = (TINDEX)((MaxCount + 2) * 1.618033988f);
 			if(!Realloc(This, NewSize))
 				return false;
 			This->IncreaseTable(NewSize);
@@ -257,7 +257,7 @@ public:
 		size_t MaxCount = This.MaxCount;
 		if(This.CountUsed >= MaxCount)
 		{
-			TINDEX NewSize = (TINDEX)(MaxCount * 1.61803398875f);
+			TINDEX NewSize = (TINDEX)((MaxCount + 2) * 1.618033988f);
 			if(!Realloc(This, NewSize))
 				return false;
 			This.IncreaseTable(NewSize);
@@ -386,7 +386,7 @@ public:
 	static bool ResizeAfterRemove(HASH_TABLE *& This)
 	{
 		size_t CountUsed = This->CountUsed;
-		if((This->MaxCount > (size_t)(CountUsed *  1.61803398875f)) && (CountUsed > 3))
+		if(This->MaxCount > (size_t)(CountUsed *  1.61803398875f))
 		{
 			This->DecreaseTable();
 			return Realloc(This, CountUsed);
@@ -397,7 +397,7 @@ public:
 	static bool ResizeAfterRemove(typename std::conditional<!Type, HASH_TABLE&, std::empty_type>::type This)
 	{
 		size_t CountUsed = This.CountUsed;
-		if((This.MaxCount > (size_t)(CountUsed *  1.61803398875f/*Golden ratio*/)) && (CountUsed > 3))
+		if(This.MaxCount > (size_t)(CountUsed *  1.61803398875f/*Golden ratio*/))
 		{
 			This.DecreaseTable();
 			return Realloc(This, CountUsed);

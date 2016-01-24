@@ -7,7 +7,7 @@
 
 
 
-#if /*!defined(_DEBUG) &&*/ defined(_WIN32)
+#if /*!defined(_DEBUG) &&*/ defined(_MSC_VER)
 #define ___malloc(size) HeapAlloc(GetProcessHeap(), 0, size)
 #define ___realloc(pointer, size) ((pointer == nullptr)? ___malloc(size): HeapReAlloc(GetProcessHeap(), 0, pointer, size))
 #define ___free(pointer) HeapFree(GetProcessHeap(), 0, pointer)
@@ -86,14 +86,25 @@ public:
 
 		class{ FIELDS f; public:
 			inline operator size_t () const { return f.alloc_count; }
+			size_t operator=(size_t NewAllocCount)
+			{
+				TypeElement* a = (TypeElement*)___realloc(f.buf, NewAllocCount * sizeof(TypeElement));
+				if(a == nullptr)
+					return NewAllocCount;
+				f.buf = a;
+				f.count = f.alloc_count = NewAllocCount;
+				return NewAllocCount;
+			}
 		} AllocCount;
 
 		class{ FIELDS f; public: 
 			inline operator TypeElement*() const { return f.buf; } 
+			inline operator void*() const { return (void*)f.buf; } 
 		} BeginBuf;
 
 		class{ FIELDS f; public: 
 			inline operator TypeElement*() const { return f.buf + f.count; } 
+			inline operator void*() const { return (void*)(f.buf + f.count); } 
 		} EndBuf;
 	};
 
@@ -319,7 +330,7 @@ public:
 		return (Elem == nullptr)? nullptr: (new(Elem) Type(arg1, arg2, arg3, arg4, arg5, arg6));}
 
 	template<typename Type>
-	inline static void Delete(Type* Val)
+	inline static typename std::enable_if<!std::is_equal<Type, void>::value>::type Delete(Type* Val)
 	{
 		Val->~Type();
 		std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Free(Val);
