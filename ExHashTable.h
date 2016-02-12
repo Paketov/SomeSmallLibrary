@@ -117,7 +117,7 @@ public:
 	template<typename TYPE_KEY>
 	inline LPCELL ElementByKey(TYPE_KEY Key) { return GetTable() + TElementStruct::IndexByKey(Key, AllocCount); }
 
-private:
+protected:
 
 	template<typename TKey>
 	inline LPCELL AddElement(LPCELL HashCell, TKey InitKey)
@@ -289,7 +289,7 @@ public:
 	*/
 	inline void EnumDelete(bool (*IsDeleteProc)(void* UserData, TElementStruct* Element), void* UserData = nullptr)
 	{
-		for(decltype(GetTable()) Elements = GetTable(), l, p = Elements, m = p + AllocCount; p < m; p++)
+		for(LPCELL Elements = GetTable(), l, p = Elements, m = p + AllocCount; p < m; p++)
 			for(auto i = &(p->iStart); *i != EmptyElement; )
 			{	
 				l = Elements + *i;
@@ -312,7 +312,7 @@ public:
 	*/
 	inline void EnumDelete(bool (*IsDeleteProc)(TElementStruct* Element))
 	{
-		for(decltype(GetTable()) Elements = GetTable(), l, p = Elements, m = p + AllocCount; p < m; p++)
+		for(LPCELL Elements = GetTable(), l, p = Elements, m = p + AllocCount; p < m; p++)
 			for(auto i = &(p->iStart); *i != EmptyElement; )
 			{	
 				l = Elements + *i;
