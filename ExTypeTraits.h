@@ -81,9 +81,9 @@ namespace std
 	public:
 		typedef TypeHaveConstructor TVAL;
 
-		inline TypeHaveConstructor * operator->() {  return (TypeHaveConstructor*)_Data; }
+		inline TypeHaveConstructor* operator->() const { return (TypeHaveConstructor*)_Data; }
 
-		inline operator TypeHaveConstructor&() { return *(TypeHaveConstructor*)_Data; }
+		inline operator TypeHaveConstructor&() const { return *(TypeHaveConstructor*)_Data; }
 
 		inline TypeHaveConstructor& operator =(TypeHaveConstructor& Data)
 		{
@@ -91,7 +91,7 @@ namespace std
 		   return *(TypeHaveConstructor*)_Data;
 		}
 
-		inline TypeHaveConstructor* operator &() {  return (TypeHaveConstructor*)_Data; }
+		inline TypeHaveConstructor* operator &() const {  return (TypeHaveConstructor*)_Data; }
 
 		template<typename SetType>
 		TypeHaveConstructor & operator =(SetType & Val)
@@ -99,7 +99,6 @@ namespace std
 		    *(TypeHaveConstructor*)_Data = Val;
 			return *this;
 		}
-
 	};
 
 	struct variant_arg
@@ -545,18 +544,23 @@ namespace std
 		valueof(Dest) = DEST_TYPE(valueof(Source));
 	}
 
-	template<typename DestType>
-	inline typename enable_if
-	<
-		 !is_const<DestType>::value
-	>::type
-	zero_val(DestType & DestVal)
+	template<size_t CountBytes>
+	inline void zero_memory(void* Region)
 	{
-		const unsigned char __zeroval[sizeof(DestType)] = {0};
-		typedef typename remove_modifiers<DestType, rem_mod::POI_POICONST_VOLA_REF_RVREF>::type DEST_TYPE;
-		((DEST_TYPE&)valueof(DestVal)) = *((DEST_TYPE*)__zeroval);
+		const unsigned char __zeroval[CountBytes] = {0};
+		struct __copy_struct{ unsigned char __zeroval[CountBytes]; };
+		*(__copy_struct*)Region = *(__copy_struct*)__zeroval;
 	}
 
+	template<typename DestType>
+	inline typename enable_if
+		<
+		!is_const<DestType>::value
+		>::type
+		zero_val(DestType & DestVal)
+	{
+		zero_memory<sizeof(DestType)>(&DestVal);
+	}
 
 	/*
 	*arr_copy_cast
@@ -709,9 +713,6 @@ namespace std
 			val_copy(rDest[i], Val);
 	}
 
-
-	template<typename Type>
-	inline Type& lref(Type& Val) { return Val; }
 	/*
 	Get dynamic unique id for any type.
 	Warning! On each running function generate different id. 
@@ -756,6 +757,14 @@ namespace std
 		inline ~on_scope_out_caller() { Func(); }
 	};
 
+
+	template<size_t CountChar, typename CharType>
+	inline CharType* copy_const_string(CharType* Dest, const CharType (&Source)[CountChar])
+	{
+		struct copy_struct{ CharType __g[CountChar]; };
+		*(copy_struct*)Dest = *(copy_struct*)&Source;
+		return Dest + (CountChar - 1);
+	}
 
 };
 #endif

@@ -20,7 +20,7 @@
 //#define HAVE_KEVENT___
 
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 
 //#define WIN_PLATFORM
 #	include <winsock.h>
@@ -498,12 +498,7 @@ typedef UINT32 socklen_t;
 
 #	undef max
 
-#	define INIT_WSA							\
-	if(winsock::GetWsa<true>() == nullptr)	\
-	{										\
-		URL_SET_LAST_ERR					\
-		return false;						\
-	}
+#	define INIT_WSA
 
 
 #else
@@ -624,7 +619,7 @@ typedef UINT32 socklen_t;
 template<bool = true>
 class __QUERY_URL
 {
-
+	static int ____f;
 public:
 	typedef decltype(std::declval<sockaddr_in>().sin_port) TPORT;
 	/*Type of descriptor*/
@@ -632,12 +627,11 @@ public:
 
 	struct SOCKET_ADDR
 	{
-#define SOCKET_ADDR_FIELDS \
-		union\
-		{\
-		sockaddr			Addr;\
-		sockaddr_in			AddrInet;\
-		sockaddr_in6		AddrInet6;\
+#define SOCKET_ADDR_FIELDS				\
+		union{							\
+		sockaddr			Addr;		\
+		sockaddr_in			AddrInet;	\
+		sockaddr_in6		AddrInet6;	\
 		sockaddr_storage	AddrStorage;\
 		}
 
@@ -669,7 +663,6 @@ public:
 				SOCKET_ADDR_FIELDS;
 			public:
 				inline operator int() const { return Addr.sa_family; }
-
 				inline int operator =(int Fam) { return Addr.sa_family = Fam; }
 			} ProtocolFamily;
 
@@ -687,35 +680,29 @@ public:
 					{
 						switch(Addr.sa_family)
 						{
-						case AF_INET:
-							return  htons(AddrInet.sin_port);
-						case AF_INET6:
-							return  htons(AddrInet6.sin6_port);
+						case AF_INET: return htons(AddrInet.sin_port);
+						case AF_INET6: return htons(AddrInet6.sin6_port);
 						}
 						return 0;
 					}
-				} Readeble;
+				} Readable;
 
 				inline operator TPORT() const
 				{ 
-					switch(Readeble.Addr.sa_family)
+					switch(Readable.Addr.sa_family)
 					{
-					case AF_INET:
-						return Readeble.AddrInet.sin_port;
-					case AF_INET6:
-						return Readeble.AddrInet6.sin6_port;
+					case AF_INET: return Readable.AddrInet.sin_port;
+					case AF_INET6: return Readable.AddrInet6.sin6_port;
 					}
 					return 0;
 				}
 
-				inline TPORT operator =(TPORT Prt)
+				inline TPORT operator=(TPORT Prt)
 				{ 
-					switch(Readeble.Addr.sa_family)
+					switch(Readable.Addr.sa_family)
 					{
-					case AF_INET:
-						return Readeble.AddrInet.sin_port = Prt;
-					case AF_INET6:
-						return Readeble.AddrInet6.sin6_port = Prt;
+					case AF_INET: return Readable.AddrInet.sin_port = Prt;
+					case AF_INET6: return Readable.AddrInet6.sin6_port = Prt;
 					}
 					return 0; 
 				}
@@ -731,10 +718,8 @@ public:
 				{
 					switch(Addr.sa_family)
 					{
-					case AF_INET:
-						return sizeof(AddrInet);
-					case AF_INET6:
-						return sizeof(AddrInet6);
+					case AF_INET: return sizeof(AddrInet);
+					case AF_INET6: return sizeof(AddrInet6);
 					}
 					return sizeof(Addr);
 				}
@@ -755,10 +740,8 @@ public:
 				{
 					switch(Addr.sa_family)
 					{
-					case AF_INET:
-						return (void*)&AddrInet.sin_addr;
-					case AF_INET6:
-						return (void*)&AddrInet6.sin6_addr;
+					case AF_INET: return (void*)&AddrInet.sin_addr;
+					case AF_INET6: return (void*)&AddrInet6.sin6_addr;
 					}
 					return nullptr;
 				}
@@ -773,6 +756,7 @@ public:
 				{
 					std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
 					operator()((char*)Buf.c_str(), INET6_ADDRSTRLEN + 1);
+					Buf.resize(StringLength(Buf.c_str()));
 					return Buf;
 				}
 			} Ip;
@@ -859,6 +843,7 @@ public:
 					{
 						std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
 						operator()((char*)Buf.c_str(), INET6_ADDRSTRLEN + 1);
+						Buf.resize(StringLength(Buf.c_str()));
 						return Buf;
 					}
 
@@ -1024,7 +1009,6 @@ public:
 
 		bool Update(int iSocktype = SOCK_STREAM, int iProtocol = IPPROTO_TCP, int iFamily = AF_UNSPEC, int iFlags = 0)
 		{
-			INIT_WSA;
 			addrinfo host_info = {0}, *ah = nullptr;
 			host_info.ai_socktype = iSocktype;
 			host_info.ai_family = iFamily;
@@ -1488,7 +1472,7 @@ public:
 
 		CHECK_EVENTS()
 		{
-			SetEventLocker.clear();
+			std::zero_val(SetEventLocker);
 			IsHaveSignal = IsSignalSended = false;
 #if defined(HAVE_KEVENT___)
 			kq = kqueue();
@@ -1790,15 +1774,20 @@ public:
 			SetEventLocker.clear(std::memory_order_release);
 			return r; 
 		}
-
 		/*
 		*/
-		bool Check(unsigned WaitTime = 0)
+		int Check(unsigned WaitTime = 0, bool* IsEndTimeOut = std::make_default_pointer())
 		{			
 			if(Events.Count == 0)
 				return true;
 #if defined(WIN_PLATFORM)
-			return WaitForMultipleObjectsEx(Data.Count, Events.BeginBuf, FALSE, WaitTime, FALSE) != WSA_WAIT_FAILED;
+			switch(WaitForMultipleObjectsEx(Data.Count, Events.BeginBuf, FALSE, WaitTime, FALSE))
+			{
+			case WSA_WAIT_FAILED:
+				return -1;
+			case WAIT_TIMEOUT:
+				return  0;
+			}
 #elif defined(HAVE_KEVENT___)
 			timespec ts;
 			ts.tv_sec = WaitTime / 1000;
@@ -1807,6 +1796,7 @@ public:
 				return -1;
 #elif defined(HAVE_EPOLL___)
 #endif
+			return 1;
 		}
 	};
 
@@ -2360,6 +2350,7 @@ public:
 			{
 				std::basic_string<char> Buf("", 6);
 				NumberToString(operator TPORT(), (char*)Buf.c_str(), 6);
+				Buf.resize(StringLength(Buf.c_str()));
 				return Buf;
 			}
 
@@ -2409,6 +2400,7 @@ public:
 			{
 				std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
 				operator()((char*)Buf.c_str(), INET6_ADDRSTRLEN + 1);
+				Buf.resize(StringLength(Buf.c_str()));
 				return Buf;
 			}
 
@@ -2466,6 +2458,7 @@ public:
 			{
 				std::basic_string<char> Buf("", 6);
 				NumberToString(operator TPORT(), (char*)Buf.c_str(), 6);
+				Buf.resize(StringLength(Buf.c_str()));
 				return Buf;
 			}
 
@@ -2512,6 +2505,7 @@ public:
 			{
 				std::basic_string<char> Buf("", INET6_ADDRSTRLEN + 1);
 				operator()((char*)Buf.c_str(), INET6_ADDRSTRLEN + 1);
+				Buf.resize(StringLength(Buf.c_str()));
 				return Buf;
 			}
 
@@ -2548,16 +2542,11 @@ public:
 					return "";
 				switch(SockAddr.ProtocolFamily) 
 				{ 
-				case AF_UNSPEC: 
-					return "UNSPEC"; 
-				case AF_UNIX:
-					return "UNIX";
-				case AF_INET: 
-					return "IPv4"; 
-				case AF_INET6: 
-					return "IPv6"; 
-				case AF_NETBIOS: 
-					return "NETBIOS";
+				case AF_UNSPEC: return "UNSPEC"; 
+				case AF_UNIX: return "UNIX";
+				case AF_INET: return "IPv4"; 
+				case AF_INET6: return "IPv6"; 
+				case AF_NETBIOS: return "NETBIOS";
 				} 
 				return ""; 
 			}
@@ -2636,6 +2625,7 @@ public:
 		_QUERY_URL_FIELDS1_;
 		public:
 			inline operator TDESCR() { return hSocket; }
+			inline TDESCR operator=(TDESCR NewDescriptor) { return hSocket = NewDescriptor; }
 		} Descriptor;
 
 		/*
@@ -3056,7 +3046,11 @@ public:
 			DEF_SOCKET_EMPTY_OPTION_SET(FIBRoutingTable, int);
 #endif
 
-
+#ifdef SO_UPDATE_ACCEPT_CONTEXT
+			DEF_SOCKET_OPTION_PROPERTY(UpdateAcceptContext, TDESCR&, TDESCR, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT);
+#else
+			DEF_SOCKET_EMPTY_OPTION(UpdateAcceptContext, TDESCR&, TDESCR, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT);
+#endif
 		} SockOptions;
 
 		union
@@ -3684,7 +3678,6 @@ public:
 	*/
 	bool Connect(typename ADDRESS_INFO::ADDRESS_INTERATOR& Address)
 	{
-		INIT_WSA;
 		if(IsOpen)
 		{
 			ShutdownSendRecive();
@@ -3710,7 +3703,6 @@ public:
 	*/
 	bool Connect(ADDRESS_INFO& AddrInfo)
 	{
-		INIT_WSA;
 		if(IsOpen)
 		{
 			ShutdownSendRecive();
@@ -3754,7 +3746,6 @@ public:
 		int Flags = 0
 	)
 	{	
-		INIT_WSA;
 		if(IsOpen)
 		{
 			ShutdownSendRecive();
@@ -3798,7 +3789,6 @@ public:
 	*/
 	bool Bind(typename ADDRESS_INFO::ADDRESS_INTERATOR& Address, int MaxConnection = SOMAXCONN)
 	{	
-		INIT_WSA;
 		if(IsOpen)
 		{
 			ShutdownSendRecive();
@@ -3830,7 +3820,6 @@ public:
 	*/
 	bool Bind(ADDRESS_INFO& AddrInfo, int MaxConnection = SOMAXCONN)
 	{	
-		INIT_WSA;
 		if(IsOpen)
 		{
 			ShutdownSendRecive();
@@ -3851,9 +3840,9 @@ public:
 				Close();
 				continue;
 			}
+			RemoteIp.ProtocolType = i->ai_protocol;
 			break;
 		}
-		RemoteIp.ProtocolType = i->ai_protocol;
 		return EvntBind();
 	}
 
@@ -3877,7 +3866,6 @@ public:
 		int Flags = AI_PASSIVE
 	)
 	{	
-		INIT_WSA;
 		if(IsOpen)
 		{
 			ShutdownSendRecive();
@@ -3908,9 +3896,10 @@ public:
 				Close();
 				continue;
 			}
+			RemoteIp.ProtocolType = i->ai_protocol;
 			break;
 		}
-		RemoteIp.ProtocolType = i->ai_protocol;
+		
 		if(ah != nullptr)
 			freeaddrinfo(ah);
 		return EvntBind();
@@ -3919,7 +3908,7 @@ public:
 	/*
 	Accepting incoming client.
 	*/
-	bool AcceptClient(__QUERY_URL & DestCoonection)
+	bool AcceptClient(__QUERY_URL& DestConnection)
 	{
 		TDESCR ConnectedSocket;
 		if((ConnectedSocket = accept(RemoteIp.hSocket, nullptr, nullptr)) == INVALID_SOCKET)
@@ -3927,15 +3916,56 @@ public:
 			URL_SET_LAST_ERR;
 			return false;
 		}
-		DestCoonection.RemoteIp.hSocket = ConnectedSocket;
-		DestCoonection.RemoteIp.ProtocolType = RemoteIp.ProtocolType;
+		DestConnection.RemoteIp.hSocket = ConnectedSocket;
+		DestConnection.RemoteIp.ProtocolType = RemoteIp.ProtocolType;
 #ifdef _WIN32
-		DestCoonection.RemoteIp.IsNonBlocked = false;
+		DestConnection.RemoteIp.IsNonBlocked = false;
 #endif
-		DestCoonection.LastError.Clear();
+		DestConnection.LastError.Clear();
 		return EvntAcceptClient(ConnectedSocket);
 	}
 
+	bool AcceptClient(__QUERY_URL& DestConnection, SOCKET_ADDR& AddressClient)
+	{
+		TDESCR ConnectedSocket;
+		int AddrLen = sizeof(AddressClient);
+		if((ConnectedSocket = accept(RemoteIp.hSocket, (sockaddr*)&AddressClient, &AddrLen)) == INVALID_SOCKET)
+		{
+			URL_SET_LAST_ERR;
+			return false;
+		}
+		DestConnection.RemoteIp.hSocket = ConnectedSocket;
+		DestConnection.RemoteIp.ProtocolType = RemoteIp.ProtocolType;
+#ifdef _WIN32
+		DestConnection.RemoteIp.IsNonBlocked = false;
+#endif
+		DestConnection.LastError.Clear();
+		return EvntAcceptClient(ConnectedSocket);
+	}
+
+
+	bool SkipClient()
+	{
+		auto ClientConnection = accept(RemoteIp.hSocket, nullptr, nullptr);
+		if(ClientConnection != INVALID_SOCKET)
+		{
+			closesocket(ClientConnection);
+			return true;
+		}
+		return false;
+	}
+		
+	bool SkipClient(SOCKET_ADDR& AddressSkipedClient)
+	{
+		int AddrLen = sizeof(AddressSkipedClient);
+		auto ClientConnection = accept(RemoteIp.hSocket, (sockaddr*)&AddressSkipedClient, &AddrLen);
+		if(ClientConnection != INVALID_SOCKET)
+		{
+			closesocket(ClientConnection);
+			return true;
+		}
+		return false;
+	}
 	/*
 	Duplicate for sharing in new process.
 	*/
@@ -4499,6 +4529,9 @@ lblTryAgain:
 };
 
 #undef socket
+
+int __QUERY_URL<true>::____f = ([] { winsock::GetWsa<true>(); return 0;})();
+
 
 typedef __QUERY_URL<true> QUERY_URL;
 

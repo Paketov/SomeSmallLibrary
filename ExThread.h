@@ -43,7 +43,7 @@ inline void SetThreadPrior(std::thread& Thread, PRIORITY priority)
 	SetThreadPriority(Thread.native_handle(), priority);
 #else
 	sched_param schedparams;
-	schedparams.sched_priority=priority;
+	schedparams.sched_priority = priority;
 	pthread_setschedparam(Thread.native_handle(), SCHED_OTHER, &schedparams);
 #endif
 }
@@ -55,7 +55,7 @@ inline void SetThreadPrior(PRIORITY priority)
 	SetThreadPriority(GetCurrentThread(), priority);
 #else
 	sched_param schedparams;
-	schedparams.sched_priority=priority;
+	schedparams.sched_priority = priority;
 	pthread_setschedparam(pthread_self(), SCHED_OTHER, &schedparams);
 #endif
 }
@@ -68,7 +68,7 @@ inline PRIORITY GetThreadPrior(std::thread& Thread)
 #else
 	sched_param schedparams;
 	pthread_getschedparam(Thread.native_handle(), std::make_default_pointer(), &schedparams);
-	return schedparams.sched_priority;
+	return (PRIORITY)schedparams.sched_priority;
 #endif
 }
 
@@ -79,7 +79,7 @@ inline PRIORITY GetThreadPrior()
 #else
 	sched_param schedparams;
 	pthread_getschedparam(pthread_self(), std::make_default_pointer(), &schedparams);
-	return schedparams.sched_priority;
+	return (PRIORITY)schedparams.sched_priority;
 #endif
 }
 

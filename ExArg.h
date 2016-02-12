@@ -54,6 +54,14 @@ public:
 		public:
 			inline operator unsigned() const { return _Count; }
 		} Count;
+
+		class{
+			friend EX_ARG;
+			_EX_ARG_FIELDS;
+		public:
+			inline operator bool() const { return i; }
+			inline bool operator=(bool NewI) { return i = NewI; }
+		} IsICase;
 	};
 
 private:
@@ -205,6 +213,9 @@ public:
 			return *this;
 		}
 	};
+
+
+
 
 
 	EX_ARG
