@@ -66,7 +66,7 @@ public:
 	inline TINDEX IndexByKey(TYPE_KEY Key) const { return TElementStruct::IndexByKey(Key, AllocCount); }
 
 	template<typename TYPE_KEY>
-	inline LPCELL* ElementByKey(TYPE_KEY Key) { return GetTable() + TElementStruct::IndexByKey(Key, AllocCount); }
+	inline LPCELL* ElementByKey(TYPE_KEY Key) const { return GetTable() + TElementStruct::IndexByKey(Key, AllocCount); }
 
 protected:
 
@@ -524,7 +524,7 @@ lblSearchStart:
 	/*
 		Get element by interator.
 	*/
-	static inline TElementStruct* CellByInterator(const TINTER& SetInterator) { return SetInterator.IsEnd.CurElementInList; }
+	static inline TElementStruct* ElementByInterator(const TINTER& SetInterator) { return SetInterator.IsEnd.CurElementInList; }
 	
 	/*
 		Search key and set interator to key position.
@@ -534,7 +534,7 @@ lblSearchStart:
 	{
 		LPCELL *t = GetTable();
 		TINDEX s = TElementStruct::IndexByKey(SearchKey, AllocCount);
-		for(LPCELL i = t[s]; i != EmptyElement; i = i->Next)
+		for(LPCELL i = t[s]; i != nullptr; i = i->Next)
 			if(i->CmpKey(SearchKey))
 			{
 				Interator.IsEnd.CurStartList = s;
@@ -548,8 +548,7 @@ lblSearchStart:
 	*/
 	TElementStruct* Remove(TINTER& Interator)
 	{
-		LPCELL* DelElem;
-		for(DelElem = GetTable() + TElementStruct::IndexByKey(Key, AllocCount); *DelElem != nullptr; DelElem = &(*DelElem)->Next)
+		for(LPCELL *DelElem = GetTable() + Interator.IsEnd.CurStartList; *DelElem != nullptr; DelElem = &(*DelElem)->Next)
 		{
 			if(*DelElem == Interator.IsEnd.CurElementInList)
 			{
@@ -576,11 +575,14 @@ lblSearchStart:
 		return nullptr;
 	}
 
-	/*Next interate by key val*/
+	/*
+		Next interate by key val
+		Use only for not collision values! To do this, use only Insert function.
+	*/
 	template<typename TKey>
 	TElementStruct* GetNextCellByKey(TKey SearchKey) const
 	{
-		LPCELL *t = GetTable(), *i = ElementByKey(Key);
+		const LPCELL *t = GetTable(), *i = ElementByKey(SearchKey);
 		for(LPCELL e = *i; e != nullptr; e = e->Next)
 		{
 			if(e->CmpKey(SearchKey))
@@ -588,7 +590,7 @@ lblSearchStart:
 				if(e->Next != nullptr)
 					return e->Next;
 				i++;
-				for(LPCELL *m = t + AllocCount; i < m; i++)
+				for(const LPCELL *m = t + AllocCount; i < m; i++)
 					if(*i != nullptr) 
 						return *i;
 				return nullptr;

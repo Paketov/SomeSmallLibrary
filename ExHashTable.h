@@ -596,7 +596,7 @@ lblSearchStart:
 	/*
 		Get element by interator.
 	*/
-	inline TElementStruct* CellByInterator(const TINTER& SetInterator) const { return GetTable() + SetInterator.IsEnd.CurElementInList; }
+	inline TElementStruct* ElementByInterator(const TINTER& SetInterator) const { return GetTable() + SetInterator.IsEnd.CurElementInList; }
 	
 	/*
 		Search key and set interator to key position.
@@ -619,8 +619,7 @@ lblSearchStart:
 	*/
 	TElementStruct* Remove(TINTER& Interator)
 	{
-		LPCELL t = GetTable();
-		LPCELL Ret = t + Interator.IsEnd.CurElementInList;
+		LPCELL t = GetTable(), Ret = t + Interator.IsEnd.CurElementInList;
 		for(LPTINDEX i = &t[Interator.IsEnd.CurStartList].iStart; *i != EmptyElement; i = &t[*i].iNext)
 		{
 			if(Interator.IsEnd.CurElementInList == *i)
