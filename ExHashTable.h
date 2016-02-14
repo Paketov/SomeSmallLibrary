@@ -62,7 +62,7 @@ public:
 	typedef struct { TINDEX iStart, iNext; } THEADCELL, *LPTHEADCELL;		
 	typedef struct CELL : public THEADCELL, public TElementStruct {} CELL, *LPCELL;
 
-	static inline void CopyElement(CELL& Dest, CELL& Source) { *((TElementStruct*)(((LPTHEADCELL)&Dest) + 1)) = *((TElementStruct*)(((LPTHEADCELL)&Source) + 1)); }
+	static inline void CopyElement(CELL& Dest, const CELL& Source) { Dest.TElementStruct = Source.TElementStruct; }
 
 protected:
 
@@ -110,9 +110,6 @@ public:
 
 	template<typename TYPE_KEY>
 	inline TINDEX IndexByKey(TYPE_KEY Key) const { return TElementStruct::IndexByKey(Key, AllocCount); }
-
-	template<typename TYPE_KEY>
-	inline TINDEX StartIndexByKey(TYPE_KEY Key) const { return GetTable()[TElementStruct::IndexByKey(Key, AllocCount)].iStart; }
 
 	template<typename TYPE_KEY>
 	inline LPCELL ElementByKey(TYPE_KEY Key) { return GetTable() + TElementStruct::IndexByKey(Key, AllocCount); }
@@ -229,9 +226,9 @@ public:
 	template<typename T>
 	inline TElementStruct* Search(T SearchKey) const
 	{
-		LPCELL p;
-		for(TINDEX i = StartIndexByKey(SearchKey); i != EmptyElement; i = p->iNext)
-			if((p = GetTable() + i)->CmpKey(SearchKey))
+		LPCELL p, t = GetTable();
+		for(TINDEX i = t[TElementStruct::IndexByKey(SearchKey, AllocCount)].iStart; i != EmptyElement; i = p->iNext)
+			if((p = t + i)->CmpKey(SearchKey))
 				return p;
 		return nullptr;
 	}
@@ -335,10 +332,10 @@ public:
 	template<typename T>
 	TElementStruct* Remove(T SearchKey)
 	{
-		LPCELL p;
-		for(LPTINDEX i = &(ElementByKey(SearchKey)->iStart); *i != EmptyElement; i = &(p->iNext))
+		LPCELL p, t = GetTable();
+		for(LPTINDEX i = &(t[TElementStruct::IndexByKey(Key, AllocCount)].iStart); *i != EmptyElement; i = &(p->iNext))
 		{
-			p = GetTable() + *i;
+			p = t + *i;
 			if(p->CmpKey(SearchKey))
 			{
 				TINDEX j = *i;
@@ -359,10 +356,10 @@ public:
 	template<typename T>
 	void RemoveAllCollision(T SearchKey)
 	{
-		LPCELL p;
-		for(LPTINDEX i = &(ElementByKey(SearchKey)->iStart); *i != EmptyElement; i = &(p->iNext))
+		LPCELL p, t = GetTable();
+		for(LPTINDEX i = &(t[TElementStruct::IndexByKey(Key, AllocCount)].iStart); *i != EmptyElement; i = &(p->iNext))
 		{
-			p = GetTable() + *i;
+			p = t + *i;
 			if(p->CmpKey(SearchKey))
 			{
 				TINDEX j = *i;
@@ -560,10 +557,13 @@ public:
 	*/
 	bool Interate(TINTER& SetInterator) const
 	{
+		TINDEX p;
 		LPCELL Elements = GetTable();
 		if(SetInterator.IsEnd)
 		{
-			for(TINDEX p = 0, m = AllocCount; p < m; p++)
+			p = 0;
+lblSearchStart:
+			for(TINDEX m = AllocCount; p < m; p++)
 				if(Elements[p].iStart != EmptyElement)
 				{
 					SetInterator.IsEnd.CurStartList = p;
@@ -573,26 +573,14 @@ public:
 			SetInterator.IsEnd.CurStartList = EmptyElement;
 			return false;
 		}
-		TINDEX m = AllocCount, i = SetInterator.IsEnd.CurElementInList;
-		if(i >= m)
-			return false;
-		i = Elements[i].iNext;
+		TINDEX i = Elements[SetInterator.IsEnd.CurElementInList].iNext;
 		if(i != EmptyElement)
 		{
 			SetInterator.IsEnd.CurElementInList = i;
 			return true;
 		}
-		for(TINDEX p = SetInterator.IsEnd.CurStartList + 1; p < m; p++)
-		{			
-			for(i = Elements[p].iStart; i != EmptyElement; i = Elements[i].iNext)
-			{
-				SetInterator.IsEnd.CurStartList = p;
-				SetInterator.IsEnd.CurElementInList = i;
-				return true;
-			}
-		}
-		SetInterator.IsEnd.CurStartList = EmptyElement;
-		return false;
+		p = SetInterator.IsEnd.CurStartList + 1;
+		goto lblSearchStart;
 	}
 	/*
 		Check interator is correct.
@@ -616,10 +604,9 @@ public:
 	template<typename TKey>
 	bool InteratorByKey(TKey SearchKey, TINTER& Interator)
 	{
-		LPCELL p, Elements = GetTable();
-		TINDEX s = StartIndexByKey(SearchKey), i = s;
-		for(; i != EmptyElement; i = p->iNext)
-			if((p = Elements + i)->CmpKey(SearchKey))
+		LPCELL p, t = GetTable();
+		for(TINDEX s = TElementStruct::IndexByKey(SearchKey, AllocCount), i = t[s].iStart; i != EmptyElement; i = p->iNext)
+			if((p = t + i)->CmpKey(SearchKey))
 			{
 				Interator.IsEnd.CurStartList = s;
 				Interator.IsEnd.CurElementInList = i;
@@ -675,22 +662,20 @@ public:
 	TElementStruct* GetNextCellByKey(TKey SearchKey) const
 	{
 		LPCELL Elements = GetTable(), p;
-		TINDEX s = IndexByKey(SearchKey), i = Elements[s].iStart;
-		for(; i != EmptyElement; i = p->iNext)
+		for(TINDEX s = IndexByKey(SearchKey), i = Elements[s].iStart; i != EmptyElement; i = p->iNext)
 			if((p = Elements + i)->CmpKey(SearchKey))
-				break;
-		if(i == EmptyElement)
-			return nullptr;			
-		i = Elements[i].iNext;
-		if(i != EmptyElement)
-			return Elements + i;
-		s++;
-		for(TINDEX m = AllocCount; s < m; s++)
-			for(i = Elements[s].iStart; i != EmptyElement; i = Elements[i].iNext)
 			{
-				return Elements + i;
+				if((i = Elements[i].iNext) != EmptyElement)
+					return Elements + i;
+				s++;
+				for(TINDEX m = AllocCount; s < m; s++)
+					for(i = Elements[s].iStart; i != EmptyElement; i = Elements[i].iNext)
+					{
+						return Elements + i;
+					}
+					return nullptr;
 			}
-		return nullptr;
+			return nullptr;
 	}
 
 	/*========================================================*/

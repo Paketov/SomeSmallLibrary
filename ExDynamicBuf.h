@@ -169,6 +169,8 @@ public:
 
 	void Move(DYNAMIC_BUF<TypeElement>& Dest)
 	{
+		if(Dest.Count.f.buf != nullptr)
+			___free(Dest.Count.f.buf);
 		Dest.Count.f.buf = Count.f.buf;
 		Count.f.buf = nullptr;
 		Dest.Count.f.count = Count.f.count;
@@ -288,6 +290,8 @@ public:
 
 	void Move(DYNAMIC_BUF_S<TypeElement>& Dest)
 	{
+		if(Dest.Count.f.buf != nullptr)
+			___free(Dest.Count.f.buf);
 		Dest.Count.f.buf = Count.f.buf;
 		Count.f.buf = nullptr;
 		Dest.Count.f.count = Count.f.count;
