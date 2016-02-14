@@ -546,32 +546,23 @@ lblSearchStart:
 	/*
 		Remove by interator.
 	*/
-	//TElementStruct* Remove(TINTER& Interator)
-	//{
-	//	LPCELL Elements = GetTable();
-	//	LPCELL Ret = Elements + Interator.IsEnd.CurElementInList;
-	//	for(LPTINDEX i = &Elements[Interator.IsEnd.CurStartList].iStart; *i != EmptyElement; i = &Elements[*i].iNext)
-	//	{
-	//		if(Interator.IsEnd.CurElementInList == *i)
-	//		{
-	//			Interator.IsEnd.CurElementInList = *i = Elements[i].iNext;
-	//			if(*i == EmptyElement)
-	//			{
-	//				for(TINDEX j = Interator.IsEnd.CurStartList + 1, m = AllocCount; j < m; j++)
-	//				{
-	//					if(Elements[j].iStart != EmptyElement)
-	//					{
-	//						Interator.IsEnd.CurElementInList = Elements[Interator.IsEnd.CurStartList = j].iStart;
-	//						return Ret;
-	//					}
-	//				}
-	//				Interator.IsEnd.CurStartList = EmptyElement;
-	//			}
-	//			break;
-	//		}
-	//	}
-	//	return Ret;
-	//}
+	TElementStruct* Remove(TINTER& Interator)
+	{
+		LPCELL* DelElem;
+		for(DelElem = GetTable() + TElementStruct::IndexByKey(Key, AllocCount); *DelElem != nullptr; DelElem = &(*DelElem)->Next)
+		{
+			if(*DelElem == Interator.IsEnd.CurElementInList)
+			{
+				Interate(Interator);
+				LPCELL El2 = *DelElem;
+				*DelElem = El2->Next;
+				FAST_ALLOC::Delete(El2);
+				Count.count--;
+				return std::make_default_pointer();
+			}
+		}
+		return std::make_default_pointer();
+	}
 
 	/*========================================================*/
 	/*Interate by key val*/

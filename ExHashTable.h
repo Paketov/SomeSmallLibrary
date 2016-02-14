@@ -619,26 +619,17 @@ lblSearchStart:
 	*/
 	TElementStruct* Remove(TINTER& Interator)
 	{
-		LPCELL Elements = GetTable();
-		LPCELL Ret = Elements + Interator.IsEnd.CurElementInList;
-		for(LPTINDEX i = &Elements[Interator.IsEnd.CurStartList].iStart; *i != EmptyElement; i = &Elements[*i].iNext)
+		LPCELL t = GetTable();
+		LPCELL Ret = t + Interator.IsEnd.CurElementInList;
+		for(LPTINDEX i = &t[Interator.IsEnd.CurStartList].iStart; *i != EmptyElement; i = &t[*i].iNext)
 		{
 			if(Interator.IsEnd.CurElementInList == *i)
 			{
-				Interator.IsEnd.CurElementInList = *i = Elements[i].iNext;
-				if(*i == EmptyElement)
-				{
-					for(TINDEX j = Interator.IsEnd.CurStartList + 1, m = AllocCount; j < m; j++)
-					{
-						if(Elements[j].iStart != EmptyElement)
-						{
-							Interator.IsEnd.CurElementInList = Elements[Interator.IsEnd.CurStartList = j].iStart;
-							return Ret;
-						}
-					}
-					Interator.IsEnd.CurStartList = EmptyElement;
-				}
-				break;
+				Interate(Interator);	
+				LPCELL El2 = t[*i];
+				*i = El2->iNext;
+				Count.count--;
+				return El2;
 			}
 		}
 		return Ret;
