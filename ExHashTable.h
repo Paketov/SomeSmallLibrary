@@ -62,15 +62,15 @@ public:
 	typedef struct { TINDEX iStart, iNext; } THEADCELL, *LPTHEADCELL;		
 	typedef struct CELL : public THEADCELL, public TElementStruct {} CELL, *LPCELL;
 
-	static inline void CopyElement(CELL& Dest, const CELL& Source) { Dest.TElementStruct = Source.TElementStruct; }
+	static inline void CopyElement(CELL& Dest, const CELL& Source) { *(TElementStruct*)((LPTHEADCELL)&Dest + 1) = *(TElementStruct*)((LPTHEADCELL)&Source + 1); }
 
 protected:
 
 #define EXHASH_TABLE_FIELDS												\
 	struct																\
 	{																	\
-	std::def_var_in_union_with_constructor<DYNAMIC_BUF_S<CELL>> Table;	\
-	TINDEX count, last_empty;											\
+	LPCELL Table;														\
+	TINDEX count, last_empty, alloc_count;								\
 	}
 
 public:
@@ -83,8 +83,8 @@ public:
 		} Count;
 
 		class{ EXHASH_TABLE_FIELDS; friend HASH_TABLE;
-		inline TINDEX operator=(TINDEX NewCount) { return Table->Count = NewCount; } public:
-			inline operator TINDEX() const { return Table->Count; }
+		public:
+			inline operator TINDEX() const { return alloc_count; }
 		} AllocCount;
 
 		class{ EXHASH_TABLE_FIELDS; friend HASH_TABLE; public:
@@ -96,7 +96,7 @@ public:
 			operator TINDEX() const
 			{ 
 				TINDEX c = 0;
-				LPCELL t = Table->BeginBuf;
+				LPCELL t = Table;
 				for(TINDEX i = last_empty; i != EmptyElement; i = t[i].iNext)
 					c++;
 				return c;
@@ -106,7 +106,7 @@ public:
 
 	static const TINDEX EmptyElement = NothingIndex;
 
-	inline LPCELL GetTable() const { return Count.Table->BeginBuf; }
+	inline LPCELL GetTable() const { return Count.Table; }
 
 	template<typename TYPE_KEY>
 	inline TINDEX IndexByKey(TYPE_KEY Key) const { return TElementStruct::IndexByKey(Key, AllocCount); }
@@ -116,29 +116,30 @@ public:
 
 protected:
 
-	template<typename TKey>
-	inline LPCELL AddElement(LPCELL HashCell, TKey InitKey)
-	{	
-		TINDEX iRetElem;
-		LPCELL lpRetElem = GetTable() + (iRetElem = Count.last_empty);
-		if(!lpRetElem->SetKey(InitKey))
-			return nullptr;
-		Count.count++;
-		Count.last_empty = lpRetElem->iNext;
-		lpRetElem->iNext = HashCell->iStart;
-		HashCell->iStart = iRetElem;
-		return lpRetElem;
+	bool ReallocAndClear(TINDEX NewAllocCount)
+	{
+		LPCELL t = (LPCELL)___realloc(Count.Table, sizeof(CELL) * NewAllocCount);
+		if(t == nullptr)
+			return false;
+		Count.Table = t; 
+		Count.alloc_count = NewAllocCount;
+		for(TINDEX i = Count.last_empty = 0; i < NewAllocCount; i++)
+		{
+			t[i].iStart = EmptyElement;
+			t[i].iNext = i + 1;
+		}
+		t[NewAllocCount - 1].iNext = EmptyElement;
+		return true;
 	}
 
-	inline LPCELL AddElement(LPCELL HashCell)
-	{	
-		TINDEX iRetElem;
-		LPCELL lpRetElem = GetTable() + (iRetElem = Count.last_empty);
-		Count.count++;
-		Count.last_empty = lpRetElem->iNext;
-		lpRetElem->iNext = HashCell->iStart;
-		HashCell->iStart = iRetElem;
-		return lpRetElem;
+	bool Realloc(TINDEX NewAllocCount)
+	{
+		LPCELL t = (LPCELL)___realloc(Count.Table, sizeof(CELL) * NewAllocCount);
+		if(t == nullptr)
+			return false;
+		Count.Table = t; 
+		Count.alloc_count = NewAllocCount;
+		return true;
 	}
 
 public:
@@ -146,38 +147,19 @@ public:
 	/*
 		After call this constructor AllocCount = NewAllocCount.
 	*/
-	HASH_TABLE(TINDEX NewAllocCount)
+	HASH_TABLE(TINDEX NewAllocCount = 1)
 	{
-		new(&Count.Table) DYNAMIC_BUF_S<CELL>(NewAllocCount);
-		Count = 0;
-		if(NewAllocCount > 0)
-		{
-			LPCELL t = GetTable();
-			for(TINDEX i = Count.last_empty = 0; i < NewAllocCount; i++)
-			{
-				t[i].iStart = EmptyElement;
-				t[i].iNext = i + 1;
-			}
-			t[NewAllocCount - 1].iNext = EmptyElement;
-		}else
-		{
-			Count.last_empty = 0;
-		}
-	}
-
-	/*
-		Create empty table.
-	*/
-	inline HASH_TABLE()
-	{
-		new(&Count.Table) DYNAMIC_BUF_S<CELL>();
-		Count = 0;
-		Count.last_empty = EmptyElement;
+		Count.Table = nullptr;
+		Count.count = Count.alloc_count = 0;
+		if(NewAllocCount <= 0)
+			NewAllocCount = 1;
+		ReallocAndClear(NewAllocCount);
 	}
 
 	inline ~HASH_TABLE()
 	{
-		Count.Table->~DYNAMIC_BUF_S<CELL>();
+		if(Count.Table != nullptr)
+			___free(Count.Table);
 	}
 
 	/*
@@ -333,7 +315,7 @@ public:
 	TElementStruct* Remove(T SearchKey)
 	{
 		LPCELL p, t = GetTable();
-		for(LPTINDEX i = &(t[TElementStruct::IndexByKey(Key, AllocCount)].iStart); *i != EmptyElement; i = &(p->iNext))
+		for(LPTINDEX i = &(t[TElementStruct::IndexByKey(SearchKey, AllocCount)].iStart); *i != EmptyElement; i = &(p->iNext))
 		{
 			p = t + *i;
 			if(p->CmpKey(SearchKey))
@@ -378,8 +360,8 @@ public:
 	*/
 	void Clear()
 	{
-		Count = AllocCount = 0;
-		Dest.Count.last_empty = EmptyElement;
+		Count = 0;
+		ReallocAndClear(1);
 	}
 
 	/*========================================================*/
@@ -415,11 +397,10 @@ public:
 			Elements[j].iStart = i;
 		}
 
+		if(NewSize <= 0)
+			return ReallocAndClear(1);
 		Count.last_empty = EmptyElement;
-		AllocCount = NewSize;
-		if(AllocCount != NewSize)
-			return false;
-		return true;
+		return Realloc(NewSize);
 	}
 
 	/*
@@ -432,8 +413,8 @@ public:
 	bool ResizeBeforeInsert(TINDEX NewCount)
 	{
 		TINDEX FullCount = AllocCount;
-		AllocCount = NewCount;
-		if(AllocCount != NewCount)
+
+		if(!Realloc(NewCount))
 			return false;
 
 		LPCELL Elements = GetTable();
@@ -499,8 +480,7 @@ public:
 	*/
 	bool Clone(HASH_TABLE<TElementStruct, TIndex, NothingIndex>& Dest) const
 	{
-		Dest.AllocCount = AllocCount;
-		if(Dest.AllocCount != AllocCount)
+		if(!Dest.Realloc(AllocCount))
 			return false;
 		Dest.Count.count = Count.count;
 		Dest.Count.last_empty = Count.last_empty;
@@ -511,15 +491,24 @@ public:
 		Move this table to another.
 		After call Count == 0.
 	*/
-	void Move(HASH_TABLE<TElementStruct, TIndex, NothingIndex>& Dest)
+
+	bool Move(HASH_TABLE<TElementStruct, TIndex, NothingIndex>& Dest)
 	{
-		Count.Table->Move(Dest.Count.Table);
+		if(!Dest.ReallocAndClear(1))
+			return false;
+		LPCELL t = Dest.Count.Table;
+		Dest.Count.Table = Count.Table;
+		Count.Table = t;
+		Dest.Count.alloc_count = Count.alloc_count;
+		Count.alloc_count = 1; 
 		Dest.Count.count = Count.count;
 		Count.count = 0;
+		TINDEX le;
+		le = Dest.Count.last_empty;
 		Dest.Count.last_empty = Count.last_empty;
-		Count.last_empty = EmptyElement;
+		Count.last_empty = le;
+		return true;
 	}
-
 
 	/*========================================================*/
 	/*
@@ -625,7 +614,7 @@ lblSearchStart:
 			if(Interator.IsEnd.CurElementInList == *i)
 			{
 				Interate(Interator);	
-				LPCELL El2 = t[*i];
+				LPCELL El2 = t + *i;
 				*i = El2->iNext;
 				Count.count--;
 				return El2;

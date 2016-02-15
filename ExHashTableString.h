@@ -4,7 +4,7 @@
 #include "ExHashTable.h"
 #include "ExString.h"
 
-template <typename CharType, typename DataType, bool IsDynamicKey = true>
+template <typename CharType, typename DataType, typename IndexType, bool IsDynamicKey = true>
 struct HASH_ELEMENT_STRING
 {
 	CharType* KeyVal;
@@ -32,15 +32,15 @@ struct HASH_ELEMENT_STRING
 		return false;
 	}
 
-	inline static unsigned short IndexByKey(const CharType* k, unsigned char MaxCount) 
+	inline static IndexType IndexByKey(const CharType* k, IndexType MaxCount) 
 	{ 
 		unsigned h = 0;
-		for (unsigned s = 0; k[s] != CHAR_TYPE(CharType, '\0'); s++) 
+		for (size_t s = 0; k[s] != CHAR_TYPE(CharType, '\0'); s++) 
 			h = 31 * h + k[s];
 		return h % MaxCount; 
 	}
 
-	inline unsigned short IndexInBound(unsigned char MaxCount) const { return IndexByKey(KeyVal, MaxCount); }
+	inline IndexType IndexInBound(IndexType MaxCount) const { return IndexByKey(KeyVal, MaxCount); }
 
 	//Compare values
 	inline bool CmpKey(const CharType* EnotherKeyVal)
@@ -56,9 +56,9 @@ struct HASH_ELEMENT_STRING
 	Hi level hash table using with key as string.
 */
 template<typename CharType, typename DataType, bool IsDynamicKey = true, typename IndexType = unsigned short>
-class HASH_TABLE_STRING_KEY: private HASH_TABLE<HASH_ELEMENT_STRING<CharType, DataType, IsDynamicKey>, IndexType>
+class HASH_TABLE_STRING_KEY: private HASH_TABLE<HASH_ELEMENT_STRING<CharType, DataType, IndexType, IsDynamicKey>, IndexType>
 {
-	typedef HASH_ELEMENT_STRING<CharType, DataType, IsDynamicKey> HASH_ELEMENT;
+	typedef HASH_ELEMENT_STRING<CharType, DataType, IndexType, IsDynamicKey> HASH_ELEMENT;
 	typedef HASH_TABLE<HASH_ELEMENT, IndexType> PARENT;
 
 	template<typename, typename, bool, typename>

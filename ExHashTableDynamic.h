@@ -23,15 +23,15 @@ public:
 	struct CELL : public THEADCELL, public TElementStruct {};
 	
 
-	static inline void CopyElement(CELL& Dest, const CELL& Source) { Dest.TElementStruct = Source.TElementStruct; }
+	static inline void CopyElement(CELL& Dest, const CELL& Source) { *(TElementStruct*)((LPTHEADCELL)&Dest + 1) = *(TElementStruct*)((LPTHEADCELL)&Source + 1); }
 
 protected:
 
 #define EXHASH_TABLE_FIELDS												\
 	struct																\
 	{																	\
-	std::def_var_in_union_with_constructor<DYNAMIC_BUF_S<LPCELL>> Table;\
-	TINDEX count;											\
+	LPCELL* Table;														\
+	TINDEX count, alloc_count;											\
 	}
 
 public:
@@ -44,23 +44,23 @@ public:
 		} Count;
 
 		class{ EXHASH_TABLE_FIELDS; friend HASH_TABLE_DYN;
-		inline TINDEX operator=(TINDEX NewCount) { return Table->Count = NewCount; } public:
-			inline operator TINDEX() const { return Table->Count; }
+		public:
+			inline operator TINDEX() const { return alloc_count; }
 		} AllocCount;
 
 		class{ EXHASH_TABLE_FIELDS; friend HASH_TABLE_DYN; public:
-			inline operator bool() const { return Table->Count >= count; }
+			inline operator bool() const { return alloc_count >= count; }
 		} IsFull;
 
 		class{	EXHASH_TABLE_FIELDS; public:
-			operator TINDEX() const { return Table->Count - count; }
+			operator TINDEX() const { return alloc_count - count; }
 		}  EmptyCount;
 	};
 
 	static const TINDEX EmptyElement = NothingIndex;
 
 
-	inline LPCELL* GetTable() const { return Count.Table->BeginBuf; }
+	inline LPCELL* GetTable() const { return Count.Table; }
 
 	template<typename TYPE_KEY>
 	inline TINDEX IndexByKey(TYPE_KEY Key) const { return TElementStruct::IndexByKey(Key, AllocCount); }
@@ -70,56 +70,47 @@ public:
 
 protected:
 
-	template<typename TKey>
-	inline LPCELL AddElement(LPCELL HashCell, TKey InitKey)
-	{	
-		TINDEX iRetElem;
-		LPCELL lpRetElem = GetTable() + (iRetElem = Count.last_empty);
-		if(!lpRetElem->SetKey(InitKey))
-			return nullptr;
-		Count.count++;
-		Count.last_empty = lpRetElem->iNext;
-		lpRetElem->iNext = HashCell->iStart;
-		HashCell->iStart = iRetElem;
-		return lpRetElem;
+	bool ReallocAndClear(TINDEX NewAllocCount)
+	{
+		if(NewAllocCount <= 0)
+			NewAllocCount = 1;
+		LPCELL* Res = (LPCELL*)___realloc(Count.Table, sizeof(LPCELL) * NewAllocCount);
+		if(Res == nullptr)
+			return false;
+		memset(Count.Table = Res, 0, sizeof(LPCELL) * (Count.alloc_count = NewAllocCount));
+		return true;
 	}
 
-	inline LPCELL AddElement(LPCELL HashCell)
-	{	
-		TINDEX iRetElem;
-		LPCELL lpRetElem = GetTable() + (iRetElem = Count.last_empty);
-		Count.count++;
-		Count.last_empty = lpRetElem->iNext;
-		lpRetElem->iNext = HashCell->iStart;
-		HashCell->iStart = iRetElem;
-		return lpRetElem;
+	bool Realloc(TINDEX NewAllocCount)
+	{
+		TINDEX c = NewAllocCount;
+		if(NewAllocCount <= 0)
+			c = 1;
+		LPCELL *Res = (LPCELL*)___realloc(Count.Table, sizeof(LPCELL) * c);
+		if(Res == nullptr)
+			return false;
+		if(NewAllocCount <= 0)
+			*Res = nullptr;
+		Count.Table = Res; 
+		Count.alloc_count = c;
+		return true;
 	}
-
 public:
 
 	/*
 		After call this constructor AllocCount = NewAllocCount.
 	*/
-	HASH_TABLE_DYN(TINDEX NewAllocCount)
+	HASH_TABLE_DYN(TINDEX NewAllocCount = 1)
 	{
-		new(&Count.Table) DYNAMIC_BUF_S<LPCELL>(NewAllocCount);
-		Count = 0;
-		if(NewAllocCount > 0)
-			memset(GetTable(), 0, sizeof(LPCELL) * NewAllocCount);
-	}
-
-	/*
-		Create empty table.
-	*/
-	inline HASH_TABLE_DYN()
-	{
-		new(&Count.Table) DYNAMIC_BUF_S<LPCELL>();
-		Count = 0;
+		Count.Table = nullptr;
+		Count.alloc_count = Count.count = 0;
+		ReallocAndClear(NewAllocCount);
 	}
 
 	inline ~HASH_TABLE_DYN()
 	{
-		Count.Table->~DYNAMIC_BUF_S<LPCELL>();
+		if(Count.Table != nullptr)
+			___free(Count.Table);
 	}
 
 	/*
@@ -164,7 +155,7 @@ public:
 	template<typename T>
 	inline TElementStruct* Search(T SearchKey) const
 	{
-		for(LPCELL lpStart = GetTable()[TElementStruct::IndexByKey(Key, AllocCount)]; lpStart != nullptr; lpStart = lpStart->Next)
+		for(LPCELL lpStart = GetTable()[TElementStruct::IndexByKey(SearchKey, AllocCount)]; lpStart != nullptr; lpStart = lpStart->Next)
 		{
 			if(lpStart->CmpKey(SearchKey))
 				return lpStart;
@@ -185,6 +176,64 @@ public:
 				return lpNext;
 		}
 		return nullptr;
+	}
+
+	/*
+		Remove element by key.
+		Return address element in table.
+	*/
+	template<typename T>
+	TElementStruct* Remove(T SearchKey)
+	{
+		for(LPCELL *lpStart = ElementByKey(SearchKey); *lpStart != nullptr; lpStart = &(*lpStart)->Next)
+		{
+			if((*lpStart)->CmpKey(SearchKey))
+			{
+				LPCELL DelElem = *lpStart;
+				*lpStart = DelElem->Next;
+				FAST_ALLOC::Delete(DelElem);
+				Count.count--;
+				return std::make_default_pointer();
+			}
+		}
+		return nullptr;
+	}
+
+	/*
+		Remove all collision element by key.
+		To find out the number of deleted items, check property Count.
+	*/
+	template<typename T>
+	void RemoveAllCollision(T SearchKey)
+	{
+		for(LPCELL *i = ElementByKey(SearchKey); *i != nullptr; )
+		{
+			if((*i)->CmpKey(SearchKey))
+			{
+				LPCELL DelElem = *i;
+				*i = DelElem->Next;
+				FAST_ALLOC::Delete(DelElem);
+				Count.count--;
+			}else
+				i = &((*i)->Next);
+		}
+	}
+
+	/*
+		Clear all table.
+		Deletes all element from table.
+	*/
+	void Clear()
+	{		
+		for(LPCELL *s = GetTable(), *m = s + AllocCount; s < m; s++)
+			for(LPCELL i = *s; i != nullptr; )
+			{
+				LPCELL DelElem = i;
+				i = DelElem->Next;
+				FAST_ALLOC::Delete(DelElem);
+			}
+		ReallocAndClear(1);
+		Count = 0;
 	}
 
 	/*
@@ -229,7 +278,9 @@ public:
 			{
 				if(IsDeleteProc(UserData, *i))
 				{
+					LPCELL DelElem = *i;
 					*i = (*i)->Next;
+					FAST_ALLOC::Delete(DelElem);
 					Count.count--;
 				}else
 					i = &((*i)->Next);
@@ -257,63 +308,7 @@ public:
 			}
 	}
 
-	/*
-		Remove element by key.
-		Return address element in table.
-	*/
-	template<typename T>
-	TElementStruct* Remove(T SearchKey)
-	{
-		for(LPCELL *lpStart = ElementByKey(SearchKey); *lpStart != nullptr; lpStart = &(*lpStart)->Next)
-		{
-			if((*lpStart)->CmpKey(SearchKey))
-			{
-				LPCELL DelElem = *lpStart;
-				*lpStart = DelElem->Next;
-				FAST_ALLOC::Delete(DelElem);
-				Count.count--;
-				return std::make_default_pointer();
-			}
-		}
-		return nullptr;
-	}
 
-	/*
-		Remove all collision element by key.
-		To find out the number of deleted items, check property Count.
-	*/
-	template<typename T>
-	void RemoveAllCollision(T SearchKey)
-	{
-		for(LPCELL *i = ElementByKey(SearchKey); *i != nullptr; )
-		{
-			if((*i)->CmpKey(SearchKey))
-			{
-				LPCELL DelElem = *i;
-				*i = DelElem->Next;
-				FAST_ALLOC::Delete(DelElem);
-				Count.count--;
-			}else
-				i = &((*i)->Next);
-		}
-	}
-
-
-	/*
-		Clear all table.
-		Deletes all element from table.
-	*/
-	void Clear()
-	{		
-		for(LPCELL *s = GetTable(), *m = s + AllocCount; s < m; s++)
-			for(LPCELL i = *s; i != nullptr; )
-			{
-				LPCELL DelElem = i;
-				i = DelElem->Next;
-				FAST_ALLOC::Delete(DelElem);
-			}
-		Count = AllocCount = 0;
-	}
 
 	/*========================================================*/
 	/*Resize table functional*/
@@ -332,9 +327,7 @@ public:
 			Clear();
 			return true;
 		}else
-		{
 			return ResizeBeforeInsert(NewCount);
-		}
 	}
 
 	/*
@@ -355,18 +348,15 @@ public:
 				i = i->Next;
 				UsedList->Next = j;
 			}
-		AllocCount = NewCount;
+		bool r = ReallocAndClear(NewCount);
 		LPCELL *t = GetTable();
-		memset(t, 0, sizeof(LPCELL) * AllocCount);
 		while(UsedList != nullptr)
 		{
-			LPCELL* j = t + UsedList->IndexInBound(AllocCount);
-			LPCELL c = *j;
-			*j = UsedList;
-			UsedList = UsedList->Next;
+			LPCELL* j = t + UsedList->IndexInBound(AllocCount), c = *j;
+			UsedList = (*j = UsedList)->Next;
 			(*j)->Next = c;
 		}
-		return AllocCount == NewCount;
+		return r;
 	}
 
 
@@ -377,20 +367,21 @@ public:
 	bool Clone(HASH_TABLE_DYN<TElementStruct, TIndex, NothingIndex>& Dest) const
 	{
 		LPCELL UsedList = nullptr;
-		for(LPCELL *s = Dest.GetTable(), *m = s + Dest.AllocCount; s < m; s++)
-			for(LPCELL i = *s; i != nullptr; )
-			{
-				LPCELL j = UsedList;
-				UsedList = i;
-				i = i->Next;
-				UsedList->Next = j;
-			}
-
-		Dest.AllocCount = AllocCount;
-		LPCELL* dt = Dest.GetTable();
-		if(Dest.AllocCount != AllocCount)
+		if(Dest.Count >= 0)
+		{
+			for(LPCELL *s = Dest.GetTable(), *m = s + Dest.AllocCount; s < m; s++)
+				for(LPCELL i = *s; i != nullptr; )
+				{
+					LPCELL j = UsedList;
+					UsedList = i;
+					i = i->Next;
+					UsedList->Next = j;
+				}
+		}		
+		if(!Dest.ReallocAndClear(AllocCount))
 		{
 			/*If not alloc memory, then return all back*/
+			LPCELL* dt = Dest.GetTable();
 			for(; UsedList != nullptr;)
 			{
 				LPCELL* j = dt + UsedList->IndexInBound(Dest.AllocCount);
@@ -401,8 +392,7 @@ public:
 			}
 			return false;
 		}	
-		memset(t, 0, sizeof(LPCELL) * Dest.AllocCount);
-		LPCELL* st = GetTable();
+		LPCELL *st = GetTable(), *dt = Dest.GetTable();
 		for(TINDEX k = 0, m = AllocCount; k < m; k++)
 			for(LPCELL i = st[k]; i != nullptr; i = i->Next)
 			{
@@ -419,7 +409,7 @@ public:
 							dt[k] = n;
 						}
 						k++;
-						if(k < m) break;
+						if(k >= m) break;
 						i = st[k];
 					};
 					goto lblOut;
@@ -437,18 +427,25 @@ public:
 			FAST_ALLOC::Delete(DelElem);
 		}
 lblOut:
-		Dest.Count = Count;
+		Dest.Count.count = Count.count;
 		return true;
 	}
 	/*
 		Move this table to another.
 		After call Count == 0.
 	*/
-	void Move(HASH_TABLE_DYN<TElementStruct, TIndex, NothingIndex>& Dest)
+	bool Move(HASH_TABLE_DYN<TElementStruct, TIndex, NothingIndex>& Dest)
 	{
-		Count.Table->Move(Dest.Count.Table);
+		if(!Dest.ReallocAndClear(1))
+			return false;
+		LPCELL* t = Dest.Count.Table;
+		Dest.Count.Table = Count.Table;
+		Count.Table = t;
+		Dest.Count.alloc_count = Count.alloc_count;
+		Count.alloc_count = 1; 
 		Dest.Count.count = Count.count;
 		Count.count = 0;
+		return true;
 	}
 
 
