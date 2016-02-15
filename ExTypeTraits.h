@@ -765,6 +765,7 @@ namespace std
 		*(copy_struct*)Dest = *(copy_struct*)&Source;
 		return Dest + (CountChar - 1);
 	}
-
+	template<typename TypeInt>
+	inline TypeInt not_less_zero_val(TypeInt v) { return (v < 0)? 0: v; }
 };
 #endif

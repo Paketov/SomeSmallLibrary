@@ -98,7 +98,7 @@ public:
 		} AllocCount;
 
 		class{ EXHASH_TABLE_FIELDS; friend HASH_TABLE_DYN; public:
-		inline operator bool() const { return alloc_count >= count; }
+		inline operator bool() const { return count >= alloc_count; }
 		} IsFull;
 
 		class{	EXHASH_TABLE_FIELDS; public:
