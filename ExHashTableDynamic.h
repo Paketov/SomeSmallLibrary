@@ -89,7 +89,7 @@ public:
 	{
 		class{ EXHASH_TABLE_FIELDS; friend HASH_TABLE_DYN;
 		inline TINDEX operator =(TINDEX NewVal) { return count = NewVal; } public:
-			inline operator TINDEX() const { return count; }
+		inline operator TINDEX() const { return count; }
 		} Count;
 
 		class{ EXHASH_TABLE_FIELDS; friend HASH_TABLE_DYN;
@@ -98,11 +98,11 @@ public:
 		} AllocCount;
 
 		class{ EXHASH_TABLE_FIELDS; friend HASH_TABLE_DYN; public:
-			inline operator bool() const { return alloc_count >= count; }
+		inline operator bool() const { return alloc_count >= count; }
 		} IsFull;
 
 		class{	EXHASH_TABLE_FIELDS; public:
-			operator TINDEX() const { return alloc_count - count; }
+		operator TINDEX() const { return alloc_count - count; }
 		}  EmptyCount;
 	};
 
@@ -117,6 +117,10 @@ public:
 	template<typename TYPE_KEY>
 	inline LPCELL* ElementByKey(TYPE_KEY Key) const { return GetTable() + TElementStruct::IndexByKey(Key, AllocCount); }
 
+
+	/*
+		Temporary pointer on delete element.
+	*/
 	class REMOVE_POINTER
 	{
 		friend HASH_TABLE_DYN;
@@ -124,6 +128,14 @@ public:
 		inline REMOVE_POINTER(LPCELL NewVal) { Val = NewVal; }
 	public:
 		inline REMOVE_POINTER(REMOVE_POINTER& NewVal) { Val = NewVal.Val; NewVal.Val = nullptr; }
+		REMOVE_POINTER& operator =(REMOVE_POINTER& NewVal) 
+		{ 
+			if(Val != nullptr) 
+				FAST_ALLOC::Delete(Val);
+			Val = NewVal.Val; 
+			NewVal.Val = nullptr;
+			return *this;
+		}
 		inline operator TElementStruct*() const { return Val; }
 		inline TElementStruct* operator->() const { return Val; }
 		inline ~REMOVE_POINTER() { if(Val != nullptr) FAST_ALLOC::Delete(Val); }
@@ -569,6 +581,7 @@ lblSearchStart:
 		p = SetInterator.IsEnd.CurStartList + 1;
 		goto lblSearchStart;
 	}
+
 	/*
 		Check interator is correct.
 	*/
