@@ -11,6 +11,12 @@ Paketov
 2015-2016
 
 Low-level hash table.
+
+In this table each element located in a single array.
+This table fully compatible with HASH_TABLE_DYN.
+You have the freedom to choose between HASH_TABLE_DYN or HASH_TABLE.
+
+
 Example:
 
 	typedef struct HASH_ELEMENT

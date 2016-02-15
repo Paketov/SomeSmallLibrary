@@ -6,6 +6,55 @@
 #include "ExDynamicBuf.h"
 
 
+
+/*
+ExHashTable
+Paketov
+2015-2016
+
+Low-level hash table.
+This another version of table. 
+This table is characterized in that it has a dynamic memory allocation for each element.
+This table fully compatible with  HASH_TABLE.
+You have the freedom to choose between HASH_TABLE_DYN or HASH_TABLE.
+
+
+Example:
+
+	typedef struct HASH_ELEMENT
+	{
+		unsigned vKey;
+		double   Val;
+
+		bool SetKey(unsigned k)
+		{
+			vKey = k;
+			return false;
+		}
+
+		inline static unsigned short IndexByKey(unsigned k, unsigned char MaxCount) 
+		{ 
+			return k % MaxCount; 
+		}
+
+		inline unsigned short IndexInBound(unsigned char MaxCount) const
+		{
+			return IndexByKey(KeyVal, MaxCount);
+		}
+
+		inline bool CmpKey(unsigned k)
+		{
+			return k == vKey;
+		}
+	}  HASH_ELEMENT;
+
+	HASH_TABLE_DYN<HASH_ELEMENT> HashArray(12);
+
+	HashArray.Insert(0.000012)->Val = 0.000012;
+	printf("%lf", HashArray.Search(0.000012)->Val); 
+
+*/
+
 template
 <
 	typename TElementStruct,
@@ -77,11 +126,7 @@ public:
 		inline REMOVE_POINTER(REMOVE_POINTER& NewVal) { Val = NewVal.Val; NewVal.Val = nullptr; }
 		inline operator TElementStruct*() const { return Val; }
 		inline TElementStruct* operator->() const { return Val; }
-		~REMOVE_POINTER()
-		{
-			if(Val != nullptr)
-				FAST_ALLOC::Delete(Val);
-		}
+		inline ~REMOVE_POINTER() { if(Val != nullptr) FAST_ALLOC::Delete(Val); }
 	};
 
 protected:

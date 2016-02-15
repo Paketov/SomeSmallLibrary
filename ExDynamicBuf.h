@@ -105,7 +105,7 @@ public:
 				{
 					TypeElement* a = (TypeElement*)___realloc(f.buf, NewAllocCount * sizeof(TypeElement));
 					if(a == nullptr)
-						return NewCount;
+						return NewAllocCount;
 					f.buf = a;
 				}
 				f.count = f.alloc_count = NewAllocCount;
