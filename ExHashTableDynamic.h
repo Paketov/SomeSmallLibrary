@@ -68,6 +68,22 @@ public:
 	template<typename TYPE_KEY>
 	inline LPCELL* ElementByKey(TYPE_KEY Key) const { return GetTable() + TElementStruct::IndexByKey(Key, AllocCount); }
 
+	class REMOVE_POINTER
+	{
+		friend HASH_TABLE_DYN;
+		LPCELL Val;
+		inline REMOVE_POINTER(LPCELL NewVal) { Val = NewVal; }
+	public:
+		inline REMOVE_POINTER(REMOVE_POINTER& NewVal) { Val = NewVal.Val; NewVal.Val = nullptr; }
+		inline operator TElementStruct*() const { return Val; }
+		inline TElementStruct* operator->() const { return Val; }
+		~REMOVE_POINTER()
+		{
+			if(Val != nullptr)
+				FAST_ALLOC::Delete(Val);
+		}
+	};
+
 protected:
 
 	bool ReallocAndClear(TINDEX NewAllocCount)
@@ -183,7 +199,7 @@ public:
 		Return address element in table.
 	*/
 	template<typename T>
-	TElementStruct* Remove(T SearchKey)
+	REMOVE_POINTER Remove(T SearchKey)
 	{
 		for(LPCELL *lpStart = ElementByKey(SearchKey); *lpStart != nullptr; lpStart = &(*lpStart)->Next)
 		{
@@ -191,9 +207,8 @@ public:
 			{
 				LPCELL DelElem = *lpStart;
 				*lpStart = DelElem->Next;
-				FAST_ALLOC::Delete(DelElem);
 				Count.count--;
-				return std::make_default_pointer();
+				return DelElem;
 			}
 		}
 		return nullptr;
@@ -543,7 +558,7 @@ lblSearchStart:
 	/*
 		Remove by interator.
 	*/
-	TElementStruct* Remove(TINTER& Interator)
+	REMOVE_POINTER RemoveByInterator(TINTER& Interator)
 	{
 		for(LPCELL *DelElem = GetTable() + Interator.IsEnd.CurStartList; *DelElem != nullptr; DelElem = &(*DelElem)->Next)
 		{
@@ -552,12 +567,11 @@ lblSearchStart:
 				Interate(Interator);
 				LPCELL El2 = *DelElem;
 				*DelElem = El2->Next;
-				FAST_ALLOC::Delete(El2);
 				Count.count--;
-				return std::make_default_pointer();
+				return El2;
 			}
 		}
-		return std::make_default_pointer();
+		return nullptr;
 	}
 
 	/*========================================================*/

@@ -114,7 +114,20 @@ public:
 	template<typename TYPE_KEY>
 	inline LPCELL ElementByKey(TYPE_KEY Key) { return GetTable() + TElementStruct::IndexByKey(Key, AllocCount); }
 
+	class REMOVE_POINTER
+	{
+		friend HASH_TABLE;
+		TElementStruct* Val;
+		inline REMOVE_POINTER(TElementStruct* NewVal) { Val = NewVal; }
+	public:
+		inline operator TElementStruct*() const { return Val; }
+		inline TElementStruct* operator->() const { return Val; }
+	};
+
+
 protected:
+
+	
 
 	bool ReallocAndClear(TINDEX NewAllocCount)
 	{
@@ -230,6 +243,63 @@ public:
 	}
 
 	/*
+		Remove element by key.
+		Return address element in table.
+	*/
+	template<typename T>
+	REMOVE_POINTER Remove(T SearchKey)
+	{
+		LPCELL p, t = GetTable();
+		for(LPTINDEX i = &(t[TElementStruct::IndexByKey(SearchKey, AllocCount)].iStart); *i != EmptyElement; i = &(p->iNext))
+		{
+			p = t + *i;
+			if(p->CmpKey(SearchKey))
+			{
+				TINDEX j = *i;
+				*i = p->iNext;
+				p->iNext = Count.last_empty;
+				Count.last_empty = j;
+				Count.count--;
+				return p;
+			}
+		}
+		return nullptr;
+	}
+
+	/*
+		Remove all collision element by key.
+		To find out the number of deleted items, check property Count.
+	*/
+	template<typename T>
+	void RemoveAllCollision(T SearchKey)
+	{
+		LPCELL p, t = GetTable();
+		for(LPTINDEX i = &(t[TElementStruct::IndexByKey(Key, AllocCount)].iStart); *i != EmptyElement; i = &(p->iNext))
+		{
+			p = t + *i;
+			if(p->CmpKey(SearchKey))
+			{
+				TINDEX j = *i;
+				*i = p->iNext;
+				p->iNext = Count.last_empty;
+				Count.last_empty = j;
+				Count.count--;
+			}	
+		}
+	}
+
+
+	/*
+		Clear all table.
+		Deletes all element from table.
+	*/
+	void Clear()
+	{
+		Count = 0;
+		ReallocAndClear(1);
+	}
+
+	/*
 		Enumerate all elements in the table with the EnumFunc.
 		Caution! When you call this function, you can not change the contents of the table!
 	*/
@@ -307,62 +377,7 @@ public:
 			}
 	}
 
-	/*
-		Remove element by key.
-		Return address element in table.
-	*/
-	template<typename T>
-	TElementStruct* Remove(T SearchKey)
-	{
-		LPCELL p, t = GetTable();
-		for(LPTINDEX i = &(t[TElementStruct::IndexByKey(SearchKey, AllocCount)].iStart); *i != EmptyElement; i = &(p->iNext))
-		{
-			p = t + *i;
-			if(p->CmpKey(SearchKey))
-			{
-				TINDEX j = *i;
-				*i = p->iNext;
-				p->iNext = Count.last_empty;
-				Count.last_empty = j;
-				Count.count--;
-				return p;
-			}
-		}
-		return nullptr;
-	}
 
-	/*
-		Remove all collision element by key.
-		To find out the number of deleted items, check property Count.
-	*/
-	template<typename T>
-	void RemoveAllCollision(T SearchKey)
-	{
-		LPCELL p, t = GetTable();
-		for(LPTINDEX i = &(t[TElementStruct::IndexByKey(Key, AllocCount)].iStart); *i != EmptyElement; i = &(p->iNext))
-		{
-			p = t + *i;
-			if(p->CmpKey(SearchKey))
-			{
-				TINDEX j = *i;
-				*i = p->iNext;
-				p->iNext = Count.last_empty;
-				Count.last_empty = j;
-				Count.count--;
-			}	
-		}
-	}
-
-
-	/*
-		Clear all table.
-		Deletes all element from table.
-	*/
-	void Clear()
-	{
-		Count = 0;
-		ReallocAndClear(1);
-	}
 
 	/*========================================================*/
 	/*Resize table functional*/
@@ -606,7 +621,7 @@ lblSearchStart:
 	/*
 		Remove by interator.
 	*/
-	TElementStruct* Remove(TINTER& Interator)
+	REMOVE_POINTER RemoveByInterator(TINTER& Interator)
 	{
 		LPCELL t = GetTable(), Ret = t + Interator.IsEnd.CurElementInList;
 		for(LPTINDEX i = &t[Interator.IsEnd.CurStartList].iStart; *i != EmptyElement; i = &t[*i].iNext)
