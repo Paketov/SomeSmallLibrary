@@ -183,7 +183,16 @@ public:
 	inline ~HASH_TABLE_DYN()
 	{
 		if(Count.Table != nullptr)
+		{
+			for(LPCELL *s = Count.Table, *m = s + AllocCount; s < m; s++)
+				for(LPCELL i = *s; i != nullptr; )
+				{
+					LPCELL DelElem = i;
+					i = DelElem->Next;
+					FAST_ALLOC::Delete(DelElem);
+				}
 			___free(Count.Table);
+		}
 	}
 
 	/*

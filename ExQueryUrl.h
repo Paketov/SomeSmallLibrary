@@ -1472,7 +1472,6 @@ public:
 
 		CHECK_EVENTS()
 		{
-			std::zero_val(SetEventLocker);
 			IsHaveSignal = IsSignalSended = false;
 #if defined(HAVE_KEVENT___)
 			kq = kqueue();
@@ -1530,7 +1529,7 @@ public:
 		{
 #if defined(WIN_PLATFORM)
 			winsock::WSANETWORKEVENTS e;
-			for(size_t i = (IsHaveSignal)? 1: 0, m = Data.Count; i < m; i++)
+			for(size_t i = GetBeginIndex(), m = Data.Count; i < m; i++)
 			{
 				winsock::WSAEnumNetworkEvents(Data[i].fd, Events[i], &e);
 				if(e.lNetworkEvents != 0)
