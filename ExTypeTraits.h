@@ -753,7 +753,7 @@ namespace std
 
 	struct on_scope_out_caller{
 		std::function<void()> Func;
-		inline on_scope_out_caller(std::function<void()> f): Func(f){}
+		inline on_scope_out_caller(std::function<void()> f): Func(f) {}
 		inline ~on_scope_out_caller() { Func(); }
 	};
 
@@ -765,6 +765,7 @@ namespace std
 		*(copy_struct*)Dest = *(copy_struct*)&Source;
 		return Dest + (CountChar - 1);
 	}
+
 	template<typename TypeInt>
 	inline TypeInt not_less_zero_val(TypeInt v) { return (v < 0)? 0: v; }
 };

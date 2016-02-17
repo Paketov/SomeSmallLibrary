@@ -8,6 +8,7 @@
 
 
 #if /*!defined(_DEBUG) &&*/ defined(_MSC_VER)
+#include <Windows.h>
 #define ___malloc(size) HeapAlloc(GetProcessHeap(), 0, size)
 #define ___realloc(pointer, size) ((pointer == nullptr)? ___malloc(size): HeapReAlloc(GetProcessHeap(), 0, pointer, size))
 #define ___free(pointer) HeapFree(GetProcessHeap(), 0, pointer)
@@ -440,12 +441,12 @@ lblOut:
 	template<size_t Len> 
 	struct VAL_TYPE_: std::conditional<Len < sizeof(void*), FIELDS_FOR_LESS_THEN_POINTER<Len>, FIELDS<Len>>::type {};	
 	
-	struct MUTEX: public std::atomic_flag {};
+	struct MUTEX { std::atomic<bool> v; };
 
 	template<size_t Len>
-	static inline void Lock() { if(IsThreadSafe) while(std::assoc_val<size_t, Len, MUTEX>::value.test_and_set(std::memory_order_acquire)); }
+	static inline void Lock() { if(IsThreadSafe) for(bool v = false; !std::assoc_val<size_t, Len, MUTEX>::value.v.compare_exchange_strong(v, true); v = false);  }
 	template<size_t Len>
-	static inline void Unlock() { if(IsThreadSafe) std::assoc_val<size_t, Len, MUTEX>::value.clear(std::memory_order_release); }
+	static inline void Unlock() { if(IsThreadSafe) std::assoc_val<size_t, Len, MUTEX>::value.v = false; }
 public:
 
 	template<typename Type>

@@ -123,8 +123,8 @@ public:
 	*/
 	class REMOVE_POINTER
 	{
-		friend HASH_TABLE_DYN;
 		LPCELL Val;
+		friend HASH_TABLE_DYN;
 		inline REMOVE_POINTER(LPCELL NewVal) { Val = NewVal; }
 	public:
 		inline REMOVE_POINTER(REMOVE_POINTER& NewVal) { Val = NewVal.Val; NewVal.Val = nullptr; }
@@ -262,8 +262,8 @@ public:
 		{
 			if((*lpStart)->CmpKey(SearchKey))
 			{
-				LPCELL DelElem = *lpStart;
-				*lpStart = DelElem->Next;
+				REMOVE_POINTER DelElem = *lpStart;
+				*lpStart = DelElem.Val->Next;
 				Count.count--;
 				return DelElem;
 			}
@@ -623,8 +623,8 @@ lblSearchStart:
 			if(*DelElem == Interator.IsEnd.CurElementInList)
 			{
 				Interate(Interator);
-				LPCELL El2 = *DelElem;
-				*DelElem = El2->Next;
+				REMOVE_POINTER El2 = *DelElem;
+				*DelElem = El2.Val->Next;
 				Count.count--;
 				return El2;
 			}

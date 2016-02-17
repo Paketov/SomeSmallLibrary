@@ -1464,7 +1464,7 @@ public:
 
 #endif
 
-		std::atomic_flag				SetEventLocker;
+		std::atomic<bool>				SetEventLocker;
 		bool IsHaveSignal;
 		bool IsSignalSended;
 
@@ -1679,7 +1679,7 @@ public:
 		/*Signals thread save*/
 		void EnableSignal()
 		{
-			while(SetEventLocker.test_and_set(std::memory_order_acquire));
+			for(bool v = false; !SetEventLocker.compare_exchange_strong(v, true); v = false);
 			if(!IsHaveSignal)
 			{
 #if defined(WIN_PLATFORM)
@@ -1691,12 +1691,12 @@ public:
 #endif
 				IsHaveSignal = true;
 			}
-			SetEventLocker.clear(std::memory_order_release);
+			SetEventLocker = false;
 		}
 
 		void DisableSignal()
 		{
-			while(SetEventLocker.test_and_set(std::memory_order_acquire));
+			for(bool v = false; !SetEventLocker.compare_exchange_strong(v, true); v = false);
 			if(IsHaveSignal)
 			{
 #if defined(WIN_PLATFORM)
@@ -1708,20 +1708,17 @@ public:
 #endif	
 				IsSignalSended = IsHaveSignal = false;
 			}
-			SetEventLocker.clear(std::memory_order_release);
+			SetEventLocker = false;
 		}
 
 		bool IsSignalEnabled()
 		{
-			while(SetEventLocker.test_and_set(std::memory_order_acquire));
-			auto r = IsHaveSignal;
-			SetEventLocker.clear(std::memory_order_release);
-			return r;
+			return IsHaveSignal;
 		}
 
 		void SetSignal()
 		{
-			while(SetEventLocker.test_and_set(std::memory_order_acquire));
+			for(bool v = false; !SetEventLocker.compare_exchange_strong(v, true); v = false);
 			if(IsHaveSignal)
 			{			
 				IsSignalSended = true;
@@ -1731,13 +1728,13 @@ public:
 #elif defined(HAVE_EPOLL___)
 #endif	
 			}
-			SetEventLocker.clear(std::memory_order_release);
+			SetEventLocker = false;
 		}
 
 		void ResetSignal()
 		{
 
-			while(SetEventLocker.test_and_set(std::memory_order_acquire));
+			for(bool v = false; !SetEventLocker.compare_exchange_strong(v, true); v = false);
 			if(IsHaveSignal)
 			{	
 				IsSignalSended = false;
@@ -1747,20 +1744,17 @@ public:
 #elif defined(HAVE_EPOLL___)
 #endif	
 			}
-			SetEventLocker.clear(std::memory_order_release);
+			SetEventLocker = false;
 		}
 
 		inline bool IsSignalSet() 
-		{ 
-			while(SetEventLocker.test_and_set(std::memory_order_acquire));
-			auto r = IsSignalSended;
-			SetEventLocker.clear(std::memory_order_release);
+		{
 			return IsSignalSended; 
 		}
 
 		inline bool CheckSignalAndReset() 
 		{ 
-			while(SetEventLocker.test_and_set(std::memory_order_acquire));
+			for(bool v = false; !SetEventLocker.compare_exchange_strong(v, true); v = false);
 			auto r = IsSignalSended;
 			if(r)
 			{
@@ -1771,7 +1765,7 @@ public:
 #elif defined(HAVE_EPOLL___)
 #endif	
 			}
-			SetEventLocker.clear(std::memory_order_release);
+			SetEventLocker = false;
 			return r; 
 		}
 		/*
@@ -3672,7 +3666,7 @@ public:
 
 
 	static bool StringToAddr(const char* Str, void* Dest, int Family = AF_INET) { return inet_pton(Family, Str, Dest) == 1; }
-	static bool AddrToString(void* Src, char* Dest, size_t BufSize,  int Family = AF_INET) { return inet_ntop(Family, Src, Dest, BufSize) != nullptr; }
+	static bool AddrToString(const void* Src, char* Dest, size_t BufSize,  int Family = AF_INET) { return inet_ntop(Family, (void*)Src, Dest, BufSize) != nullptr; }
 	/*
 	Connect with server at a specific address.
 	*/

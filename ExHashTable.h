@@ -130,10 +130,7 @@ public:
 		inline TElementStruct* operator->() const { return Val; }
 	};
 
-
 protected:
-
-	
 
 	bool ReallocAndClear(TINDEX NewAllocCount)
 	{
