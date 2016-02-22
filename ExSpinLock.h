@@ -20,23 +20,25 @@ public:
 	}
 	inline void LockRead()
 	{
-		TypeFlag v;
-		do{
-			v = Locker; 
+		while(true)
+		{
+			TypeFlag v = Locker; 
 			if (v == 0) continue;
-		}while(!Locker.compare_exchange_strong(v, v + 1)); 
+			if(Locker.compare_exchange_strong(v, v + 1)) break;
+		}
 	}
 	inline void LockReadYield()
 	{
-		TypeFlag v;
-		do{
-			v = Locker; 
-			if (v == 0)
+		while(true)
+		{
+			TypeFlag v = Locker; 
+			if(v == 0)
 			{
 				std::this_thread::yield();
 				continue;
 			}
-		}while(!Locker.compare_exchange_strong(v, v + 1)); 
+			if(Locker.compare_exchange_strong(v, v + 1)) break;
+		}
 	}
 	inline void UnlockRead() { --Locker; }
 
