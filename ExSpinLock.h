@@ -77,7 +77,7 @@ template<typename TypeFlag = unsigned>
 class SAFE_REGION
 {
 	std::atomic<TypeFlag> SafeRegionWaiter;
-	static const TypeFlag TstBit = 1 << (sizeof(TypeFlag) - 1);
+	static const TypeFlag TstBit = 1 << (sizeof(TypeFlag) * 8 - 1);
 public:
 	SAFE_REGION(): SafeRegionWaiter(0) {}
 
