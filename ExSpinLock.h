@@ -79,7 +79,7 @@ class SAFE_REGION
 	std::atomic<TypeFlag> SafeRegionWaiter;
 	static const TypeFlag TstBit = 1 << (sizeof(TypeFlag) * 8 - 1);
 public:
-	SAFE_REGION(): SafeRegionWaiter(0) {}
+	SAFE_REGION(): SafeRegionWaiter(1) {}
 
 	bool EnterSafeRegion()
 	{   
