@@ -331,38 +331,41 @@ class __FAST_ALLOC
 		void* StartElement;
 		size_t Count;
 		size_t SizeList;
+		mutable std::atomic<bool> Locker;
+
+		inline void Lock() { if(IsThreadSafe) for(bool v = false; !Locker.compare_exchange_strong(v, true); v = false);  }
+		inline void Unlock() { if(IsThreadSafe) Locker = false; }
 
 		FIELDS(): StartElement(nullptr), SizeList(80), Count(0) {}
 
 		void* Alloc()
 		{
-			
-			Lock<SizeElem>();
+			Lock();
 			if(StartElement != nullptr){		
 				void* Ret = StartElement;
 				StartElement = *(void**)Ret;
 				Count--;
-				Unlock<SizeElem>();
+				Unlock();
 				return Ret;
 			}else{
-				Unlock<SizeElem>();
+				Unlock();
 				return ___malloc(SizeElem);}
 		}
 		void Free(void* Data)
 		{
-			Lock<SizeElem>();
+			Lock();
 			if(Count >= SizeList){
-				Unlock<SizeElem>();
+				Unlock();
 				___free(Data); 
 			}else{
 				*(void**)Data = StartElement;
 				StartElement = Data;
 				Count++;
-				Unlock<SizeElem>();}
+				Unlock();}
 		}
 		void ClearList()
 		{
-			Lock<SizeElem>();
+			Lock();
 			void * Cur = StartElement;
 			StartElement = nullptr;
 			while(Cur != nullptr)
@@ -372,81 +375,17 @@ class __FAST_ALLOC
 				Cur = v;
 			}
 			Count = 0;
-			Unlock<SizeElem>();
+			Unlock();
 		}
 		inline void SetMaxCount(size_t NewVal) { SizeList = NewVal; }
 	};
 
-	template<size_t SizeElem>
-	struct FIELDS_FOR_LESS_THEN_POINTER
-	{
-		void** Pointers;
-		size_t Count;
-		size_t SizeList;
 
-		FIELDS_FOR_LESS_THEN_POINTER() : SizeList(80), Count(0) { Pointers = (void**)___malloc(SizeList * sizeof(void*)); }
-
-		void* Alloc() 
-		{ 
-			Lock<SizeElem>();
-			if(Count > 0){
-				auto r = Pointers[--Count];
-				Unlock<SizeElem>();
-				return r;
-			}else{
-				Unlock<SizeElem>();
-				return ___malloc(SizeElem);}
-		}
-		void Free(void* Data)
-		{
-			Lock<SizeElem>();
-			if(Count >= SizeList){
-				Unlock<SizeElem>();
-				___free(Data); 
-			}else{
-				Pointers[Count++] = Data;
-				Unlock<SizeElem>();}
-		}
-		void ClearList()
-		{
-			Lock<SizeElem>();
-			for(size_t i = 0, m = Count; i < m; i++)
-				___free(Pointers[i]);
-			Count = 0;
-			Unlock<SizeElem>();
-		}
-		void SetMaxCount(size_t NewVal)
-		{
-			Lock<SizeElem>();
-			if(Count >= NewVal)
-			{
-				for(size_t i = NewVal, m = Count; i < m; i++)
-					___free(Pointers[i]);
-				Count = NewVal;
-			}
-			void** b = (void**)___realloc(Pointers, NewVal * sizeof(void*));
-			if(b == nullptr)
-				goto lblOut;
-			Pointers = b;
-			SizeList = NewVal;
-lblOut:
-			Unlock<SizeElem>();
-		}
-
-	};
+	template<size_t Len> 
+	struct VAL_TYPE_: FIELDS<((Len < sizeof(void*))? sizeof(void*): Len)> {};	
 
 	template<class T> 
-	struct VAL_TYPE: std::conditional<sizeof(T) < sizeof(void*), FIELDS_FOR_LESS_THEN_POINTER<sizeof(T)>, FIELDS<sizeof(T)>>::type {};
-	
-	template<size_t Len> 
-	struct VAL_TYPE_: std::conditional<Len < sizeof(void*), FIELDS_FOR_LESS_THEN_POINTER<Len>, FIELDS<Len>>::type {};	
-	
-	struct MUTEX { std::atomic<bool> v; };
-
-	template<size_t Len>
-	static inline void Lock() { if(IsThreadSafe) for(bool v = false; !std::assoc_val<size_t, Len, MUTEX>::value.v.compare_exchange_strong(v, true); v = false);  }
-	template<size_t Len>
-	static inline void Unlock() { if(IsThreadSafe) std::assoc_val<size_t, Len, MUTEX>::value.v = false; }
+	struct VAL_TYPE: VAL_TYPE_<sizeof(T)> {};
 public:
 
 	template<typename Type>
