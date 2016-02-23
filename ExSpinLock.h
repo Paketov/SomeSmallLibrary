@@ -54,6 +54,27 @@ public:
 			std::this_thread::yield();
 	}
 	inline void UnlockWrite() { Locker = 1; }
+
+	/*
+		When you going search and delete much data, then use this methods for delete each element.
+		Example:
+		LockRead();
+		while(...)
+		{
+			Search some big data ...
+			if(data founded)
+			{
+				GoFromReadToWriteMode();
+				Delete data...
+				GoBackFromWriteToReadMode();
+			}
+		}
+		UnlockRead();
+	*/
+	bool TryGoFromReadToWriteMode() { TypeFlag v = 2; return Locker.compare_exchange_strong(v, 0); }
+	void GoFromReadToWriteMode() { for(TypeFlag v = 2; !Locker.compare_exchange_strong(v, 0); v = 2); }
+	void GoFromReadToWriteModeYield() { for(TypeFlag v = 2; !Locker.compare_exchange_strong(v, 0); v = 2) std::this_thread::yield(); }
+	void GoBackFromWriteToReadMode() { Locker = 2; }
 };
 
 
