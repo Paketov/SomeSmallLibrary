@@ -74,16 +74,7 @@ public:
 	bool TryGoFromReadToWriteMode() { TypeFlag v = 2; return Locker.compare_exchange_strong(v, 0); }
 	void GoFromReadToWriteMode() { for(TypeFlag v = 2; !Locker.compare_exchange_strong(v, 0); v = 2); }
 	void GoFromReadToWriteModeYield() { for(TypeFlag v = 2; !Locker.compare_exchange_strong(v, 0); v = 2) std::this_thread::yield(); }
-	void GoBackFromWriteToReadMode() { Locker = 2; }
-	/*
-		Go back Read -> Write mode, to unlock mode.
-		LockRead();
-		...
-		GoFromReadToWriteMode();
-		... 
-		GoFromWriteToUnlockMode();
-	*/
-	void GoFromWriteToUnlockMode() { Locker = 1; }
+	void GoFromWriteToReadMode() { Locker = 2; }
 };
 
 
