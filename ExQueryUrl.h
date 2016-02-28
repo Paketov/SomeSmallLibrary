@@ -2182,7 +2182,7 @@ protected:
 	
 	virtual int EvntGetCountPandingData()
 	{
-#ifdef _WIN32
+#ifdef WIN_PLATFORM
 		u_long res = -1;
 		if(ioctlsocket(RemoteIp.hSocket, FIONREAD, &res) == SOCKET_ERROR)
 		{
@@ -2208,7 +2208,7 @@ protected:
 
 	void InitFields()
 	{
-#ifdef _WIN32
+#ifdef WIN_PLATFORM
 		RemoteIp.IsNonBlocked = false;
 #endif
 		RemoteIp.hSocket = INVALID_SOCKET;
@@ -2537,7 +2537,7 @@ public:
 		public:
 			bool operator=(bool NewVal)
 			{
-#ifdef _WIN32
+#ifdef WIN_PLATFORM
 				u_long nonBlocking = NewVal;
 				if (ioctlsocket(hSocket, FIONBIO, &nonBlocking) == SOCKET_ERROR)
 					URL_SET_LAST_ERR_IN_PROPERTY
@@ -2553,7 +2553,7 @@ public:
 
 			operator bool() const
 			{
-#ifdef _WIN32
+#ifdef WIN_PLATFORM
 				return IsNonBlocked;
 #else
 				return fcntl(hSocket, F_GETFL, 0) & O_NONBLOCK;
@@ -4276,7 +4276,7 @@ lblTryAgain:
 	*/
 	int Read(void * Buf, size_t SizeBuf)
 	{
-#ifdef _WIN32
+#ifdef WIN_PLATFORM
 		DWORD Readed;
 		OVERLAPPED Overlap = {0}, *ovlp = nullptr;
 lblTryAgain:
