@@ -346,7 +346,7 @@ public:
 		MeanTime[0] = MonthName[0] = DayOfWeekName[0] = '\0';
 		unsigned short DayOfMonth, Year, Hour, Minute, Sec;
 		auto r = sscanf
-			(
+		(
 			TimeStr, 
 			"%4[^ \r\n,\t]%*[^1234567890]%2i %4s %i %2i:%2i:%2i %4s", 
 			DayOfWeekName, 
@@ -357,7 +357,7 @@ public:
 			&OutTm.tm_min, 
 			&OutTm.tm_sec, 
 			MeanTime
-			);
+		);
 		if(r < 8)
 			return false;
 
@@ -371,20 +371,20 @@ public:
 				OutTm.tm_wday = i;
 				break;
 			}
-			if(OutTm.tm_wday == -1)
+		if(OutTm.tm_wday == -1)
+			return false;
+		OutTm.tm_mon = -1;
+		for(unsigned i = 0;i < std::countof(Months);i++)
+			if(*(unsigned*)MonthName == *(unsigned*)(Months[i]))
+			{
+				OutTm.tm_mon = i;
+				break;
+			}	
+		if(OutTm.tm_mon == -1)
 				return false;
-			OutTm.tm_mon = -1;
-			for(unsigned i = 0;i < std::countof(Months);i++)
-				if(*(unsigned*)MonthName == *(unsigned*)(Months[i]))
-				{
-					OutTm.tm_mon = i;
-					break;
-				}	
-				if(OutTm.tm_mon == -1)
-					return false;
-				OutTm.tm_isdst = -1;
-				OutTm.tm_yday = -1;
-				return true;
+		OutTm.tm_isdst = -1;
+		OutTm.tm_yday = -1;
+		return true;
 	}
 
 	static bool WriteGMTTime(char * TimeStr, tm& InTm)

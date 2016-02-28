@@ -120,6 +120,9 @@ public:
 	template<typename TYPE_KEY>
 	inline LPCELL ElementByKey(TYPE_KEY Key) { return GetTable() + TElementStruct::IndexByKey(Key, AllocCount); }
 
+	/*
+		Use this class only before ResizeAfterRemove().
+	*/
 	class REMOVE_POINTER
 	{
 		friend HASH_TABLE;

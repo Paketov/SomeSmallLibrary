@@ -413,12 +413,11 @@ public:
 	STR_STAT FromText(const TypeChar * Str, size_t Len = 0xfffff)
 	{
 		size_t CountReaded = 0;
-		for(unsigned i = 0;i <  _Fields._Count;i++)
+		for(unsigned i = 0; i <  _Fields._Count; i++)
 		{		
 			bool r;
 			CountReaded += StringDoubleToNumber(_Fields.v + i, Str + CountReaded, NOT_LESS_Z(Len - CountReaded))(r);
-			if(!r)
-				return CountReaded;
+			if(!r) return CountReaded;
 		}
 		return STR_STAT(CountReaded, true);
 	}
@@ -867,7 +866,6 @@ private:
 		}
 
 	public:
-
 		operator T() const
 		{
 			matrix_check(_Fields.ni == _Fields.nj, "Matrix is not square.");
@@ -1020,14 +1018,7 @@ private:
 			}
 			return 1;
 		}
-
-		inline MATRIX<T, ((ci == 0)?0:1), cj> operator()() 
-		{
-			bool IsSuccess;
-			return operator()(IsSuccess);
-		}
-
-		MATRIX<T, ((ci == 0)?0:1), cj> operator()(bool & IsSuccess) 
+		MATRIX<T, ((ci == 0)?0:1), cj> operator()(bool & IsSuccess = std::make_default_reference()) 
 		{
 			MATRIX tab = _Fields.GetM();
 			MATRIX<T, ((ci == 0)?0:1),cj> Res(1, _Fields.ni, T(0));
@@ -1077,7 +1068,6 @@ private:
 			return pivot_row;
 		}
 
-
 		static void RetransformMatrix(MATRIX & tab, unsigned row, unsigned col)
 		{
 			long double ratio = tab.at(row, col);
@@ -1124,7 +1114,7 @@ private:
 		*/
 		static int Solution(MATRIX & tab, unsigned MaxLoop = 20)
 		{
-			for(unsigned loop = 0; loop < MaxLoop;loop++) 
+			for(unsigned loop = 0; loop < MaxLoop; loop++) 
 			{
 				int pivot_col, pivot_row;
 				pivot_col = SearchMinCol(tab);
@@ -1382,6 +1372,7 @@ private:
 		}
 	};
 
+	//For square matrix
 	class _IS_SINGULAR_SQUARE
 	{
 		__MATRIX_FIELDS_DEF;
@@ -1390,6 +1381,7 @@ private:
 		operator bool() { return T(0) == T(_Fields.GetM().Determinant); }
 	};
 
+	//For rect matrix
 	class _IS_SINGULAR_RECT
 	{
 	public:

@@ -1,7 +1,7 @@
 #ifndef __EXTHREAD_H_HAS_INCLUDED__
 #define __EXTHREAD_H_HAS_INCLUDED__
 #include <thread>
-#ifdef _WIN32
+#ifdef _MSC_VER
 #include <Windows.h>
 
 enum PRIORITY
@@ -39,7 +39,7 @@ enum PRIORITY
 
 inline void SetThreadPrior(std::thread& Thread, PRIORITY priority)
 {
-#ifdef _WIN32
+#ifdef _MSC_VER
 	SetThreadPriority(Thread.native_handle(), priority);
 #else
 	sched_param schedparams;
@@ -50,7 +50,7 @@ inline void SetThreadPrior(std::thread& Thread, PRIORITY priority)
 
 inline void SetThreadPrior(PRIORITY priority)
 {
-#ifdef _WIN32
+#ifdef _MSC_VER
 
 	SetThreadPriority(GetCurrentThread(), priority);
 #else
@@ -63,7 +63,7 @@ inline void SetThreadPrior(PRIORITY priority)
 
 inline PRIORITY GetThreadPrior(std::thread& Thread)
 {
-#ifdef _WIN32
+#ifdef _MSC_VER
 	return (PRIORITY)GetThreadPriority(Thread.native_handle());
 #else
 	sched_param schedparams;
@@ -74,7 +74,7 @@ inline PRIORITY GetThreadPrior(std::thread& Thread)
 
 inline PRIORITY GetThreadPrior()
 {
-#ifdef _WIN32
+#ifdef _MSC_VER
 	return (PRIORITY)GetThreadPriority(GetCurrentThread());
 #else
 	sched_param schedparams;
