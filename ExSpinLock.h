@@ -116,7 +116,7 @@ public:
 		SafeRegionWaiter = 0 - Wait writing thread
 		SafeRegionWaiter = 1 - Not have waiting threads
 		SafeRegionWaiter = 2..n - Have waiting read threads
-		SafeRegionWaiter & 0x800..0 - threadowner wait some operations
+		SafeRegionWaiter & 0x800..0 - ThreadOwner wait some operations
 		*/
 		if(SafeRegionWaiter != 1)
 		{

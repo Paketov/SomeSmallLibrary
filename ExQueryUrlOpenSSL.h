@@ -70,7 +70,7 @@ SSLErrOut:
 		return true;
 	}
 
-	virtual void EvntUninitFields()
+	virtual ~__QUERY_URL_OPEN_SSL()
 	{
 		if(SSLLastError.ssl != nullptr)
 		{

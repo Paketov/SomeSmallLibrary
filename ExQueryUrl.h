@@ -1739,8 +1739,8 @@ public:
 		inline bool CheckSignalAndReset() 
 		{ 
 			for(bool v = false; !SetEventLocker.compare_exchange_strong(v, true); v = false);
-			auto r = IsSignalSended;
-			if(r)
+			bool r;
+			if(r = IsSignalSended)
 			{
 				IsSignalSended = false;
 #if defined(WIN_PLATFORM)
@@ -1780,38 +1780,92 @@ public:
 
 	struct IPv6ADDR
 	{
-		unsigned short Addr[8];
-		inline bool operator==(IPv6ADDR& Another) { return memcmp(Addr, Another.Addr, sizeof(Addr)) == 0; }
-		inline bool operator!=(IPv6ADDR& Another) { return !operator==(Another); }
+		union {
+			uint16_t Addr[8];
+			struct {
+				uint64_t		AsNumber1;
+				uint64_t		AsNumber2;
+			};
+		};
 
-		inline bool FromString(const char* Str) { return StringToAddr(Str, Addr, AF_INET6); }
-		inline bool FromString(const std::basic_string<char>& Str) { return FromString(Str.c_str()); }
+		inline bool operator==(const IPv6ADDR& Another) const { return memcmp(Addr, Another.Addr, sizeof(Addr)) == 0; }
+		inline bool operator!=(const IPv6ADDR& Another) const { return !operator==(Another); }
 
-		std::basic_string<char> ToString()
+		inline IPv6ADDR
+		(
+			uint16_t Adr1, uint16_t Adr2, uint16_t Adr3 = 0, uint16_t Adr4 = 0, 
+			uint16_t Adr5 = 0, uint16_t Adr6 = 0, uint16_t Adr7 = 0, uint16_t Adr8 = 0
+		)
+		{
+			Addr[0] = htons(Adr1); Addr[1] = htons(Adr2);
+			Addr[2] = htons(Adr3); Addr[3] = htons(Adr4);
+			Addr[4] = htons(Adr5); Addr[5] = htons(Adr6);
+			Addr[6] = htons(Adr7); Addr[7] = htons(Adr8);
+		}
+		inline IPv6ADDR() { }
+
+		void SetByIndex(size_t i, uint16_t v) { Addr[i] = htons(v); }
+		uint16_t GetByIndex(size_t i) const { return ntohs(Addr[i]); }
+
+		inline int FromString(const std::basic_string<char>& Str) { return FromString(Str.c_str()); }
+		int FromString(const char* BufSource) 
+		{ 
+			char b[200];
+			int n = -1;
+			sscanf(BufSource, "%199[0-9a-fA-F:]%n", b, &n);
+			if(n == -1) return -1;
+			if(!QUERY_URL::StringToAddr(BufSource, Addr, AF_INET6)) return -1;
+			return n;
+		}
+
+		std::basic_string<char> ToString() const
 		{
 			char b[INET6_ADDRSTRLEN + 2]; b[0] = '\0';
-			AddrToString(Addr, b, INET6_ADDRSTRLEN + 1,  AF_INET6);
+			ToString(b, INET6_ADDRSTRLEN + 1);
 			return b;
 		}
-		bool ToString(char* Dest, size_t Len) { return AddrToString(Addr, Dest, Len,  AF_INET6); }
+		char* ToString(char* Dest, size_t Len) const { return (AddrToString(Addr, Dest, Len,  AF_INET6)? Dest: nullptr); }
 	};
 
 	struct IPv4ADDR
 	{
-		unsigned char Addr[4];
-		inline bool operator==(IPv4ADDR& Another) { return memcmp(Addr, Another.Addr, sizeof(Addr)) == 0; }
-		inline bool operator!=(IPv4ADDR& Another) { return !operator==(Another); }
+		union
+		{
+			uint8_t				Addr[4];
+			uint32_t			AsNumber;
+		};
 
-		inline bool FromString(const char* Str) { return StringToAddr(Str, Addr, AF_INET); }
-		inline bool FromString(const std::basic_string<char>& Str) { return FromString(Str.c_str()); }
+		inline IPv4ADDR(uint8_t Adr1, uint8_t Adr2, uint8_t Adr3 = 0, uint8_t Adr4 = 0)
+		{
+			Addr[0] = Adr1; Addr[1] = Adr2; Addr[2] = Adr3; Addr[3] = Adr4;
+		}
+		inline IPv4ADDR(uint32_t Adr) { AsNumber = Adr; }
+		inline IPv4ADDR() { }
 
-		std::basic_string<char> ToString()
+		void SetByIndex(size_t i, uint8_t v) { Addr[i] = v; }
+		uint8_t GetByIndex(size_t i) const { return Addr[i]; }
+
+		inline bool operator==(const IPv4ADDR& Another) const { return memcmp(Addr, Another.Addr, sizeof(Addr)) == 0; }
+		inline bool operator!=(const IPv4ADDR& Another) const { return !operator==(Another); }
+
+		inline int FromString(const std::basic_string<char>& Str) { return FromString(Str.c_str()); }
+		int FromString(const char* BufSource) 
+		{ 
+			char b[200]; b[0] = '\0';
+			int n = -1;
+			sscanf(BufSource, "%199[0-9.]%n", b, &n);
+			if(n == -1) return -1;
+			if(!QUERY_URL::StringToAddr(BufSource, Addr, AF_INET)) return -1;
+			return n;
+		}
+
+		std::basic_string<char> ToString() const
 		{
 			char b[INET_ADDRSTRLEN + 2]; b[0] = '\0';
-			AddrToString(Addr, b, INET6_ADDRSTRLEN + 1,  AF_INET);
+			ToString(b, INET6_ADDRSTRLEN + 1);
 			return b;
 		}
-		bool ToString(char* Dest, size_t Len) { return AddrToString(Addr, Dest, Len,  AF_INET); }
+		char* ToString(char* Dest, size_t Len) const { return (AddrToString(Addr, Dest, Len,  AF_INET)? Dest: nullptr); }
 	};
 
 protected:
@@ -2171,8 +2225,6 @@ protected:
 			} Addresses;
 		};
 	};
-
-	virtual void EvntUninitFields(){}
 
 	virtual bool EvntBind(){ return true;}
 
@@ -3999,9 +4051,8 @@ public:
 		InitFields();
 	}
 
-	~__QUERY_URL()
+	virtual ~__QUERY_URL()
 	{
-		EvntUninitFields();
 		if(IsOpen)
 		{
 			ShutdownSendRecive();
@@ -4260,7 +4311,7 @@ lblTryAgain:
 			CloseHandle(Overlap.hEvent);
 		return Written;
 #else
-		ssize_t Written = write(RemoteIp.hSocket, Buf, SizeBuf);
+		size_t Written = write(RemoteIp.hSocket, Buf, SizeBuf);
 		if(Written == -1)
 			URL_SET_LAST_ERR;
 		return Written;
@@ -4313,7 +4364,7 @@ lblTryAgain:
 		if(Overlap.hEvent != NULL)
 			CloseHandle(Overlap.hEvent);
 #else
-		ssize_t Readed = read(RemoteIp.hSocket, Buf, SizeBuf);
+		size_t Readed = read(RemoteIp.hSocket, Buf, SizeBuf);
 		if(Readed == -1)
 			URL_SET_LAST_ERR;
 #endif
@@ -4493,8 +4544,6 @@ lblTryAgain:
 #undef socket
 
 int __QUERY_URL<true>::____f = ([] { winsock::GetWsa<true>(); return 0;})();
-
-
 typedef __QUERY_URL<true> QUERY_URL;
 
 #endif // QUERYURL_H_INCLUDED
