@@ -99,10 +99,7 @@ class ROW
 		}
 
 		template<typename _T>
-		inline void Copy(const _T (&Arr)[cj])
-		{
-			std::arr_copy_cast(v, Arr);
-		}
+		inline void Copy(const _T (&Arr)[cj]) { std::arr_copy_cast(v, Arr); }
 	};
 
 	//Version represent as interator
@@ -116,7 +113,7 @@ class ROW
 
 		inline void Init()
 		{
-			v = NULL;
+			v = nullptr;
 			_Count = 0;
 		}
 
@@ -128,26 +125,26 @@ class ROW
 		inline void Copy(const ROW<_T, 0> & Another)
 		{
 			matrix_check(Another._Fields._Count == _Count, "Count columns not equal.");
-			std::arr_copy_cast(v, Another._Fields.v, Another._Fields._Count);
+			std::arr_copy_cast(std::valueof(v), std::valueof(Another._Fields.v), Another._Fields._Count);
 		}
 
 		template<typename _T, unsigned _j>
 		inline void Copy(const ROW<_T, _j> & Another)
 		{
 			matrix_check(Another._Fields._Count == _Count, "Count columns not equal.");
-			std::arr_copy_cast(v, Another._Fields.v);
+			std::arr_copy_cast(std::valueof(v), Another._Fields.v);
 		}
 
 		template<typename _T>
 		inline void Copy(_T * Arr, unsigned count)
 		{
-			if(v == NULL)
+			if(v == nullptr)
 			{
 				v = Arr, _Count = count;
 				return;
 			}
 			matrix_check(count == _Count, "Count columns not equal.");
-			std::arr_copy_cast(v, Arr, count);
+			std::arr_copy_cast(std::valueof(v), std::valueof(Arr), count);
 		}
 
 		template<typename _T, unsigned _j>
@@ -169,20 +166,20 @@ class ROW
 
 		inline void Init()
 		{
-			v = NULL;
+			v = nullptr;
 			_Count = 0;
 		}
 
 		inline void Deinit()
 		{
-		   if(v != NULL)
+		   if(v != nullptr)
 			   free(v);
 		}
 
 		inline void Allocate(const unsigned Count)
 		{
 			T * NewVal = (T*)realloc(v, sizeof(T) * Count);
-			matrix_check(NewVal != NULL, "Not alloc memory for row.");
+			matrix_check(NewVal != nullptr, "Not alloc memory for row.");
 			_Count = Count;
 			v = NewVal;
 		}
@@ -191,28 +188,28 @@ class ROW
 		void Copy(const ROW<_T, 0> & Another)
 		{
 			Allocate(Another._Fields._Count);
-			std::arr_copy_cast(v, Another._Fields.v, Another._Fields._Count);
+			std::arr_copy_cast(std::valueof(v), std::valueof(Another._Fields.v), Another._Fields._Count);
 		}
 
 		template<typename _T, unsigned _j>
 		void Copy(const ROW<_T, _j> & Another)
 		{
 			Allocate(Another._Fields._Count);
-			std::arr_copy_cast(v, Another._Fields.v);
+			std::arr_copy_cast(std::valueof(v), Another._Fields.v);
 		}
 
 		template<typename _T>
 		inline void Copy(_T * Arr, unsigned count)
 		{
 			Allocate(count);
-			std::arr_copy_cast(v, Arr, count);
+			std::arr_copy_cast(std::valueof(v), std::valueof(Arr), count);
 		}
 
 		template<typename _T, unsigned _j>
 		void Copy(const _T (&Arr)[_j])
 		{
 			Allocate(_j);
-			std::arr_copy_cast(v, Arr);
+			std::arr_copy_cast(std::valueof(v), Arr);
 		}
 	};
 
@@ -229,8 +226,6 @@ class ROW
 	>::type TFIELDS;
 
 #define	__ROW_FIELDS TFIELDS _Fields;
-
-
 
 	class _REMOVE_ELEMENT
 	{
@@ -662,11 +657,8 @@ private:
 		T * v;
 
 		typedef ROW<T, unsigned(-1)> TROW;
-
 		inline MATRIX & GetM() const { return *(MATRIX*)this; }
-
 		inline TROW GetRow(T * pRow) { return TROW(pRow, nj); }
-
 		inline T & at(unsigned i = 0, unsigned j = 0) const
 		{
 #ifdef _MATRIX_CHECK_INDEXES
@@ -689,38 +681,32 @@ private:
 		inline void Copy(const MATRIX<_T, 0, 0> & Another)
 		{
 			Allocate(Another._Fields.ni, Another._Fields.nj);
-			std::arr_copy_cast(v, Another._Fields.v, Another._Fields.ni * Another._Fields.nj);
+			std::arr_copy_cast(std::valueof(v), std::valueof(Another._Fields.v), Another._Fields.ni * Another._Fields.nj);
 		}
 
 		template<typename _T, unsigned _i, unsigned _j>
 		inline void Copy(const MATRIX<_T, _i, _j> & Another)
 		{
 			Allocate(Another._Fields.ni, Another._Fields.nj);
-			std::arr_copy_cast(v, Another._Fields.v);
+			std::arr_copy_cast(std::valueof(v), Another._Fields.v);
 		}
 
 		template <class _T, unsigned _i, unsigned _j> 
 		inline void Copy(const _T (&Arr)[_i][_j])
 		{
 			Allocate(_i, _j);
-			std::arr_copy_cast(v, Arr);
+			std::arr_copy_cast(std::valueof(v), Arr);
 		}
 
 		inline unsigned SetCountColumn(const unsigned Val) { return nj = Val; }
-
 		inline unsigned SetCountRow(const unsigned Val) { return ni = Val; }
-
 		inline void Init()
 		{
-			v = NULL;
+			v = nullptr;
 			nj = ni = 0;
 		}
 
-		inline void Deinit()
-		{
-			if(v != NULL)
-				free(v);
-		}
+		inline void Deinit() { if(v != nullptr) free(v); }
 	};
 
 	typedef typename std::conditional

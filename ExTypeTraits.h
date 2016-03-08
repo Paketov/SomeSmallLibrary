@@ -301,22 +301,16 @@ namespace std
 
 	template<typename DestType, typename>
 	struct move_pointers_ref_arr { typedef DestType type; };
-
 	template<typename DestType, typename SourceType>
 	struct move_pointers_ref_arr<DestType, SourceType&> { typedef typename move_pointers_ref_arr<DestType, SourceType>::type  &type; };
-
 	template<typename DestType, typename SourceType>
 	struct move_pointers_ref_arr<DestType, SourceType&&> { typedef typename move_pointers_ref_arr<DestType, SourceType>::type  &&type; };
-
 	template<typename DestType, typename SourceType>
 	struct move_pointers_ref_arr<DestType, SourceType*> { typedef typename move_pointers_ref_arr<DestType, SourceType>::type  *type; };
-
 	template<typename DestType, typename SourceType>
 	struct move_pointers_ref_arr<DestType, SourceType * const> { typedef typename move_pointers_ref_arr<DestType, SourceType>::type  * const type; };
-
 	template<typename DestType, typename SourceType>
 	struct move_pointers_ref_arr<DestType, SourceType const *> { typedef typename move_pointers_ref_arr<DestType, SourceType>::type  const * type; };
-
 	template<typename DestType, typename SourceType, size_t Len>
 	struct move_pointers_ref_arr<DestType, SourceType[Len]> { typedef typename move_pointers_ref_arr<DestType, SourceType>::type  type[Len]; };
 
@@ -423,7 +417,6 @@ namespace std
 	 std::valueof(w0)[0] = '0'; //w0[0] == '0'
 	 q0 equal 12.
 	*/
-
 	template <typename Type>
 	inline typename enable_if<!is_pointer<Type>::value, Type &>::type  
 	valueof(Type & Value);
@@ -454,23 +447,23 @@ namespace std
 	*/
 
 	template <typename Type>
-	typename arr_type<Type>::type & arr_valueof(Type & Pointer)
+	typename arr_type<Type>::type & arr_valueof(Type& Pointer)
 	{
 		typedef typename arr_type<Type>::type RET_TYPE;
 		return (RET_TYPE&)valueof(Pointer);
 	}
 		
 	/*
-	* arr_valueof_singd
+	* arr_val_to_single_dimension
 	* array value as single dimension
 	* represent pointer or val as single dimension array
-	* Example:
-	* int arr[2] = {1,2}, * arr1, (*arr3)[2];
-	* arr_valueof(arr1); //eq. int&[1] {1, 2}
-	* int ***** arr4 ;
-	* arr_valueof(arr4); //eq. int&[1] {1, 2}
-	* arr_valueof(arr); //eq.  int&[2] {1, 2}
-	* arr_valueof(arr3); //eq. int&[2] {1, 2}
+	* int[2][2] => int[4]
+	* double[2][4][3] => double[48]
+	* Example: 
+	* int k[2][4];
+	* auto r = arr_val_to_single_dimension(k);
+	* for(unsigned i = 0; i < std::countof(r); i++)
+	*	r[i] = 0;
 	*/
 	template <typename Type>
 	typename arr_to_single_dimension<
@@ -478,11 +471,11 @@ namespace std
 			typename arr_type<Type>::type
 		>::type
 	>::type & 
-	arr_valueof_singd(Type & Pointer)
+	arr_val_to_single_dimension(Type& Array)
 	{
 		typedef typename arr_to_single_dimension<
 		typename remove_pointer<typename arr_type<Type>::type>::type>::type  RET_TYPE;
-		return (RET_TYPE&)valueof(Pointer);
+		return (RET_TYPE&)Array;
 	}
 
 	/*
@@ -497,38 +490,30 @@ namespace std
 	template<typename DestType, typename SourceType>
 	inline typename enable_if
 	<
-		 (sizeof_value<DestType>::value == sizeof_value<SourceType>::value) &&
+		 (sizeof(DestType) == sizeof(SourceType)) &&
 		 (!is_scalar<SourceType>::value || !is_scalar<DestType>::value) &&
 		 !is_const<DestType>::value
 	>::type 
 	val_copy(DestType & Dest, SourceType & Source)
 	{
-		struct COP_STRUCT{char __val[sizeof(DestType)];};
-		(COP_STRUCT&)valueof(Dest) = (COP_STRUCT&)valueof(Source);
+		struct COP_STRUCT {char __val[sizeof(DestType)];};
+		(COP_STRUCT&)Dest = (COP_STRUCT&)Source;
 	}
 
 	template<typename DestType, typename SourceType>
-	inline void val_copy(DestType & Dest, SourceType & Source, size_t LenCopy) { memcpy(&valueof(Dest), &valueof(Source), LenCopy); }
+	inline void val_copy(DestType & Dest, SourceType & Source, size_t LenCopy) { memcpy(&Dest, &Source, LenCopy); }
 
 	template<typename DestType, typename SourceType>
 	inline typename enable_if
 	<
-		 (sizeof_value<DestType>::value != sizeof_value<SourceType>::value) &&
+		 (sizeof(DestType) != sizeof(SourceType)) &&
 		 (!is_scalar<SourceType>::value || !is_scalar<DestType>::value) &&
 		 !is_const<DestType>::value
 	>::type 
 	val_copy(DestType & Dest, SourceType & Source)
 	{
-		struct COP_STRUCT
-		{
-			char __val
-			[
-				((sizeof_value<DestType>::value > sizeof_value<SourceType>::value)?
-				sizeof_value<DestType>::value:
-				sizeof_value<SourceType>::value)
-			];
-		};
-		(COP_STRUCT&)valueof(Dest) = (COP_STRUCT&)valueof(Source);
+		struct COP_STRUCT { char __val [(sizeof(DestType) < sizeof(SourceType))? sizeof(SourceType): sizeof(DestType)];};
+		(COP_STRUCT&)Dest = (COP_STRUCT&)Source;
 	}
 
 	template<typename DestType, typename SourceType>
@@ -538,29 +523,19 @@ namespace std
 		 is_scalar<DestType>::value &&
 		 !is_const<DestType>::value
 	>::type
-	val_copy(DestType & Dest, SourceType & Source)
-	{
-		typedef typename remove_modifiers<DestType, rem_mod::POI_POICONST_VOLA_REF_RVREF>::type DEST_TYPE;
-		valueof(Dest) = DEST_TYPE(valueof(Source));
-	}
+	val_copy(DestType & Dest, SourceType & Source) { Dest = Source; }
 
 	template<size_t CountBytes>
 	inline void zero_memory(void* Region)
 	{
-		const unsigned char __zeroval[CountBytes] = {0};
 		struct __copy_struct{ unsigned char __zeroval[CountBytes]; };
-		*(__copy_struct*)Region = *(__copy_struct*)__zeroval;
+		const __copy_struct __zeroval = {0};
+		*(__copy_struct*)Region = __zeroval;
 	}
 
 	template<typename DestType>
 	inline typename enable_if
-		<
-		!is_const<DestType>::value
-		>::type
-		zero_val(DestType & DestVal)
-	{
-		zero_memory<sizeof(DestType)>(&DestVal);
-	}
+	<!is_const<DestType>::value>::type zero_val(DestType & DestVal) { zero_memory<sizeof(DestType)>(&DestVal); }
 
 	/*
 	*arr_copy_cast
@@ -574,21 +549,7 @@ namespace std
 			typename remove_const<typename arr_value_element<SourceType>::type>::type
 		 >::value
 	>::type 
-	arr_copy_cast(DestType & Dest, SourceType & Source)
-	{
-		typedef typename remove_reference<decltype(arr_valueof_singd(Source))>::type SRC_TYPE;
-		typedef typename remove_reference<decltype(arr_valueof_singd(Dest))>::type DST_TYPE;
-
-		static const size_t DestSize = (is_pointer<typename arr_type<DestType>::type>::value)?
-		sizeof_value<SRC_TYPE>::value:
-		sizeof_value<DST_TYPE>::value;
-
-		static const size_t SourceSize = (is_pointer<typename arr_type<SourceType>::type>::value)?
-		sizeof_value<DST_TYPE>::value:
-		sizeof_value<SRC_TYPE>::value;
-		struct COP_STRUCT{char __val[((DestSize < SourceSize)?DestSize:SourceSize)];};
-		(COP_STRUCT&)arr_valueof_singd(Dest) = (COP_STRUCT&)arr_valueof_singd(Source);
-	}
+	arr_copy_cast(DestType & Dest, SourceType & Source) { val_copy(Dest, Source); }
 
 	template<typename DestType, typename SourceType>
 	inline typename enable_if
@@ -606,23 +567,9 @@ namespace std
 	>::type 
 	arr_copy_cast(DestType & Dest, SourceType & Source)
 	{
-		typedef typename remove_reference<decltype(arr_valueof_singd(Source))>::type SRC_TYPE;
-		typedef typename remove_reference<decltype(arr_valueof_singd(Dest))>::type DST_TYPE;
-
-		static const size_t DestSize = 
-		(is_pointer<typename arr_type<DestType>::type>::value)?
-		arr_count<SRC_TYPE>::value:
-		arr_count<DST_TYPE>::value;
-
-		static const size_t SourceSize = 
-		(is_pointer<typename arr_type<SourceType>::type>::value)?
-		arr_count<DST_TYPE>::value:
-		arr_count<SRC_TYPE>::value;
-
-		decltype(arr_valueof_singd(Source)) rSource = arr_valueof_singd(Source);
-		decltype(arr_valueof_singd(Dest)) rDest = arr_valueof_singd(Dest);
-
-		for(size_t i = 0, m = min(DestSize, SourceSize); i < m; i++)
+		auto& rSource = arr_val_to_single_dimension(Source);
+		auto& rDest = arr_val_to_single_dimension(Dest);
+		for(size_t i = 0, m = min(countof(rDest), countof(rSource)); i < m; i++)
 			val_copy(rDest[i], rSource[i]);
 	}
 
@@ -635,45 +582,46 @@ namespace std
 			typename remove_const<typename arr_value_element<SourceType>::type>::type
 		 >::value 
 	>::type 
-	arr_copy_cast(DestType & Dest, SourceType & Source, size_t Count)
-	{
-		typedef typename remove_reference<decltype(arr_valueof_singd(Dest))>::type DST_TYPE;
-		val_copy(Dest, Source, Count * sizeof(DST_TYPE));
-	}
+	arr_copy_cast(DestType & Dest, SourceType & Source, size_t Count) { val_copy(Dest, Source, Count * sizeof(Dest[0])); }
 
 	template<typename DestType, typename SourceType>
 	inline typename enable_if
 	<
-		 !is_equal
-		 <
+		 !is_equal<
 			typename arr_value_element<DestType>::type,
 			typename remove_const<typename arr_value_element<SourceType>::type>::type
 		 >::value &&
-		 is_convertible
-		 <
+		 is_convertible<
 			typename arr_value_element<DestType>::type,
 			typename arr_value_element<SourceType>::type
 		 >::value
 	>::type 
 	arr_copy_cast(DestType & Dest, SourceType & Source, size_t Count)
 	{
-		typedef typename remove_reference<decltype(arr_valueof_singd(Source))>::type SRC_TYPE;
-		typedef typename remove_reference<decltype(arr_valueof_singd(Dest))>::type DST_TYPE;
-
-		static const size_t DestSize = 
-		(is_pointer<typename arr_type<DestType>::type>::value)?
-		arr_count<SRC_TYPE>::value:
-		arr_count<DST_TYPE>::value;
-
-		static const size_t SourceSize = 
-		(is_pointer<typename arr_type<SourceType>::type>::value)?
-		arr_count<DST_TYPE>::value:
-		arr_count<SRC_TYPE>::value;
-
-		SRC_TYPE & rSource = (SRC_TYPE&)arr_valueof_singd(Source);
-		DST_TYPE & rDest = (DST_TYPE&)arr_valueof_singd(Dest);
+		auto& rSource = arr_val_to_single_dimension(Source);
+		auto& rDest = arr_val_to_single_dimension(Dest);
 		for(size_t i = 0, m = Count; i < m; i++)
 			val_copy(rDest[i], rSource[i]);
+	}
+
+	/*
+	*	inverse_bytes
+	*/
+	template<typename Type>
+	Type inverse_bytes(const Type& Val)
+	{
+		Type r;
+		const char* c = (const char*)&Val;
+		char* b = (char*)(&r + 1) - 1;
+		for(; b >= (char*)&r; b--, c++) *b = *c;
+		return r;
+	}
+
+	inline void inverse_bytes(void* Dest, const void* Sourse, size_t Len)
+	{
+		const char* c = (const char*)Sourse;
+		char* b = (char*)Dest + Len - 1;
+		for(; b >= (char*)Dest; b--, c++) *b = *c;
 	}
 
 	/*
@@ -690,10 +638,9 @@ namespace std
 	>::type 
 	arr_set_elements(DestType & Dest, SourceType & Val, size_t Count)
 	{
-		typedef typename remove_reference<decltype(arr_valueof_singd(Dest))>::type DST_TYPE;
-		DST_TYPE & rDest = (DST_TYPE&)arr_valueof_singd(Dest);
+		auto& rDest = arr_val_to_single_dimension(Dest);
 		for(size_t i = 0, m = Count; i < m; i++)
-			val_copy(rDest[i], Val);
+			rDest[i] = Val;
 	}
 
 	template<typename DestType, typename SourceType>
@@ -705,13 +652,7 @@ namespace std
 			typename remove_const<SourceType>::type
 		 >::value
 	>::type 
-	arr_set_elements(DestType & Dest, SourceType & Val)
-	{
-		typedef typename remove_reference<decltype(arr_valueof_singd(Dest))>::type DST_TYPE;
-		DST_TYPE & rDest = (DST_TYPE&)arr_valueof_singd(Dest);
-		for(size_t i = 0, m = countof(rDest); i < m; i++)
-			val_copy(rDest[i], Val);
-	}
+	arr_set_elements(DestType & Dest, SourceType & Val) { arr_set_elements(Dest, Val, countof(Dest)); }
 
 	/*
 	Get dynamic unique id for any type.
@@ -750,6 +691,9 @@ namespace std
 		template<typename RetVal>
 		inline operator RetVal&() const { struct s{}; return assoc_type<s, RetVal>::value; } 
 	};
+
+	template<typename RefType>
+	bool is_default_ref(RefType& ChekRef) { return &(RefType&)make_default_reference() == &ChekRef; }
 
 	struct on_scope_out_caller{
 		std::function<void()> Func;

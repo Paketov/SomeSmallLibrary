@@ -110,6 +110,9 @@ class SAFE_REGION
 public:
 	SAFE_REGION(): SafeRegionWaiter(1) {}
 
+	/*
+	For thread owner
+	*/
 	bool EnterSafeRegion()
 	{   
 		/*	
@@ -128,6 +131,35 @@ public:
 		return false;
 	}
 
+	bool EnterSafeRegionAndSwitchToWriteMode()
+	{   
+		TypeFlag v = 1;
+		if(!SafeRegionWaiter.compare_exchange_strong(v, 0))
+		{
+			SafeRegionWaiter |= TstBit;
+			for(v = (TstBit + 1); !SafeRegionWaiter.compare_exchange_strong(v, 0); v = (TstBit + 1))
+				std::this_thread::yield();
+			return true;
+		}
+		return false;
+	}
+
+	bool EnterSafeRegionAndSwitchToReadMode()
+	{   
+		TypeFlag v = 1;
+		if(!SafeRegionWaiter.compare_exchange_strong(v, 2))
+		{
+			SafeRegionWaiter |= TstBit;
+			for(v = (TstBit + 1); !SafeRegionWaiter.compare_exchange_strong(v, 2); v = (TstBit + 1))
+				std::this_thread::yield();
+			return true;
+		}
+		return false;
+	}
+	
+	/*
+	For thread clients
+	*/
 	inline bool TryOccupyRead()
 	{
 		TypeFlag v = SafeRegionWaiter; 
