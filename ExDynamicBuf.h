@@ -67,18 +67,8 @@ public:
 					Increase(NewSize);
 				return NewSize;
 			}
-			size_t operator++()
-			{
-				Increase(f.count + 1);
-				return f.count;
-			}
-			size_t operator--()
-			{
-				if(f.count <= 0)
-					return 0;
-				Decrease(f.count - 1);
-				return f.count;
-			}
+			inline size_t operator++() { return operator++(0); }
+			inline size_t operator--() { return operator--(0); }
 
 			size_t operator++(int)
 			{
@@ -139,27 +129,13 @@ public:
 		return Count.f.buf[Index];
 	}
 
-	inline void RemoveFromPosition(size_t Index)
-	{
-		memmove(Count.f.buf + Index, Count.f.buf + (Index + 1), Count - Index - 1);
-		Count--;
-	}
-
-	inline TypeElement& Append()
-	{
-		Count++;
-		return *(EndBuf - 1);
-	}
-
+	inline void RemoveFromPosition(size_t Index) { memmove(Count.f.buf + Index, Count.f.buf + (Index + 1), Count - Index - 1); Count--; }
+	inline TypeElement& Append() { Count++; return *(EndBuf - 1); }
 	inline void Pop() { Count--; }
+	inline void RemoveSubstituting(size_t Index) { Count.f.buf[Index] = *(EndBuf - 1); Count--; }
 
-	inline void RemoveSubstituting(size_t Index)
-	{
-		Count.f.buf[Index] = *(EndBuf - 1);
-		Count--;
-	}
-
-	int Search(TypeElement& Val)
+	template<typename CmpType>
+	int Search(CmpType&& Val) const
 	{
 		auto buf = Count.f.buf;
 		for(size_t i = 0, m = Count; i < m; i++)
@@ -181,7 +157,7 @@ public:
 
 	inline void SetZero() { memset(Count.f.buf, 0, sizeof(TypeElement) * Count.f.count); }
 
-	inline TypeElement& operator[](size_t Index) { return Count.f.buf[Index]; }
+	inline TypeElement& operator[](size_t Index) const { return Count.f.buf[Index]; }
 
 	inline DYNAMIC_BUF() { Count.f.alloc_count = Count.f.count = 0; Count.f.buf = nullptr; }
 
@@ -266,21 +242,12 @@ public:
 		Count--;
 	}
 
-	inline TypeElement& Append()
-	{
-		Count++;
-		return *(EndBuf - 1);
-	}
-
+	inline TypeElement& Append() { Count++; return *(EndBuf - 1); }
 	inline void Pop() { Count--; }
+	inline void RemoveSubstituting(size_t Index) { Count.f.buf[Index] = *(EndBuf - 1); Count--; }
 
-	inline void RemoveSubstituting(size_t Index)
-	{
-		Count.f.buf[Index] = *(EndBuf - 1);
-		Count--;
-	}
-
-	int Search(TypeElement& Val)
+	template<typename CmpType>
+	int Search(CmpType&& Val) const
 	{
 		auto buf = Count.f.buf;
 		for(size_t i = 0, m = Count; i < m; i++)
@@ -301,7 +268,7 @@ public:
 
 	inline void SetZero() { memset(Count.f.buf, 0, sizeof(TypeElement) * Count); }
 
-	inline TypeElement& operator[](size_t Index) { return Count.f.buf[Index]; }
+	inline TypeElement& operator[](size_t Index) const { return Count.f.buf[Index]; }
 
 	inline DYNAMIC_BUF_S() { Count.f.count = 0; Count.f.buf = nullptr; }
 
@@ -312,11 +279,7 @@ public:
 		Count = NewSize;
 	}
 
-	~DYNAMIC_BUF_S()
-	{
-		if(Count.f.buf != nullptr)
-			___free(Count.f.buf);
-	}
+	~DYNAMIC_BUF_S() { if(Count.f.buf != nullptr) ___free(Count.f.buf); }
 
 };
 
@@ -380,7 +343,6 @@ class __FAST_ALLOC
 		inline void SetMaxCount(size_t NewVal) { SizeList = NewVal; }
 	};
 
-
 	template<size_t Len> 
 	struct VAL_TYPE_: FIELDS<((Len < sizeof(void*))? sizeof(void*): Len)> {};	
 
@@ -393,27 +355,27 @@ public:
 		auto Elem = std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc();
 		return (Elem == nullptr)? nullptr: (new(Elem) Type());}
 	template<typename Type, typename A1>
-	inline static Type* New(A1 arg1){	
+	inline static Type* New(A1&& arg1){	
 		auto Elem = std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc();
 		return (Elem == nullptr)? nullptr: (new(Elem) Type(arg1));}
 	template<typename Type, typename A1, typename A2>
-	inline static Type* New(A1 arg1, A2 arg2){	
+	inline static Type* New(A1&& arg1, A2&& arg2){	
 		auto Elem = std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc();
 		return (Elem == nullptr)? nullptr: (new(Elem) Type(arg1, arg2));}
 	template<typename Type, typename A1, typename A2, typename A3>
-	inline static Type* New(A1 arg1, A2 arg2, A3 arg3){	
+	inline static Type* New(A1&& arg1, A2&& arg2, A3&& arg3){	
 		auto Elem = std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc();
 		return (Elem == nullptr)? nullptr: (new(Elem) Type(arg1, arg2, arg3));}
 	template<typename Type, typename A1, typename A2, typename A3, typename A4>
-	inline static Type* New(A1 arg1, A2 arg2, A3 arg3, A4 arg4){	
+	inline static Type* New(A1&& arg1, A2&& arg2, A3&& arg3, A4&& arg4){	
 		auto Elem = std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc();
 		return (Elem == nullptr)? nullptr: (new(Elem) Type(arg1, arg2, arg3, arg4)); }
 	template<typename Type, typename A1, typename A2, typename A3, typename A4, typename A5>
-	inline static Type* New(A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5){	
+	inline static Type* New(A1 arg1, A2&& arg2, A3&& arg3, A4&& arg4, A5&& arg5){	
 		auto Elem = std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc();
 		return (Elem == nullptr)? nullptr: (new(Elem) Type(arg1, arg2, arg3, arg4, arg5));}
 	template<typename Type, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6>
-	inline static Type* New(A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6){	
+	inline static Type* New(A1&& arg1, A2&& arg2, A3&& arg3, A4&& arg4, A5&& arg5, A6&& arg6){	
 		auto Elem = std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc();
 		return (Elem == nullptr)? nullptr: (new(Elem) Type(arg1, arg2, arg3, arg4, arg5, arg6));}
 

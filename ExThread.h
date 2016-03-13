@@ -1,5 +1,6 @@
 #ifndef __EXTHREAD_H_HAS_INCLUDED__
 #define __EXTHREAD_H_HAS_INCLUDED__
+
 #include <thread>
 
 
@@ -35,6 +36,7 @@ enum PRIORITY
 		HIGH = 69,
 		HIGHER = 75,
 		REALTIME = 81,
+		NONE
 };
 #endif
 #include "ExTypeTraits.h"
@@ -74,7 +76,6 @@ inline bool SetThreadAffinity(unsigned long long Mask, std::thread& Thread = std
 inline bool GetThreadAffinity(unsigned long long* Mask, std::thread& Thread = std::make_default_reference())
 {
 #ifdef _MSC_VER
-
 	GROUP_AFFINITY ga = {0};
 	if(GetThreadGroupAffinity((std::is_default_ref(Thread))? GetCurrentThread(): Thread.native_handle(), &ga) == FALSE)
 		return false;

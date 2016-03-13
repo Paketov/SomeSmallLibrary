@@ -3,12 +3,12 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdint.h>
-
+#include <string>
 /*
 	Convert string to tm structure.
 */
 
-inline int strtotm(const char* Str, tm* Result)
+inline int StrToTm(const char* Str, tm* Result)
 {
 	tm OutTm;
 	char DayOfWeekName[6] = {0}, MonthName[6] = {0};
@@ -52,16 +52,44 @@ inline int strtotm(const char* Str, tm* Result)
 }
 
 
-inline int strtotime(const char* Str, time_t* Result)
+inline int StrToTime(const char* Str, time_t* Result)
 {
 	tm Tm;
-	auto r = strtotm(Str, &Tm);
+	auto r = StrToTm(Str, &Tm);
 	if(r == -1) return -1;
 	*Result = mktime(&Tm);
 	return r;
 }
 
 
-inline unsigned long long time_millisec() { return time(nullptr) * 1000 + clock() % 1000; }
+inline std::basic_string<char> TimeSubToString(time_t t1, time_t t2)
+{
+	time_t r = t2 - t1;
+	int Years = r / (365 * 24 * 60 * 60);
+	r %= (365 * 24 * 60 * 60);
+	int Days = r / (24 * 60 * 60);
+	r %= (24 * 60 * 60);
+	int Hours = r / (60 * 60);
+	r %= (60 * 60);
+	int Minutes = r / 60;
+	r %= 60;
+	int Seconds = r;
+
+	bool k = false;
+	std::basic_string<char> str_r;
+	if(Years != 0) str_r = std::to_string(Years) + " years ", k = true;
+	if((Days != 0) || k) str_r += std::to_string(Days) + " days ", k = true;
+	char Buf[30];
+	sprintf_s(Buf, "%02i:%02i:%02i", Hours, Minutes, Seconds);
+	return str_r + Buf;
+}
+
+inline std::basic_string<char> TimeSubMilisecToString(long long t1, long long t2)
+{
+	auto& r = TimeSubToString(t1 / 1000, t2 / 1000);
+	char Buf[10];
+	sprintf_s(Buf, ":%03i", (int)((t2 - t1) % 1000));
+	return r + Buf;
+}
 
 #endif
