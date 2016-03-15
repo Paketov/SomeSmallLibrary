@@ -62,6 +62,15 @@ inline int StrToTime(const char* Str, time_t* Result)
 }
 
 
+inline std::basic_string<char> TimeToString(time_t t)
+{
+	char b[30]; b[0] = '\0';
+	ctime_s(b, sizeof(b), &t);
+	auto l = strlen(b);
+	if(l > 0) b[l - 1] = '\0';
+	return b;
+}
+
 inline std::basic_string<char> TimeSubToString(time_t t1, time_t t2)
 {
 	time_t r = t2 - t1;
@@ -84,12 +93,11 @@ inline std::basic_string<char> TimeSubToString(time_t t1, time_t t2)
 	return str_r + Buf;
 }
 
-inline std::basic_string<char> TimeSubMilisecToString(long long t1, long long t2)
+inline std::basic_string<char> TimeMilisecSubToString(long long t1, long long t2)
 {
-	auto& r = TimeSubToString(t1 / 1000, t2 / 1000);
 	char Buf[10];
 	sprintf_s(Buf, ":%03i", (int)((t2 - t1) % 1000));
-	return r + Buf;
+	return TimeSubToString(t1 / 1000, t2 / 1000) + Buf;
 }
 
 #endif
