@@ -3394,3 +3394,240 @@ lblErr2:
 #endif
 
 
+/*
+*
+*			end ExQueryUrlOpenSSL.h 
+*
+*/
+
+/*
+*
+*			start ExTime.h
+*
+*/
+
+#include "ExTime.h"
+#include <stdio.h>
+
+int StrToTm(const char* Str, tm* Result)
+{
+	tm OutTm;
+	char DayOfWeekName[6] = {0}, MonthName[6] = {0};
+	int n = -1;
+	if(sscanf
+			(
+				Str, 
+				"%4s %4s %2i %2i:%2i:%2i %i%n", 
+				DayOfWeekName, 
+				MonthName,
+				&OutTm.tm_mday,	 
+				&OutTm.tm_hour, 
+				&OutTm.tm_min, 
+				&OutTm.tm_sec, 
+				&OutTm.tm_year,
+				&n
+			) 
+	< 7) return -1;
+	OutTm.tm_mon = OutTm.tm_wday = -1;
+	OutTm.tm_year -= 1900;
+	static const char  *Week[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+	static const char  *Months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+	for(unsigned i = 0; i < (sizeof(Week) / sizeof(Week[0])); i++)
+		if(*(uint32_t*)DayOfWeekName == *(uint32_t*)(Week[i]))
+		{
+			OutTm.tm_wday = i;
+			break;
+		}
+	if(OutTm.tm_wday == -1) return -1;
+	for(unsigned i = 0; i < (sizeof(Months) / sizeof(Months[0])); i++)
+		if(*(uint32_t*)MonthName == *(uint32_t*)(Months[i]))
+		{
+			OutTm.tm_mon = i;
+			break;
+		}
+	if(OutTm.tm_mon == -1) return -1;
+	OutTm.tm_isdst = -1;
+	OutTm.tm_yday = -1;
+	*Result = OutTm;
+	return n;
+}
+
+
+int StrToTime(const char* Str, time_t* Result)
+{
+	tm Tm;
+	auto r = StrToTm(Str, &Tm);
+	if(r == -1) return -1;
+	*Result = mktime(&Tm);
+	return r;
+}
+
+
+std::basic_string<char> TimeToString(time_t t)
+{
+	char b[30]; b[0] = '\0';
+	ctime_s(b, sizeof(b), &t);
+	auto l = strlen(b);
+	if(l > 0) b[l - 1] = '\0';
+	return b;
+}
+
+std::basic_string<char> TimeSubToString(time_t t1, time_t t2)
+{
+	time_t r = t2 - t1;
+	int Years = r / (365 * 24 * 60 * 60);
+	r %= (365 * 24 * 60 * 60);
+	int Days = r / (24 * 60 * 60);
+	r %= (24 * 60 * 60);
+	int Hours = r / (60 * 60);
+	r %= (60 * 60);
+	int Minutes = r / 60;
+	r %= 60;
+	int Seconds = r;
+
+	bool k = false;
+	std::basic_string<char> str_r;
+	if(Years != 0) str_r = std::to_string(Years) + " years ", k = true;
+	if((Days != 0) || k) str_r += std::to_string(Days) + " days ", k = true;
+	char Buf[30];
+	sprintf_s(Buf, "%02i:%02i:%02i", Hours, Minutes, Seconds);
+	return str_r + Buf;
+}
+
+std::basic_string<char> TimeMilisecSubToString(long long t1, long long t2)
+{
+	char Buf[10];
+	sprintf_s(Buf, ":%03i", (int)((t2 - t1) % 1000));
+	return TimeSubToString(t1 / 1000, t2 / 1000) + Buf;
+}
+
+
+/*
+*
+*			end ExTime.h
+*
+*/
+
+/*
+*
+*			start ExThread.h
+*
+*/
+#include "ExThread.h"
+
+
+#ifdef WIN_PLATFORM
+#include <Windows.h>
+
+
+static int __GetRealPrior(PRIORITY p)
+{
+	switch (p)
+	{
+	case PRIORITY::IDLE: return THREAD_PRIORITY_IDLE;
+	case PRIORITY::LOWER: return THREAD_PRIORITY_LOWEST;
+	case PRIORITY::LOW: return THREAD_PRIORITY_BELOW_NORMAL;
+	case PRIORITY::NORMAL: return THREAD_PRIORITY_NORMAL;
+	case PRIORITY::HIGH: return THREAD_PRIORITY_ABOVE_NORMAL;
+	case PRIORITY::HIGHER: return THREAD_PRIORITY_HIGHEST;
+	case PRIORITY::REALTIME: return THREAD_PRIORITY_TIME_CRITICAL;
+	default: return THREAD_PRIORITY_NORMAL;
+	}
+}
+
+static PRIORITY __GetPrior(int Code)
+{
+	switch (Code)
+	{
+	case THREAD_PRIORITY_IDLE: return PRIORITY::IDLE;
+	case THREAD_PRIORITY_LOWEST: return PRIORITY::LOWER;
+	case THREAD_PRIORITY_BELOW_NORMAL: return PRIORITY::LOW;
+	case THREAD_PRIORITY_NORMAL: return PRIORITY::NORMAL;
+	case THREAD_PRIORITY_ABOVE_NORMAL: return PRIORITY::HIGH;
+	case THREAD_PRIORITY_HIGHEST: return PRIORITY::HIGHER;
+	case THREAD_PRIORITY_TIME_CRITICAL: return PRIORITY::REALTIME;
+	default: return PRIORITY::NONE;
+	}
+}
+
+#else
+#include <unistd.h> 
+#include <pthread.h> 
+#include <semaphore.h> 
+#include <sys/time.h> 
+
+static int __GetRealPrior(PRIORITY p)
+{
+	switch (p)
+	{
+	case PRIORITY::IDLE: return 45;
+	case PRIORITY::LOWER: return 51;
+	case PRIORITY::LOW: return 57;
+	case PRIORITY::NORMAL: return 63;
+	case PRIORITY::HIGH: return 69;
+	case PRIORITY::HIGHER: return 75;
+	case PRIORITY::REALTIME: return 81;
+	default: return 63;
+	}
+}
+
+static PRIORITY __GetPrior(int Code)
+{
+	switch (Code)
+	{
+	case 45: return PRIORITY::IDLE;
+	case 51: return PRIORITY::LOWER;
+	case 57: return PRIORITY::LOW;
+	case 63: return PRIORITY::NORMAL;
+	case 69: return PRIORITY::HIGH;
+	case 75: return PRIORITY::HIGHER;
+	case 81: return PRIORITY::REALTIME;
+	default: return PRIORITY::NONE;
+	}
+}
+
+#endif
+
+bool SetThreadPrior(PRIORITY priority, std::thread& Thread)
+{
+#ifdef _MSC_VER
+	return SetThreadPriority((std::is_default_ref(Thread))? GetCurrentThread(): Thread.native_handle(), __GetRealPrior(priority)) != FALSE;
+#else
+	sched_param schedparams;
+	schedparams.sched_priority = __GetRealPrior(priority);
+	return pthread_setschedparam((std::is_default_ref(Thread))? pthread_self(): Thread.native_handle(), SCHED_OTHER, &schedparams) == 0;
+#endif
+}
+
+PRIORITY GetThreadPrior(std::thread& Thread)
+{
+#ifdef _MSC_VER
+	return __GetPrior(GetThreadPriority((std::is_default_ref(Thread))? GetCurrentThread(): Thread.native_handle()));
+#else
+	sched_param schedparams;
+	pthread_getschedparam((std::is_default_ref(Thread))? pthread_self(): Thread.native_handle(), std::make_default_pointer(), &schedparams);
+	return __GetPrior(schedparams.sched_priority);
+#endif
+}
+
+bool SetThreadAffinity(unsigned long long Mask, std::thread& Thread)
+{
+#ifdef _MSC_VER
+	return SetThreadAffinityMask((std::is_default_ref(Thread))? GetCurrentThread(): Thread.native_handle(), Mask) != 0;
+#else
+	return pthread_setaffinity_np((std::is_default_ref(Thread))? pthread_self(): Thread.native_handle(), sizeof(Mask), (const cpu_set_t*)&Mask) == 0;
+#endif
+}
+
+bool GetThreadAffinity(unsigned long long* Mask, std::thread& Thread)
+{
+#ifdef _MSC_VER
+	GROUP_AFFINITY ga = {0};
+	if(GetThreadGroupAffinity((std::is_default_ref(Thread))? GetCurrentThread(): Thread.native_handle(), &ga) == FALSE)
+		return false;
+	*Mask = ga.Mask;
+	return true;
+#else
+	return pthread_getaffinity_np((std::is_default_ref(Thread))? pthread_self(): Thread.native_handle(), LenMaskBytes, (const cpu_set_t*)Mask) == 0;
+#endif
+}
