@@ -3590,7 +3590,7 @@ static PRIORITY __GetPrior(int Code)
 
 bool SetThreadPrior(PRIORITY priority, std::thread& Thread)
 {
-#ifdef _MSC_VER
+#ifdef WIN_PLATFORM
 	return SetThreadPriority((std::is_default_ref(Thread))? GetCurrentThread(): Thread.native_handle(), __GetRealPrior(priority)) != FALSE;
 #else
 	sched_param schedparams;
@@ -3601,7 +3601,7 @@ bool SetThreadPrior(PRIORITY priority, std::thread& Thread)
 
 PRIORITY GetThreadPrior(std::thread& Thread)
 {
-#ifdef _MSC_VER
+#ifdef WIN_PLATFORM
 	return __GetPrior(GetThreadPriority((std::is_default_ref(Thread))? GetCurrentThread(): Thread.native_handle()));
 #else
 	sched_param schedparams;
@@ -3612,7 +3612,7 @@ PRIORITY GetThreadPrior(std::thread& Thread)
 
 bool SetThreadAffinity(unsigned long long Mask, std::thread& Thread)
 {
-#ifdef _MSC_VER
+#ifdef WIN_PLATFORM
 	return SetThreadAffinityMask((std::is_default_ref(Thread))? GetCurrentThread(): Thread.native_handle(), Mask) != 0;
 #else
 	return pthread_setaffinity_np((std::is_default_ref(Thread))? pthread_self(): Thread.native_handle(), sizeof(Mask), (const cpu_set_t*)&Mask) == 0;
@@ -3621,7 +3621,7 @@ bool SetThreadAffinity(unsigned long long Mask, std::thread& Thread)
 
 bool GetThreadAffinity(unsigned long long* Mask, std::thread& Thread)
 {
-#ifdef _MSC_VER
+#ifdef WIN_PLATFORM
 	GROUP_AFFINITY ga = {0};
 	if(GetThreadGroupAffinity((std::is_default_ref(Thread))? GetCurrentThread(): Thread.native_handle(), &ga) == FALSE)
 		return false;
@@ -3631,3 +3631,45 @@ bool GetThreadAffinity(unsigned long long* Mask, std::thread& Thread)
 	return pthread_getaffinity_np((std::is_default_ref(Thread))? pthread_self(): Thread.native_handle(), LenMaskBytes, (const cpu_set_t*)Mask) == 0;
 #endif
 }
+
+/*
+*
+*			start ExLoadLibrary.h
+*
+*/
+#include "ExLoadLibrary.h"
+
+
+#ifdef WIN_PLATFORM
+EXTERNAL_LIBRARY::EXTERNAL_LIBRARY(const char* Path) { Handle = (HANDLE_TYPE)LoadLibraryA(Path); }
+EXTERNAL_LIBRARY::EXTERNAL_LIBRARY() { Handle = (HANDLE_TYPE)GetModuleHandleA(NULL); }
+EXTERNAL_LIBRARY::PROC EXTERNAL_LIBRARY::GetProc(const char* NameProc) const { return GetProcAddress((HMODULE)Handle, NameProc); }
+bool EXTERNAL_LIBRARY::Free()
+{
+	if(FreeLibrary((HMODULE)Handle) == TRUE)
+	{
+		Handle = NULL;
+		return true;
+	}
+	return false;
+}
+
+EXTERNAL_LIBRARY::operator bool() const { return Handle != NULL; }
+
+#else
+#include <dlfcn.h>
+EXTERNAL_LIBRARY::EXTERNAL_LIBRARY(const char* Path) { Handle = (HANDLE_TYPE)dlopen((char*)Path, RTLD_LAZY); }
+EXTERNAL_LIBRARY::EXTERNAL_LIBRARY() { Handle = (HANDLE_TYPE)dlopen(NULL, RTLD_LAZY); }
+EXTERNAL_LIBRARY::PROC EXTERNAL_LIBRARY::GetProc(const char* NameProc) const { return dlsym((void*)Handle, NameProc); }
+bool EXTERNAL_LIBRARY::Free()
+{
+	if(dlclose((void*)Handle) == 0)
+	{
+		Handle = NULL;
+		return true;
+	}
+	return false;
+}
+EXTERNAL_LIBRARY::operator bool() const { return Handle != NULL; }
+
+#endif
