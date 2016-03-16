@@ -13,7 +13,6 @@
 
 #include "ExDynamicBuf.h"
 #include "ExHashTable.h"
-#include <limits>
 #include <atomic>
 #include <errno.h>
 
@@ -282,7 +281,6 @@ public:
 				inline operator int() const { return Addr.sa_family; }
 				inline int operator =(int Fam) { return Addr.sa_family = Fam; }
 			} ProtocolFamily;
-
 			class
 			{
 				friend SOCKET_ADDR;

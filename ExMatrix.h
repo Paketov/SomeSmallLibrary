@@ -405,100 +405,94 @@ public:
 	/////////////
 
 	template<class TypeChar>
-	STR_STAT FromText(const TypeChar * Str, size_t Len = 0xfffff)
+	int FromText(const TypeChar * Str, size_t Len = 0xfffff)
 	{
-		size_t CountReaded = 0;
+		int CountReaded = 0;
 		for(unsigned i = 0; i <  _Fields._Count; i++)
 		{		
-			bool r;
-			CountReaded += StringDoubleToNumber(_Fields.v + i, Str + CountReaded, NOT_LESS_Z(Len - CountReaded))(r);
-			if(!r) return CountReaded;
+			int r = StringDoubleToNumber(_Fields.v + i, Str + CountReaded, NOT_LESS_Z(Len - CountReaded));
+			if(r < 0) return CountReaded - r;
+			CountReaded += r;
 		}
-		return STR_STAT(CountReaded, true);
+		return CountReaded;
 	}
 
 	template<class TypeChar>
-	STR_STAT FromText(std::basic_istream<TypeChar> & Stream)
+	int FromText(std::basic_istream<TypeChar> & Stream)
 	{
-		size_t CountReaded = 0;
+		int CountReaded = 0;
 		for(unsigned i = 0;i <  _Fields._Count;i++)
 		{
-			bool r;
-			CountReaded += StreamDoubleToNumber(_Fields.v + i, Stream)(r);
-			if(!r)
-				return CountReaded;
+			int r = StreamDoubleToNumber(_Fields.v + i, Stream);
+			if(r < 0) return CountReaded - r;
+			CountReaded += r;
 		}
-		return STR_STAT(CountReaded, true);
+		return CountReaded;
 	}
 
-	STR_STAT FromText(FILE * Stream = stdin)
+	int FromText(FILE * Stream = stdin)
 	{
-		size_t CountReaded = 0;
+		int CountReaded = 0;
 		for(unsigned i = 0;i <  _Fields._Count;i++)
 		{
-			bool r;
-			CountReaded += StreamDoubleToNumber(_Fields.v + i, Stream)(r);
-			if(!r)
-				return CountReaded;
+			int r = StreamDoubleToNumber(_Fields.v + i, Stream);
+			if(r < 0) return CountReaded - r;
+			CountReaded += r;
 		}
-		return STR_STAT(CountReaded, true);
+		return CountReaded;
 	}
 
 	/////////////
 
 	template<class TypeChar>
-	STR_STAT ToText(TypeChar * Str, size_t Len = 0xfffff)
+	int ToText(TypeChar * Str, size_t Len = 0xfffff)
 	{
-		size_t CountWrited = 0;
+		int CountWrited = 0;
 		for(unsigned i = 0;i <  _Fields._Count;i++)
 		{
 			if((i > 0) && (CountWrited < Len))
 				Str[CountWrited++] = CHAR_TYPE(TypeChar, ' ');
-			bool r;
-			CountWrited += NumberToString(_Fields.v[i], Str + CountWrited, NOT_LESS_Z(Len - CountWrited))(r);
-			if(!r)
-				return CountWrited;
+			int r = NumberToString(_Fields.v[i], Str + CountWrited, NOT_LESS_Z(Len - CountWrited));
+			if(r < 0) return CountWrited - r;
+			CountWrited += r;
+			
 		}
-		return STR_STAT(CountWrited, true);
+		return CountWrited;
 	}
 
 	template<class TypeChar>
-	STR_STAT ToText(std::basic_ostream<TypeChar> & Stream)
+	int ToText(std::basic_ostream<TypeChar> & Stream)
 	{
-		size_t CountWrited = 0;
+		int CountWrited = 0;
 		for(unsigned i = 0;i <  _Fields._Count;i++)
 		{
 			if(i > 0)
 			{
-				if(!__stream_io::PutChar(Stream, CHAR_TYPE(TypeChar, ' ')))
-					return CountWrited;
+				if(Stream.put(CHAR_TYPE(TypeChar, ' ')).fail()) return CountWrited;
 				CountWrited++;
 			}
-			bool r;
-			CountWrited += NumberToStream(_Fields.v[i], Stream)(r);
-			if(!r)
-				return CountWrited;
+			int r = NumberToStream(_Fields.v[i], Stream);
+			if(r < 0) return CountWrited - r;
+			CountWrited += r;
 		}
-		return STR_STAT(CountWrited, true);
+		return CountWrited;
 	}
 
-	STR_STAT ToText(FILE * Stream = stdout)
+	int ToText(FILE * Stream = stdout)
 	{
-		size_t CountWrited = 0;
+		int CountWrited = 0;
 		for(unsigned i = 0;i <  _Fields._Count;i++)
 		{
 			if(i > 0)
 			{
-				if(!__stream_io::PutChar(Stream, ' '))
-					return CountWrited;
+				if(Stream.put(' ').fail()) return CountWrited;
 				CountWrited++;
 			}
-			bool r;
-			CountWrited += NumberToStream(_Fields.v[i], Stream)(r);
-			if(!r)
-				return CountWrited;
+			int r = NumberToStream(_Fields.v[i], Stream);
+			if(r < 0) return CountWrited - r;
+			CountWrited += r;
 		}
-		return STR_STAT(CountWrited, true);
+		return CountWrited;
 	}
 
 	/////////////
@@ -1733,170 +1727,155 @@ public:
 	}
 
 	template<class TypeChar>
-	STR_STAT ReadSize(const TypeChar * Str, size_t Len = 0xfffff)
+	int ReadSize(const TypeChar * Str, size_t Len = 0xfffff)
 	{
-
-		size_t CountReaded = 0;
+		int CountReaded = 0;
 		MATRIX & This = *this;
 		unsigned i, j;
-		if(!StringToNumber(&i, Str, Len)(CountReaded))
+		if((CountReaded = StringToNumber(&i, Str, Len)) < 0)
 			return CountReaded;
-		bool r;
-		CountReaded += StringToNumber(&j, Str + CountReaded, NOT_LESS_Z(Len - CountReaded))(r);
-		if(!r)
-			return CountReaded;
+		int r = StringToNumber(&j, Str + CountReaded, NOT_LESS_Z(Len - CountReaded));
+		if(r < 0) return CountReaded - r;
+		CountReaded += r;
 		Resize(i, j);
-		return STR_STAT(CountReaded, true);
+		return CountReaded;
 	}
 
 	template<class TypeChar>
-	STR_STAT ReadSize(std::basic_istream<TypeChar> & Stream)
+	int ReadSize(std::basic_istream<TypeChar> & Stream)
 	{
-		size_t CountReaded = 0;
+		int CountReaded = 0;
 		MATRIX & This = *this;
 		unsigned i, j;
-		if(!StreamToNumber(&i, Stream)(CountReaded))
-			return CountReaded;
-		bool r;
-		CountReaded += StreamToNumber(&j, Stream)(r);
-		if(!r)
-			return CountReaded;
+		if((CountReaded = StreamToNumber(&i, Stream)) < 0) return CountReaded;
+		int r = StreamToNumber(&j, Stream);	
+		if(r < 0) return CountReaded - r;
+		CountReaded += r;
 		Resize(i, j);
-		return STR_STAT(CountReaded, true);
+		return CountReaded;
 	}
 	
-	STR_STAT ReadSize(FILE * Stream = stdin)
+	int ReadSize(FILE * Stream = stdin)
 	{
-		size_t CountReaded = 0;
+		int CountReaded = 0;
 		MATRIX & This = *this;
 		unsigned i, j;
-		if(!StreamToNumber(&i, Stream)(CountReaded))
-			return CountReaded;
-		bool r;
-		CountReaded += StreamToNumber(&j, Stream)(r);
-		if(!r)
-			return CountReaded;
+		if((CountReaded = StreamToNumber(&i, Stream)) < 0) return CountReaded;
+		int r = StreamToNumber(&j, Stream);
+		if(r < 0) return CountReaded - r;
+		CountReaded += r;
 		Resize(i, j);
-		return STR_STAT(CountReaded, true);
+		return CountReaded;
 	}
 
 	template<class TypeChar>
-	STR_STAT FromText(const TypeChar * Str, size_t Len = 0xfffff, bool IsReadSize = false)
+	int FromText(const TypeChar * Str, size_t Len = 0xfffff, bool IsReadSize = false)
 	{
-		size_t CountReaded = 0;
+		int CountReaded = 0;
 		MATRIX & This = *this;
 		if(IsReadSize)
 		{
-			if(!ReadSize(Str, Len)(CountReaded))
-				return CountReaded;
+			if((CountReaded = ReadSize(Str, Len)) < 0) return CountReaded;
 		}
 		for(unsigned i = 0;i <  _Fields.ni;i++)
 		{
-			bool r;
-			CountReaded += This[i].FromText(Str + CountReaded, NOT_LESS_Z(Len -  CountReaded))(r);
-			if(!r)
-				return STR_STAT(CountReaded, false);
+			int r = This[i].FromText(Str + CountReaded, NOT_LESS_Z(Len -  CountReaded));
+			if(r < 0) return CountReaded - r;
+			CountReaded += r;
 		}
-		return STR_STAT(CountReaded, true);
+		return CountReaded;
 	}
 
 	template<class TypeChar>
-	STR_STAT FromText(std::basic_istream<TypeChar> & Stream, bool IsReadSize = false)
+	int FromText(std::basic_istream<TypeChar> & Stream, bool IsReadSize = false)
 	{
-		size_t CountReaded = 0;
+		int CountReaded = 0;
 		MATRIX & This = *this;
 		if(IsReadSize)
 		{
-			if(!ReadSize(Stream)(CountReaded))
-				return CountReaded;
+			if((CountReaded = ReadSize(Stream)) < 0) return CountReaded;
 		}
 		for(unsigned i = 0; i <  _Fields.ni; i++)
 		{
-			bool r;
-			CountReaded += This[i].FromText(Stream)(r);
-			if(!r)
-				return STR_STAT(CountReaded, false);
+			int r = This[i].FromText(Stream);
+			if(r < 0) return CountReaded - r;
+			CountReaded += r;
 		}
-		return STR_STAT(CountReaded, true);
+		return CountReaded;
 	}
 
-	STR_STAT FromText(FILE * Stream = stdin, bool IsReadSize = false)
+	int FromText(FILE * Stream = stdin, bool IsReadSize = false)
 	{
-		size_t CountReaded = 0;
+		int CountReaded = 0;
 		MATRIX & This = *this;
 		if(IsReadSize)
 		{
-			if(!ReadSize(Stream)(CountReaded))
+			if((CountReaded = ReadSize(Stream)) < 0)
 				return CountReaded;
 		}
 		for(unsigned i = 0; i <  _Fields.ni; i++)
 		{
-			bool r;
-			CountReaded += This[i].FromText(Stream)(r);
-			if(!r)
-				return STR_STAT(CountReaded, false);
+			int r = This[i].FromText(Stream);
+			if(r < 0) return CountReaded - r;
+			CountReaded += r;
 		}
-		return STR_STAT(CountReaded, true);
+		return CountReaded;
 	}
 
 	/////////////
 
 	template<class TypeChar>
-	STR_STAT ToText(TypeChar * Str, size_t Len = 0xfffff, bool IsWriteSize = false)
+	int ToText(TypeChar * Str, size_t Len = 0xfffff, bool IsWriteSize = false)
 	{
-		size_t CountWrited = 0;
+		int CountWrited = 0;
 		MATRIX & This = *this;
 		for(unsigned i = 0;i <  _Fields.ni;i++)
 		{			
 			if((i > 0) && (CountWrited < Len))
 				Str[CountWrited++] = CHAR_TYPE(TypeChar, '\n');
-			bool r;
-			CountWrited += This[i].ToText(Str + CountWrited, NOT_LESS_Z(Len - CountWrited))(r);
-			if(!r)
-				return CountWrited;
+			int r = This[i].ToText(Str + CountWrited, NOT_LESS_Z(Len - CountWrited));
+			if(r < 0) return CountWrited - r;
+			CountWrited += r;
 		}
-		return STR_STAT(CountWrited, true);
+		return CountWrited;
 	}
 
 	template<class TypeChar>
-	STR_STAT ToText(std::basic_ostream<TypeChar> & Stream)
+	int ToText(std::basic_ostream<TypeChar>& Stream)
 	{
-		size_t CountWrited = 0;
+		int CountWrited = 0;
 		MATRIX & This = *this;
 		for(unsigned i = 0;i <  _Fields.ni;i++)
 		{
 			if(i > 0)
 			{
-				if(!__stream_io::PutChar(Stream, CHAR_TYPE(TypeChar, '\n')))
-					return CountWrited;
+				if(Stream.put(CHAR_TYPE(TypeChar, '\n')).fail()) return CountWrited;
 				CountWrited++;
 			}
-			bool r;
-			CountWrited += This[i].ToText(Stream)(r);
-			if(!r)
-				return CountWrited;
+			int r = This[i].ToText(Stream);	
+			if(r < 0) return CountWrited - r;
+			CountWrited += r;
 		}
-		return STR_STAT(CountWrited, true);
+		return CountWrited;
 	}
 
-	STR_STAT ToText(FILE * Stream = stdout)
+	int ToText(FILE * Stream = stdout)
 	{
-		size_t CountWrited = 0;
+		int CountWrited = 0;
 		MATRIX & This = *this;
 		for(unsigned i = 0;i <  _Fields.ni;i++)
 		{
 			if(i > 0)
 			{
-				if(!__stream_io::PutChar(Stream, '\n'))
+				if(Stream.put('\n').fail())
 					return CountWrited;
 				CountWrited++;
 			}
-			bool r;
-			CountWrited += This[i].ToText(Stream)(r);
-			if(!r)
-				return CountWrited;
+			int r = This[i].ToText(Stream);	
+			if(r < 0) return CountWrited - r;
+			CountWrited += r;
 		}
-		return STR_STAT(CountWrited, true);
+		return CountWrited;
 	}
 
 	inline typename TFIELDS::TROW operator[](const unsigned Index)

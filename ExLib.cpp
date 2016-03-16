@@ -84,6 +84,8 @@ struct __stream_io: public __stream_io__base
 	static inline void UnGetChar(FILE* s, char v) { ungetc(v, s);}
 	static inline bool PutChar(FILE* s, char v) { return fputc(v, s) != EOF;}
 	static inline bool PutChar(FILE* s, wchar_t v) { return fputwc(v, s) != WEOF;}
+	template<typename TypeChar>
+	static inline bool PutChar(std::basic_ostream<TypeChar> & s, TypeChar c) { return !s.put(c).fail();}	
 };
 
 
@@ -2767,5 +2769,628 @@ int QUERY_URL::SendAndRecive(std::basic_string<char>& strQuery, std::basic_strin
 *			start ExQueryUrlOpenSSL.h 
 *
 */
+
+
+#ifdef IS_HAVE_OPEN_SSL
+#include "ExQueryUrlOpenSSL.h"
+
+bool QUERY_URL_OPEN_SSL::EvntConnect()
+{	
+	EvntBeforeClose();
+	if(SSLLastError.ctx == nullptr)
+	{
+		SSLLastError.ctx = SSL_CTX_new(SSLv23_client_method());
+		if(SSLLastError.ctx == nullptr)
+			goto SSLErrOut;
+	}
+	SSLLastError.ssl = SSL_new(SSLLastError.ctx);
+	if(SSLLastError.ssl == nullptr)
+		goto SSLErrOut;
+
+	if(SSL_set_fd(SSLLastError.ssl, Descriptor) == 0)
+		goto SSLErrFree;
+	if(SSL_connect(SSLLastError.ssl) < 0)
+	{
+SSLErrFree:
+		SSL_free(SSLLastError.ssl);
+SSLErrOut:
+		SSLLastError.Set();
+		QUERY_URL::SetLastErr(EFAULT);
+		QUERY_URL::Close();
+		return false;
+	}
+	return true;
+}
+
+bool QUERY_URL_OPEN_SSL::EvntBeforeClose()
+{
+	if(SSLLastError.ssl != nullptr)
+	{
+		SSL_shutdown(SSLLastError.ssl);
+		SSL_free(SSLLastError.ssl);
+		SSLLastError.ssl = nullptr;
+	}
+	return true;
+}
+
+bool QUERY_URL_OPEN_SSL::EvntBeforeShutdown(int)
+{
+	if(SSLLastError.ssl != nullptr)
+		SSL_shutdown(SSLLastError.ssl);
+
+	return true;
+}
+
+
+QUERY_URL_OPEN_SSL::~QUERY_URL_OPEN_SSL()
+{
+	if(SSLLastError.ssl != nullptr)
+	{
+		SSL_shutdown(SSLLastError.ssl);
+		SSL_free(SSLLastError.ssl);
+		SSLLastError.ssl = nullptr;
+	}
+	if(SSLLastError.ctx != nullptr)
+	{
+		SSL_CTX_free(SSLLastError.ctx);
+		SSLLastError.ctx = nullptr;
+	}
+}
+
+
+void QUERY_URL_OPEN_SSL::InitFields()
+{
+	SSLLastError.ctx = nullptr;
+	SSLLastError.ssl = nullptr;
+	SSLLastError.Clear();
+}
+
+
+QUERY_URL_OPEN_SSL::QUERY_URL_OPEN_SSL()
+{
+	SSL_load_error_strings();
+	SSL_library_init();
+	SSLeay_add_ssl_algorithms();
+	InitFields();
+}
+
+
+char* QUERY_URL_OPEN_SSL::REMOTE_CERT::_SUBJECT_NAME::operator()(char * Buf, size_t Len)
+{
+	if(ssl == nullptr)
+		return nullptr;
+	X509* Cert = SSL_get_peer_certificate (ssl);
+	if(Cert == nullptr)
+		return nullptr;
+	char * str = X509_NAME_oneline(X509_get_subject_name(Cert), 0, 0);
+	if(str == nullptr)
+	{
+		X509_free(Cert);
+		return nullptr;
+	}
+	strncpy(Buf, str, Len);
+	OPENSSL_free(str);
+	X509_free(Cert);
+	return Buf;
+}
+
+QUERY_URL_OPEN_SSL::REMOTE_CERT::_SUBJECT_NAME::operator std::basic_string<char>()
+{
+	if(ssl == nullptr)
+		return "";
+	X509* Cert = SSL_get_peer_certificate (ssl);
+	if(Cert == nullptr)
+		return "";
+	char * str = X509_NAME_oneline(X509_get_subject_name(Cert), 0, 0);
+	if(str == nullptr)
+	{
+		X509_free(Cert);
+		return "";
+	}
+	std::basic_string<char> Ret = str;
+	OPENSSL_free(str);
+	X509_free(Cert);
+	return Ret;
+}
+
+char* QUERY_URL_OPEN_SSL::REMOTE_CERT::_ISSUER_NAME::operator()(char * Buf, size_t Len)
+{
+	if(ssl == nullptr)
+		return nullptr;
+	X509* Cert = SSL_get_peer_certificate (ssl);
+	if(Cert == nullptr)
+		return nullptr;
+	char * str = X509_NAME_oneline(X509_get_issuer_name(Cert), 0, 0);
+	if(str == nullptr)
+	{
+		X509_free(Cert);
+		return nullptr;
+	}
+	strncpy(Buf, str, Len);
+	OPENSSL_free(str);
+	X509_free(Cert);
+	return Buf;
+}
+
+QUERY_URL_OPEN_SSL::REMOTE_CERT::_ISSUER_NAME::operator std::basic_string<char>()
+{
+	if(ssl == nullptr)
+		return "";
+	X509* Cert = SSL_get_peer_certificate (ssl);
+	if(Cert == nullptr)
+		return "";
+	char * str = X509_NAME_oneline(X509_get_issuer_name(Cert), 0, 0);
+	if(str == nullptr)
+	{
+		X509_free(Cert);
+		return "";
+	}
+	std::basic_string<char> Ret = str;
+	OPENSSL_free(str);
+	X509_free(Cert);
+	return Ret;
+}
+
+
+QUERY_URL_OPEN_SSL::REMOTE_CERT::_IS_HAVE::operator bool()
+{
+	if(ssl == nullptr)
+		return false;
+	X509* Cert = SSL_get_peer_certificate (ssl);
+	if(Cert != nullptr)
+	{
+		X509_free(Cert);
+		return true;
+	}
+	return false;
+}
+
+
+char * QUERY_URL_OPEN_SSL::LOCAL_CERT::_SUBJECT_NAME::operator()(char * Buf, size_t Len)
+{
+	if(ssl == nullptr)
+		return nullptr;
+	X509* Cert = SSL_get_certificate(ssl);
+	if(Cert == nullptr)
+		return nullptr;
+	char * str = X509_NAME_oneline(X509_get_subject_name(Cert), 0, 0);
+	if(str == nullptr)
+	{
+		X509_free(Cert);
+		return nullptr;
+	}
+	strncpy(Buf, str, Len);
+	OPENSSL_free(str);
+	X509_free(Cert);
+	return Buf;
+}
+
+QUERY_URL_OPEN_SSL::LOCAL_CERT::_SUBJECT_NAME::operator std::basic_string<char>()
+{
+	if(ssl == nullptr)
+		return "";
+	X509* Cert = SSL_get_certificate(ssl);
+	if(Cert == nullptr)
+		return "";
+	char * str = X509_NAME_oneline(X509_get_subject_name(Cert), 0, 0);
+	if(str == nullptr)
+	{
+		X509_free(Cert);
+		return "";
+	}
+	std::basic_string<char> Ret = str;
+	OPENSSL_free(str);
+	X509_free(Cert);
+	return Ret;
+}
+
+
+char* QUERY_URL_OPEN_SSL::LOCAL_CERT::_ISSUER_NAME::operator()(char * Buf, size_t Len)
+{
+	if(ssl == nullptr)
+		return nullptr;
+	X509* Cert = SSL_get_certificate(ssl);
+	if(Cert == nullptr)
+		return nullptr;
+	char * str = X509_NAME_oneline(X509_get_issuer_name(Cert), 0, 0);
+	if(str == nullptr)
+	{
+		X509_free(Cert);
+		return nullptr;
+	}
+	strncpy(Buf, str, Len);
+	OPENSSL_free(str);
+	X509_free(Cert);
+	return Buf;
+}
+
+QUERY_URL_OPEN_SSL::LOCAL_CERT::_ISSUER_NAME::operator std::basic_string<char>()
+{
+	if(ssl == nullptr)
+		return "";
+	X509* Cert = SSL_get_certificate(ssl);
+	if(Cert == nullptr)
+		return "";
+	char * str = X509_NAME_oneline(X509_get_issuer_name(Cert), 0, 0);
+	if(str == nullptr)
+	{
+		X509_free(Cert);
+		return "";
+	}
+	std::basic_string<char> Ret = str;
+	OPENSSL_free(str);
+	X509_free(Cert);
+	return Ret;
+}
+
+QUERY_URL_OPEN_SSL::LOCAL_CERT::_IS_HAVE::operator bool()
+{
+	if(ssl == nullptr)
+		return false;
+	X509* Cert = SSL_get_certificate(ssl);
+	if(Cert != nullptr)
+	{
+		X509_free(Cert);
+		return true;
+	}
+	return false;
+}
+
+
+QUERY_URL_OPEN_SSL::_LIFE_TIMEOUT::operator long()
+{
+	if(ctx == nullptr)
+		return -1;
+	return SSL_CTX_get_timeout(ctx);
+}
+long QUERY_URL_OPEN_SSL::_LIFE_TIMEOUT::operator= (long New)
+{
+	if(ctx == nullptr)
+		return -1;
+	SSL_CTX_set_timeout(ctx, New);
+	return New;
+}
+
+QUERY_URL_OPEN_SSL::_IS_VER::operator bool()
+{
+	if(ctx == nullptr)
+		return false;
+	return SSL_CTX_get_verify_mode(ctx) != SSL_VERIFY_NONE;
+}
+
+QUERY_URL_OPEN_SSL::_VER_MODE::operator int()
+{
+	if(ctx == nullptr)
+		return SSL_VERIFY_NONE;
+	return SSL_CTX_get_verify_mode(ctx);
+}
+
+int QUERY_URL_OPEN_SSL::_VER_MODE::operator=(int New)
+{
+	if(ctx == nullptr)
+		return SSL_VERIFY_NONE;
+	SSL_CTX_set_verify(ctx, New, nullptr);
+	return New;
+}
+
+bool QUERY_URL_OPEN_SSL::InitCTXVersion(const SSL_METHOD* MethodSSL)
+{
+	EvntBeforeClose();
+	if(SSLLastError.ctx != nullptr)
+		SSL_CTX_free(SSLLastError.ctx);
+	SSLLastError.ctx = SSL_CTX_new(MethodSSL);
+	if(SSLLastError.ctx == nullptr)
+	{
+		SSLLastError.Set();
+		QUERY_URL::SetLastErr(EFAULT);
+		return false;
+	}
+	return true;
+}
+
+bool QUERY_URL_OPEN_SSL::SetLocalCertificate
+	(	
+	const char * CertFile, 
+	const char * PrivateKeyFile, 
+	int TypeCertFile, 
+	int TypeKeyFile,
+	const SSL_METHOD* MethodSSL,
+	bool IsVerifyClient,
+	const char * CAFile,
+	const char * CAPath,
+	int ModeVerify,
+	int VerifyDepth
+	)
+{
+	if(!InitCTXVersion(MethodSSL))
+		return false;
+	if(SSL_CTX_use_certificate_file(SSLLastError.ctx, CertFile, TypeCertFile) <= 0)
+	{
+lblErrOut:
+		SSLLastError.Set();
+		SSL_CTX_free(SSLLastError.ctx);
+		SSLLastError.ctx = nullptr;
+		QUERY_URL::SetLastErr(EFAULT);
+		return false;
+	}
+	if(PrivateKeyFile == nullptr)
+		PrivateKeyFile = CertFile;
+	if(SSL_CTX_use_PrivateKey_file(SSLLastError.ctx, PrivateKeyFile, TypeKeyFile) <= 0)
+		goto lblErrOut;
+
+	if(!SSL_CTX_check_private_key(SSLLastError.ctx))
+		goto lblErrOut;
+	if(IsVerifyClient)
+	{
+		if (!SSL_CTX_load_verify_locations(SSLLastError.ctx, CAFile, CAPath)) 
+			goto lblErrOut;
+
+		SSL_CTX_set_verify(SSLLastError.ctx, ModeVerify, nullptr);
+		SSL_CTX_set_verify_depth(SSLLastError.ctx, VerifyDepth);
+	}
+}
+
+bool QUERY_URL_OPEN_SSL::AcceptClient(QUERY_URL_OPEN_SSL & DestCoonection)
+{
+	DestCoonection.Close();
+	if(!QUERY_URL::AcceptClient(DestCoonection))
+		return false;	
+	DestCoonection.SSLLastError.ssl = SSL_new(SSLLastError.ctx);
+	if(DestCoonection.SSLLastError.ssl == nullptr)
+	{
+		SSLLastError.Set();
+		return false;
+	}
+	if(SSL_set_fd(DestCoonection.SSLLastError.ssl, DestCoonection.Descriptor) == 0)
+		goto lblErrOut;
+	//https://www.google.ru/?gws_rd=ssl#q=SSL_accept+returned+0
+	//http://stackoverflow.com/questions/13855789/ssl-accept-error-on-openssl-examples
+	int r = SSL_accept(DestCoonection.SSLLastError.ssl);
+	if(r == 0)
+	{
+		SSLLastError = SSL_get_error(DestCoonection.SSLLastError.ssl, 0);
+		goto lblErrOut2;
+	}else if(r < 0)
+	{
+lblErrOut:
+		SSLLastError.Set();
+lblErrOut2:
+		DestCoonection.QUERY_URL::ShutdownSendRecive();
+		DestCoonection.QUERY_URL::Close();
+		return false;		
+	}
+	return true;
+}
+
+int QUERY_URL_OPEN_SSL::Send(const void * QueryBuf, size_t SizeBuf, int Flags)
+{
+	if(SSLLastError.ssl == nullptr)
+		goto lblErr;
+	int WritenSize;
+	if((WritenSize = SSL_write(SSLLastError.ssl, QueryBuf, SizeBuf)) < 0)
+	{
+		SSLLastError.Set();
+lblErr:
+		QUERY_URL::SetLastErr(EFAULT);
+		return -1;
+	}
+	return WritenSize;
+}
+
+
+int QUERY_URL_OPEN_SSL::Recive(void * Buf, size_t SizeBuf, int Flags)
+{
+	if(SSLLastError.ssl == nullptr)
+		goto lblErr;
+	int ReadedSize;
+
+	if((ReadedSize = ((Flags & MSG_PEEK)? SSL_peek: SSL_read)(SSLLastError.ssl, Buf, SizeBuf)) < 0)
+	{
+		SSLLastError.Set();
+lblErr:
+		QUERY_URL::SetLastErr(EFAULT);
+		return -1;
+	}
+	return ReadedSize;
+}
+
+int QUERY_URL_OPEN_SSL::Recive
+(
+	std::basic_string<char>& StrBuf, 
+	std::basic_string<char>::size_type MaxLen, 
+	int Flags
+)
+{
+	if(SSLLastError.ssl == nullptr)
+		goto lblErr;
+	char * Buf;
+	unsigned CurSize = 0, CountBytesInBuff, ReadedSize = 0;
+	CountBytesInBuff = SSL_pending(SSLLastError.ssl);
+	if(CountBytesInBuff < 50)
+		CountBytesInBuff = 50;
+	StrBuf.resize(CountBytesInBuff + 2);
+	Buf = (char*)StrBuf.c_str();
+	while(true)
+	{
+		if(CurSize >= MaxLen)
+			break;
+		if(CountBytesInBuff > (MaxLen - CurSize))
+			CountBytesInBuff = MaxLen - CurSize; 
+		int ReadedSize = SSL_read(SSLLastError.ssl, Buf, CountBytesInBuff);
+		if(ReadedSize < 0)
+		{
+			SSLLastError.Set();
+lblErr:
+			QUERY_URL::SetLastErr(EFAULT);
+			return -1;
+		}else if(ReadedSize == 0)
+			break;
+		else
+		{
+			CurSize += ReadedSize;
+			CountBytesInBuff = SSL_pending(SSLLastError.ssl);
+			if(CountBytesInBuff == 0)
+				CountBytesInBuff = 50;
+			StrBuf.resize(CurSize + CountBytesInBuff + 2);
+			Buf = (char*)StrBuf.c_str() + CurSize;
+		}
+	}
+	*Buf = '\0';
+	return CurSize;
+}
+
+long long QUERY_URL_OPEN_SSL::SendFile(QUERY_URL& InSocket, size_t Count)
+{
+	if(Count == 0)
+		return 0;
+	unsigned long long SizeBuf;
+	int r, wr, w = 0;
+	void* Buf;
+#	ifdef SO_SNDBUF
+	SizeBuf = SockOptions.SendSizeBuffer;
+#	else
+	SizeBuf = 0xffff;
+#	endif
+	SizeBuf = (SizeBuf < Count)?SizeBuf: Count;
+	Buf = malloc(SizeBuf);
+	if(Buf == nullptr)
+	{
+		QUERY_URL::SetLastErr(EFAULT);
+		return -1;
+	}
+	while(true)
+	{
+		if((r = InSocket.Recive(Buf, SizeBuf)) == -1)
+		{
+			if(w > 0)
+				return w;
+			goto lblErr;
+		}
+		if((wr = Send(Buf, r)) == -1)
+		{
+lblErr:
+			QUERY_URL::SetLastErr(LAST_ERR_SOCKET);
+			free(Buf);
+			return -1;
+		}
+		if(r < SizeBuf)
+		{
+			free(Buf);
+			return wr;
+		}
+		w += wr;
+		SizeBuf = ((Count - w) < SizeBuf)?(Count - w): SizeBuf;
+	}
+	free(Buf);
+	return 0;
+}
+
+long long QUERY_URL_OPEN_SSL::SendFile(TDESCR InFileDescriptor, size_t Count, off_t Offset)
+{
+	if(Count == 0)
+		return 0;
+	if(Offset != 0)
+	{
+#ifdef _WIN32
+		if(SetFilePointer((HANDLE)InFileDescriptor, Offset, nullptr, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
+#else
+		if(lseek(InFileDescriptor, Offset, SEEK_SET))
+#endif			
+		{
+			QUERY_URL::SetLastErr(LAST_ERR_SOCKET);
+			return -1;
+		}
+	}
+	unsigned long long SizeBuf;
+	int r, wr, w = 0;
+	void* Buf;
+#	ifdef SO_SNDBUF
+	SizeBuf = SockOptions.SendSizeBuffer;
+#	else
+	SizeBuf = 0xffff;
+#	endif
+	SizeBuf = (SizeBuf < Count)?SizeBuf: Count;
+	Buf = malloc(SizeBuf);
+	if(Buf == nullptr)
+	{
+		QUERY_URL::SetLastErr(EFAULT);
+		return -1;
+	}
+	OVERLAPPED Overlap = {0}, *ovlp = nullptr;
+	while(true)
+	{
+#ifdef _WIN32
+lblTryAgain:
+	{
+		DWORD rt;
+		if(!ReadFile((HANDLE)InFileDescriptor, Buf, SizeBuf, &rt, &Overlap))
+		{
+			DWORD LastErr = GetLastError();
+			if(LastErr == ERROR_IO_PENDING)
+			{
+				if((LastErr == ERROR_INVALID_PARAMETER) && (ovlp == nullptr))
+				{
+					Overlap.hEvent = CreateEventW(nullptr, true, false, nullptr); 
+					ovlp = &Overlap; 
+					goto lblTryAgain;
+				}else if(LastErr == ERROR_IO_PENDING)
+				{
+					if(Overlap.hEvent != NULL)
+					{
+						WaitForSingleObject(Overlap.hEvent, INFINITE);	
+						if(!GetOverlappedResult((HANDLE)InFileDescriptor, ovlp, &rt, TRUE))
+						{
+							CloseHandle(Overlap.hEvent); 	
+							goto lblErr2;
+						}
+					}else
+					{
+						QUERY_URL::SetLastErr(EWOULDBLOCK);
+						goto lblErr2;
+					}
+				}else
+				{
+					if(Overlap.hEvent != NULL)
+						CloseHandle(Overlap.hEvent); 
+					goto lblErr;
+				}
+			}
+		}
+		r = rt;
+	}
+#else
+		r = read(InFileDescriptor, Buf, SizeBuf);
+#endif
+		if(r == -1)
+		{
+			if(w > 0)
+				return w;
+			goto lblErr;
+		}
+		if((wr = Send(Buf, r)) == -1)
+		{
+lblErr:
+			QUERY_URL::SetLastErr(LAST_ERR_SOCKET);
+lblErr2:
+			free(Buf);
+			return -1;
+		}
+		if(r < SizeBuf)
+		{
+			free(Buf);
+			return wr;
+		}
+		w += wr;
+		SizeBuf = ((Count - w) < SizeBuf)?(Count - w): SizeBuf;
+	}
+	free(Buf);
+	return 0;
+
+}
+
+
+
+
+#endif
 
 

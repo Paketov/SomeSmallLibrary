@@ -189,8 +189,6 @@ int StringDoubleToNumber(TypeNumber * Number, const std::basic_string<TypeChar> 
 }
 struct __stream_io__base
 {
-	template<typename TypeChar>
-	static inline bool PutChar(std::basic_ostream<TypeChar> & s, TypeChar c) { return !s.put(c).fail();}	
 	static inline bool Write(FILE* s,  char* Str, size_t Len) { return fputs(Str, s) != EOF;}
 	static inline bool Write(FILE* s,  wchar_t* Str, size_t Len) { return fputws(Str, s) != WEOF; }		
 	template<typename TypeChar>
