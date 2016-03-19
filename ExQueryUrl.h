@@ -1688,7 +1688,7 @@ public:
 		{
 		_QUERY_URL_FIELDS1_;
 		public:
-			inline operator TDESCR() { return hSocket; }
+			inline operator TDESCR() const { return hSocket; }
 			inline TDESCR operator=(TDESCR NewDescriptor) { return hSocket = NewDescriptor; }
 		} Descriptor;
 

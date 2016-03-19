@@ -155,6 +155,18 @@ public:
 		Count.f.alloc_count = Count.f.count = 0;
 	}
 
+	bool Copy(DYNAMIC_BUF<TypeElement>& Dest) const
+	{		
+		if(Dest.Count != Count)
+		{
+			Dest.Count = Count;
+			if(Dest.Count != Count) return false;
+ 		}
+		memcpy(Dest.Count.f.buf, Count.f.buf, sizeof(TypeElement) * Count);
+		return true;
+	}
+
+
 	inline void SetZero() { memset(Count.f.buf, 0, sizeof(TypeElement) * Count.f.count); }
 
 	inline TypeElement& operator[](size_t Index) const { return Count.f.buf[Index]; }
@@ -266,6 +278,17 @@ public:
 		Count.f.count = 0;
 	}
 
+	bool Copy(DYNAMIC_BUF_S<TypeElement>& Dest) const
+	{		
+		if(Dest.Count != Count)
+		{
+			Dest.Count = Count;
+			if(Dest.Count != Count) return false;
+ 		}
+		memcpy(Dest.Count.f.buf, Count.f.buf, sizeof(TypeElement) * Count);
+		return true;
+	}
+
 	inline void SetZero() { memset(Count.f.buf, 0, sizeof(TypeElement) * Count); }
 
 	inline TypeElement& operator[](size_t Index) const { return Count.f.buf[Index]; }
@@ -280,7 +303,6 @@ public:
 	}
 
 	~DYNAMIC_BUF_S() { if(Count.f.buf != nullptr) ___free(Count.f.buf); }
-
 };
 
 
