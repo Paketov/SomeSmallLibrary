@@ -103,7 +103,7 @@ public:
 			{ 
 				TINDEX c = 0;
 				LPCELL t = Table;
-				for(TINDEX i = last_empty; i != EmptyElement; i = t[i].iNext)
+				for(TINDEX i = last_empty; i != EmptyElement; i = t[i].THEADCELL::iNext)
 					c++;
 				return c;
 			}
@@ -144,10 +144,10 @@ protected:
 		Count.alloc_count = NewAllocCount;
 		for(TINDEX i = Count.last_empty = 0; i < NewAllocCount; i++)
 		{
-			t[i].iStart = EmptyElement;
-			t[i].iNext = i + 1;
+			t[i].THEADCELL::iStart = EmptyElement;
+			t[i].THEADCELL::iNext = i + 1;
 		}
-		t[NewAllocCount - 1].iNext = EmptyElement;
+		t[NewAllocCount - 1].THEADCELL::iNext = EmptyElement;
 		return true;
 	}
 
@@ -188,7 +188,7 @@ public:
 	inline TElementStruct* Insert(T SearchKey)
 	{
 		LPCELL lpStart, p, t = GetTable();
-		for(TINDEX i = (lpStart = ElementByKey(SearchKey))->iStart; i != EmptyElement; i = p->iNext)
+		for(TINDEX i = (lpStart = ElementByKey(SearchKey))->THEADCELL::iStart; i != EmptyElement; i = p->THEADCELL::iNext)
 			if((p = t + i)->CmpKey(SearchKey))
 				return p;
 		
@@ -196,9 +196,9 @@ public:
 		p = t + (iRetElem = Count.last_empty);
 		if(!p->SetKey(SearchKey))
 			return nullptr;
-		Count.last_empty = p->iNext;
-		p->iNext = lpStart->iStart;
-		lpStart->iStart = iRetElem;
+		Count.last_empty = p->THEADCELL::iNext;
+		p->THEADCELL::iNext = lpStart->THEADCELL::iStart;
+		lpStart->THEADCELL::iStart = iRetElem;
 		Count.count++;
 		return p;
 	}
@@ -214,9 +214,9 @@ public:
 		LPCELL lpStart = ElementByKey(SearchKey), lpRetElem = GetTable() + (iRetElem = Count.last_empty);
 		if(!lpRetElem->SetKey(SearchKey))
 			return nullptr;
-		Count.last_empty = lpRetElem->iNext;
-		lpRetElem->iNext = lpStart->iStart;
-		lpStart->iStart = iRetElem;
+		Count.last_empty = lpRetElem->THEADCELL::iNext;
+		lpRetElem->THEADCELL::iNext = lpStart->THEADCELL::iStart;
+		lpStart->THEADCELL::iStart = iRetElem;
 		Count.count++;
 		return lpRetElem;
 	}
@@ -228,7 +228,7 @@ public:
 	inline TElementStruct* Search(T SearchKey) const
 	{
 		LPCELL p, t = GetTable();
-		for(TINDEX i = t[TElementStruct::IndexByKey(SearchKey, AllocCount)].iStart; i != EmptyElement; i = p->iNext)
+		for(TINDEX i = t[TElementStruct::IndexByKey(SearchKey, AllocCount)].THEADCELL::iStart; i != EmptyElement; i = p->THEADCELL::iNext)
 			if((p = t + i)->CmpKey(SearchKey))
 				return p;
 		return nullptr;
@@ -242,7 +242,7 @@ public:
 	inline TElementStruct* NextCollision(TElementStruct* CurElem, T SearchKey) const
 	{
 		LPCELL p;
-		for(TINDEX i = ((LPTHEADCELL)CurElem - 1)->iNext; i != EmptyElement; i = p->iNext)
+		for(TINDEX i = ((LPTHEADCELL)CurElem - 1)->THEADCELL::iNext; i != EmptyElement; i = p->THEADCELL::iNext)
 			if((p = GetTable() + i)->CmpKey(SearchKey))
 				return p;
 		return nullptr;
@@ -256,14 +256,14 @@ public:
 	REMOVE_POINTER Remove(T SearchKey)
 	{
 		LPCELL p, t = GetTable();
-		for(LPTINDEX i = &(t[TElementStruct::IndexByKey(SearchKey, AllocCount)].iStart); *i != EmptyElement; i = &(p->iNext))
+		for(LPTINDEX i = &(t[TElementStruct::IndexByKey(SearchKey, AllocCount)].THEADCELL::iStart); *i != EmptyElement; i = &(p->THEADCELL::iNext))
 		{
 			p = t + *i;
 			if(p->CmpKey(SearchKey))
 			{
 				TINDEX j = *i;
-				*i = p->iNext;
-				p->iNext = Count.last_empty;
+				*i = p->THEADCELL::iNext;
+				p->THEADCELL::iNext = Count.last_empty;
 				Count.last_empty = j;
 				Count.count--;
 				return p;
@@ -280,14 +280,14 @@ public:
 	void RemoveAllCollision(T SearchKey)
 	{
 		LPCELL p, t = GetTable();
-		for(LPTINDEX i = &(t[TElementStruct::IndexByKey(Key, AllocCount)].iStart); *i != EmptyElement; i = &(p->iNext))
+		for(LPTINDEX i = &(t[TElementStruct::IndexByKey(Key, AllocCount)].THEADCELL::iStart); *i != EmptyElement; i = &(p->THEADCELL::iNext))
 		{
 			p = t + *i;
 			if(p->CmpKey(SearchKey))
 			{
 				TINDEX j = *i;
-				*i = p->iNext;
-				p->iNext = Count.last_empty;
+				*i = p->THEADCELL::iNext;
+				p->THEADCELL::iNext = Count.last_empty;
 				Count.last_empty = j;
 				Count.count--;
 			}	
@@ -312,9 +312,9 @@ public:
 	inline bool EnumValues(bool (*EnumFunc)(void* UserData, TElementStruct* Element), void* UserData = nullptr) const
 	{
 		for(LPCELL Elements = GetTable(), l, p = Elements, m = p + AllocCount; p < m; p++)
-			for(auto i = p->iStart; i != EmptyElement;)
+			for(auto i = p->THEADCELL::iStart; i != EmptyElement;)
 			{
-				i = (l = Elements + i)->iNext;
+				i = (l = Elements + i)->THEADCELL::iNext;
 				if(!EnumFunc(UserData, l))
 					return false;
 			}
@@ -328,9 +328,9 @@ public:
 	inline bool EnumValues(bool (*EnumFunc)(TElementStruct* Element))
 	{
 		for(LPCELL Elements = GetTable(), l, p = Elements, m = p + AllocCount; p < m; p++)
-			for(auto i = p->iStart; i != EmptyElement;)
+			for(auto i = p->THEADCELL::iStart; i != EmptyElement;)
 			{
-				i = (l = Elements + i)->iNext;
+				i = (l = Elements + i)->THEADCELL::iNext;
 				if(!EnumFunc(l)) 
 					return false;
 			}
@@ -345,18 +345,18 @@ public:
 	inline void EnumDelete(bool (*IsDeleteProc)(void* UserData, TElementStruct* Element), void* UserData = nullptr)
 	{
 		for(LPCELL Elements = GetTable(), l, p = Elements, m = p + AllocCount; p < m; p++)
-			for(auto i = &(p->iStart); *i != EmptyElement; )
+			for(auto i = &(p->THEADCELL::iStart); *i != EmptyElement; )
 			{	
 				l = Elements + *i;
 				if(IsDeleteProc(UserData, l))
 				{
 					auto e = *i;
-					*i = l->iNext;
-					l->iNext = Count.last_empty;
+					*i = l->THEADCELL::iNext;
+					l->THEADCELL::iNext = Count.last_empty;
 					Count.last_empty = e;
 					Count.count--;
 				}else
-					i = &(l->iNext);
+					i = &(l->THEADCELL::iNext);
 			}
 	}
 		
@@ -368,18 +368,18 @@ public:
 	inline void EnumDelete(bool (*IsDeleteProc)(TElementStruct* Element))
 	{
 		for(LPCELL Elements = GetTable(), l, p = Elements, m = p + AllocCount; p < m; p++)
-			for(auto i = &(p->iStart); *i != EmptyElement; )
+			for(auto i = &(p->THEADCELL::iStart); *i != EmptyElement; )
 			{	
 				l = Elements + *i;
 				if(IsDeleteProc(l))
 				{
 					auto e = *i;
-					*i = l->iNext;
-					l->iNext = Count.last_empty;
+					*i = l->THEADCELL::iNext;
+					l->THEADCELL::iNext = Count.last_empty;
 					Count.last_empty = e;
 					Count.count--;
 				}else
-					i = &(l->iNext);
+					i = &(l->THEADCELL::iNext);
 			}
 	}
 
@@ -399,23 +399,23 @@ public:
 		auto last_empty = Count.last_empty;
 		LPCELL Elements = GetTable(), l, m = Elements + AllocCount;
 		for(auto p = Elements; p < m; p++)
-			for(auto i = p->iStart; i != EmptyElement; i = l->iNext)
+			for(auto i = p->THEADCELL::iStart; i != EmptyElement; i = l->THEADCELL::iNext)
 			{
 				l = Elements + i;
 				if(i >= NewSize) 
 				{
-					for(;last_empty >= NewSize; last_empty = Elements[last_empty].iNext);
+					for(;last_empty >= NewSize; last_empty = Elements[last_empty].THEADCELL::iNext);
 					CopyElement(Elements[last_empty], Elements[i]);
-					last_empty = Elements[last_empty].iNext;
+					last_empty = Elements[last_empty].THEADCELL::iNext;
 				}
 			}
 		for(TINDEX i = 0; i < NewSize;i++)
-			Elements[i].iStart = EmptyElement;
+			Elements[i].THEADCELL::iStart = EmptyElement;
 		for(TINDEX i = 0; i < NewSize; i++)
 		{
 			auto j = Elements[i].IndexInBound(NewSize);
-			Elements[i].iNext = Elements[j].iStart;
-			Elements[j].iStart = i;
+			Elements[i].THEADCELL::iNext = Elements[j].THEADCELL::iStart;
+			Elements[j].THEADCELL::iStart = i;
 		}
 
 		if(NewSize <= 0)
@@ -443,22 +443,22 @@ public:
 		{	
 			/*Init basic part*/
 			for(LPCELL p = Elements, m = p + FullCount; p < m; p++)
-				p->iStart = EmptyElement;
+				p->THEADCELL::iStart = EmptyElement;
 			
 			/*Initialize the remaining part*/
 			for(TINDEX p = FullCount, m = NewCount; p < m; p++)
 			{
-				Elements[p].iStart = EmptyElement;
-				Elements[p].iNext = p + 1;
+				Elements[p].THEADCELL::iStart = EmptyElement;
+				Elements[p].THEADCELL::iNext = p + 1;
 			}
-			Elements[NewCount - 1].iNext = Count.last_empty;
+			Elements[NewCount - 1].THEADCELL::iNext = Count.last_empty;
 			Count.last_empty = FullCount;
 			/*Distribute all elements*/
 			for(TINDEX i = 0; i < FullCount; i++)
 			{
 				auto j = Elements[i].IndexInBound(NewCount);
-				Elements[i].iNext = Elements[j].iStart;
-				Elements[j].iStart = i;
+				Elements[i].THEADCELL::iNext = Elements[j].THEADCELL::iStart;
+				Elements[j].THEADCELL::iStart = i;
 			}
 		}else
 		{
@@ -466,29 +466,29 @@ public:
 			/*Create list used elements*/
 			for(TINDEX p = 0; p < FullCount; p++)
 			{			
-				for(TINDEX i = Elements[p].iStart, t; i != EmptyElement; i = t)
+				for(TINDEX i = Elements[p].THEADCELL::iStart, t; i != EmptyElement; i = t)
 				{
-					t = Elements[i].iNext;
-					Elements[i].iNext = UsedList;
+					t = Elements[i].THEADCELL::iNext;
+					Elements[i].THEADCELL::iNext = UsedList;
 					UsedList = i;
 				}
-				Elements[p].iStart = EmptyElement;
+				Elements[p].THEADCELL::iStart = EmptyElement;
 			}
 			/*Initialize the remaining part*/
 			for(TINDEX p = FullCount, m = NewCount; p < m; p++)
 			{
-				Elements[p].iStart = EmptyElement;
-				Elements[p].iNext = p + 1;
+				Elements[p].THEADCELL::iStart = EmptyElement;
+				Elements[p].THEADCELL::iNext = p + 1;
 			}
-			Elements[NewCount - 1].iNext = Count.last_empty;
+			Elements[NewCount - 1].THEADCELL::iNext = Count.last_empty;
 			Count.last_empty = FullCount;
 			/*Distribute a list of used to new places*/
 			for(TINDEX t; UsedList != EmptyElement; UsedList = t)
 			{
-				t = Elements[UsedList].iNext;
+				t = Elements[UsedList].THEADCELL::iNext;
 				auto i = Elements[UsedList].IndexInBound(NewCount);
-				Elements[UsedList].iNext = Elements[i].iStart;
-				Elements[i].iStart = UsedList;
+				Elements[UsedList].THEADCELL::iNext = Elements[i].THEADCELL::iStart;
+				Elements[i].THEADCELL::iStart = UsedList;
 			}
 		}
 		return true;
@@ -574,16 +574,16 @@ public:
 			p = 0;
 lblSearchStart:
 			for(TINDEX m = AllocCount; p < m; p++)
-				if(Elements[p].iStart != EmptyElement)
+				if(Elements[p].THEADCELL::iStart != EmptyElement)
 				{
 					SetInterator.IsEnd.CurStartList = p;
-					SetInterator.IsEnd.CurElementInList = Elements[p].iStart;
+					SetInterator.IsEnd.CurElementInList = Elements[p].THEADCELL::iStart;
 					return true;
 				}
 			SetInterator.IsEnd.CurStartList = EmptyElement;
 			return false;
 		}
-		TINDEX i = Elements[SetInterator.IsEnd.CurElementInList].iNext;
+		TINDEX i = Elements[SetInterator.IsEnd.CurElementInList].THEADCELL::iNext;
 		if(i != EmptyElement)
 		{
 			SetInterator.IsEnd.CurElementInList = i;
@@ -615,7 +615,7 @@ lblSearchStart:
 	bool InteratorByKey(TKey SearchKey, TINTER& Interator)
 	{
 		LPCELL p, t = GetTable();
-		for(TINDEX s = TElementStruct::IndexByKey(SearchKey, AllocCount), i = t[s].iStart; i != EmptyElement; i = p->iNext)
+		for(TINDEX s = TElementStruct::IndexByKey(SearchKey, AllocCount), i = t[s].THEADCELL::iStart; i != EmptyElement; i = p->THEADCELL::iNext)
 			if((p = t + i)->CmpKey(SearchKey))
 			{
 				Interator.IsEnd.CurStartList = s;
@@ -630,13 +630,13 @@ lblSearchStart:
 	REMOVE_POINTER RemoveByInterator(TINTER& Interator)
 	{
 		LPCELL t = GetTable(), Ret = t + Interator.IsEnd.CurElementInList;
-		for(LPTINDEX i = &t[Interator.IsEnd.CurStartList].iStart; *i != EmptyElement; i = &t[*i].iNext)
+		for(LPTINDEX i = &t[Interator.IsEnd.CurStartList].THEADCELL::iStart; *i != EmptyElement; i = &t[*i].THEADCELL::iNext)
 		{
 			if(Interator.IsEnd.CurElementInList == *i)
 			{
 				Interate(Interator);	
 				LPCELL El2 = t + *i;
-				*i = El2->iNext;
+				*i = El2->THEADCELL::iNext;
 				Count.count--;
 				return El2;
 			}
@@ -650,9 +650,9 @@ lblSearchStart:
 	{
 		LPCELL Elements = GetTable();
 		for(TINDEX p = 0, m = AllocCount; p < m; p++)
-			if(Elements[p].iStart != EmptyElement)
+			if(Elements[p].THEADCELL::iStart != EmptyElement)
 			{
-				return Elements + Elements[p].iStart;
+				return Elements + Elements[p].THEADCELL::iStart;
 			}
 		return nullptr;
 	}
@@ -662,14 +662,14 @@ lblSearchStart:
 	TElementStruct* GetNextCellByKey(TKey SearchKey) const
 	{
 		LPCELL Elements = GetTable(), p;
-		for(TINDEX s = IndexByKey(SearchKey), i = Elements[s].iStart; i != EmptyElement; i = p->iNext)
+		for(TINDEX s = IndexByKey(SearchKey), i = Elements[s].THEADCELL::iStart; i != EmptyElement; i = p->THEADCELL::iNext)
 			if((p = Elements + i)->CmpKey(SearchKey))
 			{
-				if((i = Elements[i].iNext) != EmptyElement)
+				if((i = Elements[i].THEADCELL::iNext) != EmptyElement)
 					return Elements + i;
 				s++;
 				for(TINDEX m = AllocCount; s < m; s++)
-					for(i = Elements[s].iStart; i != EmptyElement; i = Elements[i].iNext)
+					for(i = Elements[s].THEADCELL::iStart; i != EmptyElement; i = Elements[i].THEADCELL::iNext)
 					{
 						return Elements + i;
 					}
@@ -698,7 +698,7 @@ lblSearchStart:
 		{
 
 			unsigned CountInCurIndex = 0;
-			for(TINDEX p = Cur->iStart; p != EmptyElement;p = GetTable()[p].iNext)
+			for(TINDEX p = Cur->THEADCELL::iStart; p != EmptyElement;p = GetTable()[p].THEADCELL::iNext)
 				CountInCurIndex++;
 
 			Len2 = sprintf_s(Buffer, CurLen, "%u:%u,", CurIndex, CountInCurIndex);

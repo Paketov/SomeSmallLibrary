@@ -100,7 +100,6 @@ typedef UINT32 socklen_t;
 #	include <poll.h>
 #	include <fcntl.h>
 #	include <sys/ioctl.h>
-#	include <errno.h>
 #	if defined(__linux__)
 #		include <sys/sendfile.h>
 #   elif defined(__FreeBSD__)

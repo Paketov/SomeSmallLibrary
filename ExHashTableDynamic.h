@@ -188,7 +188,7 @@ public:
 				for(LPCELL i = *s; i != nullptr; )
 				{
 					LPCELL DelElem = i;
-					i = DelElem->Next;
+					i = DelElem->THEADCELL::Next;
 					FAST_ALLOC::Delete(DelElem);
 				}
 			___free(Count.Table);
@@ -202,14 +202,14 @@ public:
 	inline TElementStruct* Insert(T SearchKey)
 	{
 		LPCELL *lpStart = ElementByKey(SearchKey);
-		for(; *lpStart != nullptr; lpStart = &(*lpStart)->Next)
+		for(; *lpStart != nullptr; lpStart = &(*lpStart)->THEADCELL::Next)
 		{
 			if((*lpStart)->CmpKey(SearchKey))
 				return *lpStart;
 		}
 		if((*lpStart = FAST_ALLOC::New<CELL>()) == nullptr)
 			return nullptr;
-		(*lpStart)->Next = nullptr;
+		(*lpStart)->THEADCELL::Next = nullptr;
 		(*lpStart)->SetKey(SearchKey);
 		Count.count++;
 		return *lpStart;
@@ -225,7 +225,7 @@ public:
 		LPCELL *lpStart = ElementByKey(SearchKey), NewElem;
 		if((NewElem = FAST_ALLOC::New<CELL>()) == nullptr)
 			return nullptr;
-		NewElem->Next = *lpStart;
+		NewElem->THEADCELL::Next = *lpStart;
 		(*lpStart = NewElem)->SetKey(SearchKey);
 		Count.count++;
 		return NewElem;
@@ -237,7 +237,7 @@ public:
 	template<typename T>
 	inline TElementStruct* Search(T SearchKey) const
 	{
-		for(LPCELL lpStart = GetTable()[TElementStruct::IndexByKey(SearchKey, AllocCount)]; lpStart != nullptr; lpStart = lpStart->Next)
+		for(LPCELL lpStart = GetTable()[TElementStruct::IndexByKey(SearchKey, AllocCount)]; lpStart != nullptr; lpStart = lpStart->THEADCELL::Next)
 		{
 			if(lpStart->CmpKey(SearchKey))
 				return lpStart;
@@ -252,7 +252,7 @@ public:
 	template<typename T>
 	inline TElementStruct* NextCollision(TElementStruct* CurElem, T SearchKey) const
 	{
-		for(LPCELL lpNext = ((LPTHEADCELL)CurElem - 1)->Next; lpNext != nullptr; lpNext = lpNext->Next)
+		for(LPCELL lpNext = ((LPTHEADCELL)CurElem - 1)->THEADCELL::Next; lpNext != nullptr; lpNext = lpNext->THEADCELL::Next)
 		{
 			if(lpNext->CmpKey(SearchKey))
 				return lpNext;
@@ -267,12 +267,12 @@ public:
 	template<typename T>
 	REMOVE_POINTER Remove(T SearchKey)
 	{
-		for(LPCELL *lpStart = ElementByKey(SearchKey); *lpStart != nullptr; lpStart = &(*lpStart)->Next)
+		for(LPCELL *lpStart = ElementByKey(SearchKey); *lpStart != nullptr; lpStart = &(*lpStart)->THEADCELL::Next)
 		{
 			if((*lpStart)->CmpKey(SearchKey))
 			{
 				REMOVE_POINTER DelElem = *lpStart;
-				*lpStart = DelElem.Val->Next;
+				*lpStart = DelElem.Val->THEADCELL::Next;
 				Count.count--;
 				return DelElem;
 			}
@@ -292,7 +292,7 @@ public:
 			if((*i)->CmpKey(SearchKey))
 			{
 				LPCELL DelElem = *i;
-				*i = DelElem->Next;
+				*i = DelElem->THEADCELL::Next;
 				FAST_ALLOC::Delete(DelElem);
 				Count.count--;
 			}else
@@ -310,7 +310,7 @@ public:
 			for(LPCELL i = *s; i != nullptr; )
 			{
 				LPCELL DelElem = i;
-				i = DelElem->Next;
+				i = DelElem->THEADCELL::Next;
 				FAST_ALLOC::Delete(DelElem);
 			}
 		ReallocAndClear(1);
@@ -324,7 +324,7 @@ public:
 	inline bool EnumValues(bool (*EnumFunc)(void* UserData, TElementStruct* Element), void* UserData = nullptr) const
 	{
 		for(LPCELL *s = GetTable(), *m = s + AllocCount; s < m; s++)
-			for(LPCELL i = *s; i != nullptr; i = i->Next)
+			for(LPCELL i = *s; i != nullptr; i = i->THEADCELL::Next)
 			{
 				if(!EnumFunc(UserData, i))
 					return false;
@@ -339,7 +339,7 @@ public:
 	inline bool EnumValues(bool (*EnumFunc)(TElementStruct* Element))
 	{
 		for(LPCELL *s = GetTable(), *m = s + AllocCount; s < m; s++)
-			for(LPCELL i = *s; i != nullptr; i = i->Next)
+			for(LPCELL i = *s; i != nullptr; i = i->THEADCELL::Next)
 			{
 				if(!EnumFunc(i))
 					return false;
@@ -360,11 +360,11 @@ public:
 				if(IsDeleteProc(UserData, *i))
 				{
 					LPCELL DelElem = *i;
-					*i = (*i)->Next;
+					*i = (*i)->THEADCELL::Next;
 					FAST_ALLOC::Delete(DelElem);
 					Count.count--;
 				}else
-					i = &((*i)->Next);
+					i = &((*i)->THEADCELL::Next);
 			}
 	}
 		
@@ -381,11 +381,11 @@ public:
 				if(IsDeleteProc(*i))
 				{
 					LPCELL DelElem = *i;
-					*i = DelElem->Next;
+					*i = DelElem->THEADCELL::Next;
 					FAST_ALLOC::Delete(DelElem);
 					Count.count--;
 				}else
-					i = &((*i)->Next);
+					i = &((*i)->THEADCELL::Next);
 			}
 	}
 
@@ -426,8 +426,8 @@ public:
 			{
 				LPCELL j = UsedList;
 				UsedList = i;
-				i = i->Next;
-				UsedList->Next = j;
+				i = i->THEADCELL::Next;
+				UsedList->THEADCELL::Next = j;
 			}
 		bool r = ReallocAndClear(NewCount);
 		LPCELL *t = GetTable();
@@ -435,7 +435,7 @@ public:
 		{
 			LPCELL* j = t + UsedList->IndexInBound(AllocCount), c = *j;
 			UsedList = (*j = UsedList)->Next;
-			(*j)->Next = c;
+			(*j)->THEADCELL::Next = c;
 		}
 		return r;
 	}
@@ -455,8 +455,8 @@ public:
 				{
 					LPCELL j = UsedList;
 					UsedList = i;
-					i = i->Next;
-					UsedList->Next = j;
+					i = i->THEADCELL::Next;
+					UsedList->THEADCELL::Next = j;
 				}
 		}		
 		if(!Dest.ReallocAndClear(AllocCount))
@@ -468,25 +468,25 @@ public:
 				LPCELL* j = dt + UsedList->IndexInBound(Dest.AllocCount);
 				LPCELL c = *j;
 				*j = UsedList;
-				UsedList = UsedList->Next;
-				(*j)->Next = c;
+				UsedList = UsedList->THEADCELL::Next;
+				(*j)->THEADCELL::Next = c;
 			}
 			return false;
 		}	
 		LPCELL *st = GetTable(), *dt = Dest.GetTable();
 		for(TINDEX k = 0, m = AllocCount; k < m; k++)
-			for(LPCELL i = st[k]; i != nullptr; i = i->Next)
+			for(LPCELL i = st[k]; i != nullptr; i = i->THEADCELL::Next)
 			{
 				if(UsedList == nullptr)
 				{
 					/*If used list == null, then for faster jump to cilcle without checkin*/
 					while(true)
 					{
-						for(; i != nullptr; i = i->Next)
+						for(; i != nullptr; i = i->THEADCELL::Next)
 						{
 							LPCELL n = FAST_ALLOC::New<CELL>();
 							CopyElement(*n, *i);
-							n->Next = dt[k];
+							n->THEADCELL::Next = dt[k];
 							dt[k] = n;
 						}
 						k++;
@@ -496,15 +496,15 @@ public:
 					goto lblOut;
 				}
 				LPCELL n = UsedList;
-				UsedList = UsedList->Next;
+				UsedList = UsedList->THEADCELL::Next;
 				CopyElement(*n, *i);
-				n->Next = dt[k];
+				n->THEADCELL::Next = dt[k];
 				dt[k] = n;
 			}
 		while(UsedList != nullptr)
 		{
 			LPCELL DelElem = UsedList;
-			UsedList = UsedList->Next;
+			UsedList = UsedList->THEADCELL::Next;
 			FAST_ALLOC::Delete(DelElem);
 		}
 lblOut:
@@ -613,7 +613,7 @@ lblSearchStart:
 	{
 		LPCELL *t = GetTable();
 		TINDEX s = TElementStruct::IndexByKey(SearchKey, AllocCount);
-		for(LPCELL i = t[s]; i != nullptr; i = i->Next)
+		for(LPCELL i = t[s]; i != nullptr; i = i->THEADCELL::Next)
 			if(i->CmpKey(SearchKey))
 			{
 				Interator.IsEnd.CurStartList = s;
@@ -627,13 +627,13 @@ lblSearchStart:
 	*/
 	REMOVE_POINTER RemoveByInterator(TINTER& Interator)
 	{
-		for(LPCELL *DelElem = GetTable() + Interator.IsEnd.CurStartList; *DelElem != nullptr; DelElem = &(*DelElem)->Next)
+		for(LPCELL *DelElem = GetTable() + Interator.IsEnd.CurStartList; *DelElem != nullptr; DelElem = &(*DelElem)->THEADCELL::Next)
 		{
 			if(*DelElem == Interator.IsEnd.CurElementInList)
 			{
 				Interate(Interator);
 				REMOVE_POINTER El2 = *DelElem;
-				*DelElem = El2.Val->Next;
+				*DelElem = El2.Val->THEADCELL::Next;
 				Count.count--;
 				return El2;
 			}
@@ -661,12 +661,12 @@ lblSearchStart:
 	TElementStruct* GetNextCellByKey(TKey SearchKey) const
 	{
 		const LPCELL *t = GetTable(), *i = ElementByKey(SearchKey);
-		for(LPCELL e = *i; e != nullptr; e = e->Next)
+		for(LPCELL e = *i; e != nullptr; e = e->THEADCELL::Next)
 		{
 			if(e->CmpKey(SearchKey))
 			{
-				if(e->Next != nullptr)
-					return e->Next;
+				if(e->THEADCELL::Next != nullptr)
+					return e->THEADCELL::Next;
 				i++;
 				for(const LPCELL *m = t + AllocCount; i < m; i++)
 					if(*i != nullptr) 
@@ -696,7 +696,7 @@ lblSearchStart:
 		for(LPCELL* c = GetTable(), *m = c + AllocCount; c < m; c++)
 		{
 			unsigned CountInCurIndex = 0;
-			for(LPCELL p = *c; p != nullptr; p = p->Next)
+			for(LPCELL p = *c; p != nullptr; p = p->THEADCELL::Next)
 				CountInCurIndex++;
 
 			Len2 = sprintf_s(Buffer, CurLen, "%u:%u,", CurIndex, CountInCurIndex);

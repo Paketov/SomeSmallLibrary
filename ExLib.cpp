@@ -2773,7 +2773,7 @@ int QUERY_URL::SendAndRecive(std::basic_string<char>& strQuery, std::basic_strin
 */
 
 
-#ifdef IS_HAVE_OPEN_SSL
+#ifdef HAVE_OPENSSL
 #include "ExQueryUrlOpenSSL.h"
 
 bool QUERY_URL_OPEN_SSL::EvntConnect()
