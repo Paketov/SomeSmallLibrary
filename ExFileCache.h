@@ -503,28 +503,21 @@ public:
 		if(r == nullptr)
 		{
 			AddFile(Path, CurTime);
-			Locker.UnlockWrite();
 		}else
 		{
 			r->UpdateStat(CurTime, this);
 			r->CountReaded++;
-			if(!BeforeRead(r, CurTime))
+			if(BeforeRead(r, CurTime))
 			{
-				Locker.UnlockWrite();
-				return false;
+				if(r->Buffer != nullptr)
+				{				
+					Interator.Set(r);
+					Locker.UnlockWrite();
+					return true;
+				}
 			}
-
-			if(r->Buffer == nullptr)
-			{
-				Locker.UnlockWrite();
-				return false;
-			}else
-			{
-				Interator.Set(r);
-				Locker.UnlockWrite();
-				return true;
-			}
-		}
+		}			
+		Locker.UnlockWrite();
 		return false;
 	}
 
