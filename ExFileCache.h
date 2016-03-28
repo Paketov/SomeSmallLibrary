@@ -15,7 +15,7 @@
 #undef max
 
 
-#if !defined(_DEBUG)
+#if defined(_DEBUG)
 #define CHECK_RATING_LIST \
 	if(!CheckRatingList()) { throw "Rating list has been corrupted!"; }
 #else
