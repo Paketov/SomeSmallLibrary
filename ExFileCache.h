@@ -29,14 +29,14 @@ void Cache(const char* Path, void* Buf, size_t SizeBuf, time_t LastModifTime)
 void Uncache(const char* Path, void* Buf, size_t SizeBuf, time_t LastModifTime)
 */
 
-struct DEFAULT_CACHE 
+struct DEFAULT_CACHE_DATA
 {
 	void Cache(const char* Path, void* Buf, size_t SizeBuf, time_t LastModifTime) const {}
 	void Recache(const char* Path, void* Buf, size_t SizeBuf, time_t LastModifTime) const {}
 	void Uncache(const char* Path, void* Buf, size_t SizeBuf, time_t LastModifTime) const {}
 };
 
-template<typename CACHE_INFO = DEFAULT_CACHE>
+template<typename CACHE_INFO = DEFAULT_CACHE_DATA>
 class FILE_CACHE
 {
 public:
@@ -572,6 +572,6 @@ public:
 };
 
 
-typedef FILE_CACHE<DEFAULT_CACHE> FILE_CACHE_DEFAULT;
+typedef FILE_CACHE<DEFAULT_CACHE_DATA> FILE_CACHE_DEFAULT;
 
 #endif
