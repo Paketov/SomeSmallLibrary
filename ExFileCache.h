@@ -232,7 +232,6 @@ public:
 		CACHED_FILE* CachedFile;
 		void Set(CACHED_FILE* n)
 		{
-			if(CachedFile != nullptr) CachedFile->Locker.UnlockRead(); 
 			CachedFile = n;
 			CachedFile->Locker.LockRead();
 		}
