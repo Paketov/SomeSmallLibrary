@@ -262,7 +262,7 @@ public:
 		size_t SizeBuf() const { return (CachedFile == nullptr)? 0: CachedFile->SizeFile; }
 		const char* Path() const { return (CachedFile == nullptr)? nullptr: CachedFile->Path; }
 		time_t LastModificate() const { return (CachedFile == nullptr)? 0: CachedFile->LastModifTime; }
-
+		CACHE_INFO* UserData() const { return CachedFile; }
 	};
 
 private:
