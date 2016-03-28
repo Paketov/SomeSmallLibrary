@@ -434,7 +434,7 @@ public:
 		while(UsedList != nullptr)
 		{
 			LPCELL* j = t + UsedList->IndexInBound(AllocCount), c = *j;
-			UsedList = (*j = UsedList)->Next;
+			UsedList = (*j = UsedList)->THEADCELL::Next;
 			(*j)->THEADCELL::Next = c;
 		}
 		return r;
