@@ -295,6 +295,8 @@ private:
 		}
 	}
 
+
+
 	bool AddFile(const char* Path, TIME_POINT CurTime)
 	{
 		struct stat s;
@@ -308,20 +310,18 @@ private:
 			auto t = RatingList.Next;
 			RemoveFile(t);
 
-			auto NewFileReg = InsertInTable(Path);
+			auto NewFileReg = InsertFile(Path);
 			if(NewFileReg == nullptr) return false;
 			NewFileReg->SizeFile = s.st_size;
 			NewFileReg->LastModifTime = s.st_mtime;
 			NewFileReg->LastTestTime = CurTime;
-			NewFileReg->AddInList(this);
 		}else
 		{
-			auto NewFileReg = InsertInTable(Path);
+			auto NewFileReg = InsertFile(Path);
 			if(NewFileReg == nullptr) return false;
 			NewFileReg->SizeFile = s.st_size;
 			NewFileReg->LastModifTime = s.st_mtime;
 			NewFileReg->LastTestTime = CurTime;
-			NewFileReg->AddInList(this);
 		}
 		CHECK_RATING_LIST;
 		return true;
@@ -397,6 +397,56 @@ private:
 		RemoveFromTable(CachFile);
 	}
 
+	CACHED_FILE* SearchFile(const char* Name)
+	{
+#ifdef _MSC_VER
+		size_t l = strlen(Name);
+		if(l < 256)
+		{
+			char Buf[256];
+			strncpy(Buf, Name, sizeof(Buf));
+			strlwr(Buf);
+			return Table.Search(Buf);
+		}
+		char* SearchStr = strdup(Name);
+		if(SearchStr == nullptr) return Table.Search(Name);
+		strlwr(SearchStr);
+		auto r = Table.Search(SearchStr);
+		free(SearchStr);
+		return r;
+#else
+		return Table.Search(Name);
+#endif
+	}
+
+	CACHED_FILE* InsertFile(const char* Name)
+	{
+#ifdef _MSC_VER
+		size_t l = strlen(Name);
+		if(l < 256)
+		{
+			char Buf[256];
+			strncpy(Buf, Name, sizeof(Buf) - 1);
+			strlwr(Buf);
+			auto NewFileReg = InsertInTable(Buf);
+			if(NewFileReg != nullptr) NewFileReg->AddInList(this);
+			return NewFileReg;
+		}
+		char* SearchStr = strdup(Name);
+		if(SearchStr == nullptr) return nullptr;
+		strlwr(SearchStr);
+		auto NewFileReg = InsertInTable(SearchStr);
+		if(NewFileReg != nullptr) NewFileReg->AddInList(this);
+		free(SearchStr);
+		return NewFileReg;
+#else
+		auto NewFileReg = InsertInTable(Name);
+		if(NewFileReg != nullptr) NewFileReg->AddInList(this);
+		return NewFileReg;
+#endif
+	}
+
+
 	void UpdateFileCached(CACHED_FILE* CachFile)
 	{
 		if(CachFile->Buffer == nullptr)
@@ -422,7 +472,6 @@ private:
 		}
 	}
 
-
 	bool CheckRatingList()
 	{
 		for(auto i = CachedListEnd; i != &RatingList; i = i->Next)
@@ -437,6 +486,8 @@ private:
 		}
 		return true;
 	}
+
+
 public:
 
 	FILE_CACHE()
@@ -497,7 +548,7 @@ public:
 	{
 		Interator.Release();
 		Locker.LockWriteYield();
-		auto r = Table.Search(Path);
+		auto r = SearchFile(Path);
 		TIME_POINT CurTime = TIME::now();
 		if(r == nullptr)
 		{
@@ -537,7 +588,7 @@ public:
 	void UpdateFile(const char* Path)
 	{
 		Locker.LockWriteYield();
-		auto r = Table.Search(Path);
+		auto r = SearchFile(Path);
 		if(r != nullptr)
 			UpdateFileCached(r);
 		CHECK_RATING_LIST;
@@ -559,7 +610,7 @@ public:
 	void Uncache(const char* Path)
 	{
 		Locker.LockWriteYield();
-		auto r = Table.Search(Path);
+		auto r = SearchFile(Path);
 		if(r != nullptr)
 		{
 			RemoveFile(r);

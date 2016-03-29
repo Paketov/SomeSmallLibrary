@@ -4375,14 +4375,14 @@ lblOut:
 
 
 int EX_HTTP::SendQuery
-	(
+(
 	QUERY_URL* QueryUrl,
 	const char* MethodStr, 
 	const char* Path, 
 	void* UsrData, 
 	bool (*HeadersEnumFunc)(void* UsrData, char ** Key, char ** Val),
 	const char* ProtoVersion 
-	)
+)
 {
 	std::basic_string<char> ResponseBuf = MethodStr;
 	ResponseBuf.append(" ", 1);
@@ -4403,14 +4403,14 @@ int EX_HTTP::SendQuery
 
 
 int EX_HTTP::SendQuery
-	(
+(
 	QUERY_URL* QueryUrl,
 	int TypeMethod, 
 	const char* Path, 
 	void* UsrData, 
 	bool (*HeadersEnumFunc)(void* UsrData, char ** Key, char ** Val),
 	const char* ProtoVersion
-	)
+)
 {
 	const char * StrMethod = GetMethodName(TypeMethod);
 	if(StrMethod[0] == '\0')
@@ -4420,14 +4420,14 @@ int EX_HTTP::SendQuery
 
 
 int EX_HTTP::SendResponse
-	(
+(
 	QUERY_URL* QueryUrl,
 	int Stat, 		
 	void* UsrData, 
 	bool (*HeadersEnumFunc)(void* UsrData, char ** Key, char ** Val),
 	const char* StatMsg, 
 	const char* ProtoVersion
-	)
+)
 {
 	if(StatMsg == nullptr)
 		StatMsg = GetMsgByStatus(Stat);
