@@ -712,5 +712,49 @@ namespace std
 
 	template<typename TypeInt>
 	inline TypeInt not_less_zero_val(TypeInt v) { return (v < 0)? 0: v; }
+
+
+
+
+};	
+
+/*
+* TYPE_VAL must have CountPointers field for counter;
+*/
+template<typename T>
+void SHARED_POINTERDeleteProc(T* p) { delete p; }
+
+template<typename TYPE_VAL, void (*DeleteProc)(TYPE_VAL*) = SHARED_POINTERDeleteProc>
+class SHARED_POINTER
+{
+	TYPE_VAL* p;
+
+	inline void Deinit()
+	{	
+		if(p == nullptr) return;
+		p->CountPointers--;
+		if(p->CountPointers <= 0) DeleteProc(p);
+	}
+public:
+	inline SHARED_POINTER(): p(nullptr) {};
+	inline SHARED_POINTER(TYPE_VAL* Pointer): p(Pointer) { if(p != nullptr) p->CountPointers++; }
+	inline SHARED_POINTER(const SHARED_POINTER& a): p(a.p) { if(p != nullptr) p->CountPointers++; }
+	inline ~SHARED_POINTER() { Deinit(); }
+	inline SHARED_POINTER& operator=(const SHARED_POINTER& a) 
+	{ 
+		Deinit();
+		p = a.p;
+		if(p != nullptr) p->CountPointers++;
+		return *this;
+	}
+
+	inline TYPE_VAL* operator->() const { return p; }
+	inline TYPE_VAL* Get() const { return p; }
+	inline bool operator ==(const SHARED_POINTER& Worker2) const { return p == Worker2.p; } 
+	inline bool operator !=(const SHARED_POINTER& Worker2) const { return p != Worker2.p; }
+	inline bool operator ==(decltype(nullptr) n) const { return p == nullptr; } 
+	inline bool operator !=(decltype(nullptr) n) const { return p != nullptr; } 
 };
+
+
 #endif

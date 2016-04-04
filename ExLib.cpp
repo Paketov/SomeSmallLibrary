@@ -3,7 +3,7 @@
 #include <typeinfo>
 #include "ExString.h"
 
-#ifndef WIN32
+#ifndef _MSC_VER
 #       include <cerrno>
 #       ifndef ANDROID
 #           include <iconv.h>
@@ -907,6 +907,40 @@ int StringDoubleToNumber(float* Number, const wchar_t* Str, size_t Len, unsigned
 int StringDoubleToNumber(long double* Number, const char* Str, size_t Len, unsigned char Radix) { return _d_StringToNumber<true, true>(Number, Str, Len, Radix); }
 int StringDoubleToNumber(long double* Number, const wchar_t* Str, size_t Len, unsigned char Radix) { return _d_StringToNumber<true, true>(Number, Str, Len, Radix); }
 
+
+
+char* UnixPathToSystemPath(const char* Path, char* Dest, size_t LenDest)
+{
+#ifdef _MSC_VER
+	if((Path[0] == '/') && ((Path[1] >= 'a') && (Path[1] <= 'z') || (Path[1] >= 'A') && (Path[1] <= 'Z')) && ((Path[2] == '/') || (Path[2] == '\0')))
+	{
+		if(Path[2] == '/')
+			sprintf_s(Dest, LenDest, "%c:%s", Path[1], Path + 2);
+		else 
+			sprintf_s(Dest, LenDest, "%c:\\", Path[1]);
+	}else
+		strncpy(Dest, Path, LenDest);
+	for(char* r; (r = strchr(Dest, '/')) != nullptr; ) *r = '\\';
+#else
+	strncpy(Dest, Path, LenDest);
+#endif
+	return Dest;
+}
+
+
+char* SystemPathToUnixPath(const char* Path, char* Dest, size_t LenDest)
+{
+#ifdef _MSC_VER
+	if(((Path[0] >= 'a') && (Path[0] <= 'z') || (Path[0] >= 'A') && (Path[0] <= 'Z')) && (Path[1] == ':'))
+		sprintf_s(Dest, LenDest, "/%c%s", Path[0], Path + 2);
+	else
+		strncpy(Dest, Path, LenDest);
+	for(char* r; (r = strchr(Dest, '\\')) != nullptr; ) *r = '//';
+#else
+	strncpy(Dest, Path, LenDest);
+#endif
+	return Dest;
+}
 
 
 /*
@@ -3440,18 +3474,18 @@ int StrToTm(const char* Str, tm* Result)
 			OutTm.tm_wday = i;
 			break;
 		}
-		if(OutTm.tm_wday == -1) return -1;
-		for(unsigned i = 0; i < (sizeof(Months) / sizeof(Months[0])); i++)
-			if(*(uint32_t*)MonthName == *(uint32_t*)(Months[i]))
-			{
-				OutTm.tm_mon = i;
-				break;
-			}
-			if(OutTm.tm_mon == -1) return -1;
-			OutTm.tm_isdst = -1;
-			OutTm.tm_yday = -1;
-			*Result = OutTm;
-			return n;
+	if(OutTm.tm_wday == -1) return -1;
+	for(unsigned i = 0; i < (sizeof(Months) / sizeof(Months[0])); i++)
+		if(*(uint32_t*)MonthName == *(uint32_t*)(Months[i]))
+		{
+			OutTm.tm_mon = i;
+			break;
+		}
+	if(OutTm.tm_mon == -1) return -1;
+	OutTm.tm_isdst = -1;
+	OutTm.tm_yday = -1;
+	*Result = OutTm;
+	return n;
 }
 
 
@@ -3993,20 +4027,20 @@ bool EX_HTTP::ReadGMTTime(const char * TimeStr, tm& OutTm)
 			OutTm.tm_wday = i;
 			break;
 		}
-		if(OutTm.tm_wday == -1)
-			return false;
-		OutTm.tm_mon = -1;
-		for(unsigned i = 0;i < std::countof(Months);i++)
-			if(*(unsigned*)MonthName == *(unsigned*)(Months[i]))
-			{
-				OutTm.tm_mon = i;
-				break;
-			}	
-			if(OutTm.tm_mon == -1)
-				return false;
-			OutTm.tm_isdst = -1;
-			OutTm.tm_yday = -1;
-			return true;
+	if(OutTm.tm_wday == -1)
+		return false;
+	OutTm.tm_mon = -1;
+	for(unsigned i = 0;i < std::countof(Months);i++)
+		if(*(unsigned*)MonthName == *(unsigned*)(Months[i]))
+		{
+			OutTm.tm_mon = i;
+			break;
+		}	
+	if(OutTm.tm_mon == -1)
+		return false;
+	OutTm.tm_isdst = -1;
+	OutTm.tm_yday = -1;
+	return true;
 }
 
 

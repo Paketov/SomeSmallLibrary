@@ -295,8 +295,6 @@ private:
 		}
 	}
 
-
-
 	bool AddFile(const char* Path, TIME_POINT CurTime)
 	{
 		struct stat s;
@@ -426,7 +424,7 @@ private:
 		if(l < 256)
 		{
 			char Buf[256];
-			strncpy(Buf, Name, sizeof(Buf) - 1);
+			strncpy(Buf, Name, sizeof(Buf));
 			strlwr(Buf);
 			auto NewFileReg = InsertInTable(Buf);
 			if(NewFileReg != nullptr) NewFileReg->AddInList(this);

@@ -681,15 +681,15 @@ public:
 				class{
 					__INTERATOR_FIELDS__;
 				public:
-					inline operator decltype(std::declval<pollfd>().revents)() const { return This->Count.pfd[Index].revents; }
+					inline operator short() const { return This->Count.pfd[Index].revents; }
 				} ReturnedEvents;
 
 				class {
 					__INTERATOR_FIELDS__;
 				public:
-					inline operator decltype(std::declval<pollfd>().events)() const { return This->Count.pfd[Index].events; }
+					inline operator short() const { return This->Count.pfd[Index].events; }
 
-					inline decltype(std::declval<pollfd>().events) operator=(decltype(std::declval<pollfd>().events) v)
+					inline short operator=(short v)
 					{
 						return This->Count.pfd[Index].events = v;
 					}

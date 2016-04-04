@@ -330,4 +330,7 @@ inline bool IsLatter(char c) { return isalpha(c) != 0; }
 bool IsSpace(char c);
 bool IsSpace(wchar_t c);
 
+char* UnixPathToSystemPath(const char* Path, char* Dest, size_t LenDest);
+char* SystemPathToUnixPath(const char* Path, char* Dest, size_t LenDest);
+
 #endif
