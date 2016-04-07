@@ -52,8 +52,8 @@ class EX_WND__
 			s.resize(Length);
 			GetWindowTextA(hWnd, (LPSTR)s.c_str(), Length + 1);
 		}
-		inline int get_str_len() { return GetWindowTextLength(hWnd)}
-		inline size_t get_str(char* Buffer, size_t Len) { return GetWindowTextA(hWnd, Buffer, Len);	 }
+		inline int get_str_len() { return GetWindowTextLength(hWnd) }
+		inline size_t get_str(char* Buffer, size_t Len) { return GetWindowTextA(hWnd, Buffer, Len); }
 		inline size_t get_str(wchar_t* Buffer, size_t Len) { return GetWindowTextW(hWnd, Buffer, Len); }
 		inline void set_str(char* Buffer) { SetWindowTextA(hWnd, Buffer); }
 		inline void set_str(wchar_t* Buffer) { SetWindowTextW(hWnd, Buffer); }
@@ -72,8 +72,8 @@ class EX_WND__
 			{
 				k = (k | 0xff) + 1;
 				Str.resize(k);
-				GetClassNameW(hWnd,(LPWSTR)Str.c_str(), k);
-			}while((l = wcslen(Str.c_str())) >= (k - 3));
+				GetClassNameW(hWnd, (LPWSTR)Str.c_str(), k);
+			} while((l = wcslen(Str.c_str())) >= (k - 3));
 			Str.resize(l);
 		}
 
@@ -84,12 +84,12 @@ class EX_WND__
 			{
 				k = (k | 0xff) + 1;
 				Str.resize(k);
-				GetClassNameA(hWnd,(LPSTR)Str.c_str(), k);
-			}while((l = strlen(Str.c_str())) >= (k - 3));
+				GetClassNameA(hWnd, (LPSTR)Str.c_str(), k);
+			} while((l = strlen(Str.c_str())) >= (k - 3));
 			Str.resize(l);
 		}
-		inline int get_str_len() { std::string k; get_stl_str(k); return k.length();}
-		inline size_t get_str(char* Buffer, size_t Len) { return GetClassNameA(hWnd, Buffer, Len);	 }
+		inline int get_str_len() { std::string k; get_stl_str(k); return k.length(); }
+		inline size_t get_str(char* Buffer, size_t Len) { return GetClassNameA(hWnd, Buffer, Len); }
 		inline size_t get_str(wchar_t* Buffer, size_t Len) { return GetClassNameW(hWnd, Buffer, Len); }
 	};
 public:
@@ -112,15 +112,15 @@ public:
 		class
 		{
 			friend __TEXT_PROPERTY_SET_GET;
-			BaseType v; 
+			BaseType v;
 		public:
-			inline operator int() { return v.get_str_len();}
+			inline operator int() { return v.get_str_len(); }
 		} Length;
 		operator std::basic_string<WCHAR>() { std::basic_string<WCHAR> s; Length.v.get_stl_str(s); return s; }
 		operator std::basic_string<CHAR>() { std::basic_string<CHAR> s; Length.v.get_stl_str(s); return s; }
-		operator int() { char s[40] = {0}; Length.v.get_str(s, 39); return atoi(s);}
-		operator unsigned() { char s[40] = {0}; Length.v.get_str(s, 39); unsigned r = 0; sscanf(s, "%u", &r); return r;}
-		inline size_t operator()(LPWSTR Buffer, size_t Len = 0x0fffffff) { return Length.v.get_str(Buffer, Len);}
+		operator int() { char s[40] = {0}; Length.v.get_str(s, 39); return atoi(s); }
+		operator unsigned() { char s[40] = {0}; Length.v.get_str(s, 39); unsigned r = 0; sscanf(s, "%u", &r); return r; }
+		inline size_t operator()(LPWSTR Buffer, size_t Len = 0x0fffffff) { return Length.v.get_str(Buffer, Len); }
 		inline size_t operator()(LPSTR Buffer, size_t Len = 0x0fffffff) { return Length.v.get_str(Buffer, Len); }
 		inline std::basic_string<WCHAR> & operator=(const std::basic_string<WCHAR> & Str) { Length.v.set_str((LPWSTR)Str.c_str()); return (std::basic_string<WCHAR>&)Str; }
 		inline std::basic_string<CHAR> & operator=(const std::basic_string<CHAR> & Str) { Length.v.set_str((LPSTR)Str.c_str()); return (std::basic_string<CHAR>&)Str; }
@@ -130,20 +130,20 @@ public:
 		unsigned operator=(unsigned Val) { char s[40]; sprintf(s, "%u", Val); operator=(s); return Val; }
 		inline bool operator==(const std::basic_string<WCHAR> & Str2) { return operator std::basic_string<WCHAR>() == Str2; }
 		inline bool operator==(const std::basic_string<CHAR> & Str2) { return operator std::basic_string<CHAR>() == Str2; }
-		inline bool operator==(LPCWSTR Str2) { return operator std::basic_string<WCHAR>() == Str2;}
-		inline bool operator==(LPCSTR Str2) { return operator std::basic_string<CHAR>() == Str2;}
+		inline bool operator==(LPCWSTR Str2) { return operator std::basic_string<WCHAR>() == Str2; }
+		inline bool operator==(LPCSTR Str2) { return operator std::basic_string<CHAR>() == Str2; }
 		template<class T>
-		inline bool operator!=(T Val) { return !operator==(Val);}
-		inline bool operator>(unsigned Val) { return (unsigned)*this > Val;}
-		inline bool operator<(unsigned Val) { return operator unsigned() < Val;}
-		inline bool operator>=(unsigned Val) { return operator unsigned() > Val;}
-		inline bool operator<=(unsigned Val) { return operator unsigned() < Val;}
-		inline bool operator>(int Val) { return operator int() > Val;}
-		inline bool operator<(int Val) { return operator int() < Val;}
-		inline bool operator>=(int Val) { return operator int() > Val;}
-		inline bool operator<=(int Val) { return operator int() < Val;}
-		inline bool operator==(int Val) { return operator int() == Val;}
-		inline bool operator==(unsigned Val) {return operator int() == Val;}
+		inline bool operator!=(T Val) { return !operator==(Val); }
+		inline bool operator>(unsigned Val) { return (unsigned)*this > Val; }
+		inline bool operator<(unsigned Val) { return operator unsigned() < Val; }
+		inline bool operator>=(unsigned Val) { return operator unsigned() > Val; }
+		inline bool operator<=(unsigned Val) { return operator unsigned() < Val; }
+		inline bool operator>(int Val) { return operator int() > Val; }
+		inline bool operator<(int Val) { return operator int() < Val; }
+		inline bool operator>=(int Val) { return operator int() > Val; }
+		inline bool operator<=(int Val) { return operator int() < Val; }
+		inline bool operator==(int Val) { return operator int() == Val; }
+		inline bool operator==(unsigned Val) { return operator int() == Val; }
 	};
 
 	template<class BaseType>
@@ -162,36 +162,36 @@ public:
 		class
 		{
 			friend __TEXT_PROPERTY_GET;
-			BaseType v; 
+			BaseType v;
 		public:
-			inline operator int() { return v.get_str_len();}
+			inline operator int() { return v.get_str_len(); }
 		} Length;
 		operator std::basic_string<WCHAR>() { std::basic_string<WCHAR> s; Length.v.get_stl_str(s); return s; }
 		operator std::basic_string<CHAR>() { std::basic_string<CHAR> s; Length.v.get_stl_str(s); return s; }
-		operator int() { char s[40] = {0}; Length.v.get_str(s, 39); return atoi(s);}
-		operator unsigned() { char s[40] = {0}; Length.v.get_str(s, 39); unsigned r = 0; sscanf(s, "%u", &r); return r;}
-		inline size_t operator()(LPWSTR Buffer, size_t Len = 0x0fffffff) { return Length.v.get_str(Buffer, Len);}
+		operator int() { char s[40] = {0}; Length.v.get_str(s, 39); return atoi(s); }
+		operator unsigned() { char s[40] = {0}; Length.v.get_str(s, 39); unsigned r = 0; sscanf(s, "%u", &r); return r; }
+		inline size_t operator()(LPWSTR Buffer, size_t Len = 0x0fffffff) { return Length.v.get_str(Buffer, Len); }
 		inline size_t operator()(LPSTR Buffer, size_t Len = 0x0fffffff) { return Length.v.get_str(Buffer, Len); }
 		inline bool operator==(const std::basic_string<WCHAR> & Str2) { return operator std::basic_string<WCHAR>() == Str2; }
 		inline bool operator==(const std::basic_string<CHAR> & Str2) { return operator std::basic_string<CHAR>() == Str2; }
-		inline bool operator==(LPCWSTR Str2) { return operator std::basic_string<WCHAR>() == Str2;}
-		inline bool operator==(LPCSTR Str2) { return operator std::basic_string<CHAR>() == Str2;}
+		inline bool operator==(LPCWSTR Str2) { return operator std::basic_string<WCHAR>() == Str2; }
+		inline bool operator==(LPCSTR Str2) { return operator std::basic_string<CHAR>() == Str2; }
 		template<class T>
-		inline bool operator!=(T Val) { return !operator==(Val);}
-		inline bool operator>(unsigned Val) { return (unsigned)*this > Val;}
-		inline bool operator<(unsigned Val) { return operator unsigned() < Val;}
-		inline bool operator>=(unsigned Val) { return operator unsigned() > Val;}
-		inline bool operator<=(unsigned Val) { return operator unsigned() < Val;}
-		inline bool operator>(int Val) { return operator int() > Val;}
-		inline bool operator<(int Val) { return operator int() < Val;}
-		inline bool operator>=(int Val) { return operator int() > Val;}
-		inline bool operator<=(int Val) { return operator int() < Val;}
-		inline bool operator==(int Val) { return operator int() == Val;}
-		inline bool operator==(unsigned Val) {return operator int() == Val;}
+		inline bool operator!=(T Val) { return !operator==(Val); }
+		inline bool operator>(unsigned Val) { return (unsigned)*this > Val; }
+		inline bool operator<(unsigned Val) { return operator unsigned() < Val; }
+		inline bool operator>=(unsigned Val) { return operator unsigned() > Val; }
+		inline bool operator<=(unsigned Val) { return operator unsigned() < Val; }
+		inline bool operator>(int Val) { return operator int() > Val; }
+		inline bool operator<(int Val) { return operator int() < Val; }
+		inline bool operator>=(int Val) { return operator int() > Val; }
+		inline bool operator<=(int Val) { return operator int() < Val; }
+		inline bool operator==(int Val) { return operator int() == Val; }
+		inline bool operator==(unsigned Val) { return operator int() == Val; }
 	};
 
 	union
-	{	
+	{
 		HWND hWnd;
 
 		/*
@@ -204,7 +204,8 @@ public:
 		*int; Set, Get;
 		*Sets a new identifier of the child window. The window cannot be a top-level window.
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator int() const { return ::GetDlgCtrlID(hWnd); }
@@ -216,13 +217,14 @@ public:
 		*BOOL; Set, Get;
 		*Enables or disables mouse and keyboard input to the specified window or control.
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			operator BOOL() const { return ::IsWindowEnabled(hWnd); }
 
-			BOOL operator=(BOOL isEnable) 
-			{ 
+			BOOL operator=(BOOL isEnable)
+			{
 				::EnableWindow(hWnd, isEnable);
 				return isEnable;
 			}
@@ -232,7 +234,8 @@ public:
 		*WNDPROC; Set, Get;
 		*Sets a new address for the window procedure.
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator WNDPROC() const { return (WNDPROC)GetWindowLongPtrW(hWnd, GWLP_WNDPROC); }
@@ -246,21 +249,23 @@ public:
 		*WNDPROC; Set, Get;
 		*Sets a new address for the window procedure.
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator WNDPROC() const { return (WNDPROC)GetWindowLongPtrA(hWnd, GWLP_WNDPROC); }
 
 			inline WNDPROC operator=(WNDPROC NewProc) { return (WNDPROC)SetWindowLongPtrA(hWnd, GWLP_WNDPROC, (LONG_PTR)NewProc); }
 
-			inline LRESULT CALLBACK operator()(UINT Msg, WPARAM wParam, LPARAM lParam) { return ::SendMessageA(hWnd, Msg,wParam, lParam); }
+			inline LRESULT CALLBACK operator()(UINT Msg, WPARAM wParam, LPARAM lParam) { return ::SendMessageA(hWnd, Msg, wParam, lParam); }
 		} WndProcA;
 
 		/*
 		*<variant 4 or 8 bytes>; Set, Get;
 		*Sets the user data associated with the window.
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			template<class T>
@@ -275,10 +280,11 @@ public:
 
 		/*
 		*LONG_PTR; Set, Get;
-		*Sets a new extended window style. 
+		*Sets a new extended window style.
 		*WS_EX_ ...
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator LONG_PTR() const { return GetWindowLongPtr(hWnd, GWL_EXSTYLE); }
@@ -298,14 +304,15 @@ public:
 				operator=(lp);
 				return lp;
 			}
-		} ExStyle;	
+		} ExStyle;
 
 		/*
 		*LONG_PTR; Set, Get;
 		*Sets a new window style.
 		* WS_ ...
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator LONG_PTR() const { return GetWindowLongPtr(hWnd, GWL_STYLE); }
@@ -331,7 +338,8 @@ public:
 		*HINSTANCE; Set, Get;
 		*Sets a new application instance handle.
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator HINSTANCE() const { return (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE); }
@@ -341,7 +349,7 @@ public:
 
 		/*
 		*std::string, LPWSTR, LPSTR; Get;
-		*Retrieves the name of the class to which the specified window belongs. 
+		*Retrieves the name of the class to which the specified window belongs.
 		*/
 		__TEXT_PROPERTY_GET<__HWND_NAME_CLASS> NameClass;
 
@@ -349,24 +357,25 @@ public:
 		*WNDCLASS, WNDCLASSEX; Get;
 		*Retrieves information about a window class, including a handle to the small icon associated with the window class.
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 
 			inline operator WNDCLASSW()
-			{		
+			{
 				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
 				WNDCLASSW WndClass = {0};
-				GetClassInfoW(((EX_WND*)this)->Instance,Name.c_str(),&WndClass);
+				GetClassInfoW(((EX_WND*)this)->Instance, Name.c_str(), &WndClass);
 				WndClass.lpszClassName = nullptr;
 				return WndClass;
 			}
 
 			inline operator WNDCLASSA()
-			{		
+			{
 				std::basic_string<CHAR> Name = ((EX_WND*)this)->NameClass;
 				WNDCLASSA WndClass = {0};
-				GetClassInfoA(((EX_WND*)this)->Instance,Name.c_str(),&WndClass);
+				GetClassInfoA(((EX_WND*)this)->Instance, Name.c_str(), &WndClass);
 				WndClass.lpszClassName = nullptr;
 				return WndClass;
 			}
@@ -376,7 +385,7 @@ public:
 				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
 				WNDCLASSEXW WndClass = {0};
 				WndClass.cbSize = sizeof(WndClass);
-				GetClassInfoExW(((EX_WND*)this)->Instance, Name.c_str(),&WndClass);
+				GetClassInfoExW(((EX_WND*)this)->Instance, Name.c_str(), &WndClass);
 				WndClass.lpszClassName = nullptr;
 				return WndClass;
 			}
@@ -386,13 +395,13 @@ public:
 				std::basic_string<CHAR> Name = ((EX_WND*)this)->NameClass;
 				WNDCLASSEXA WndClass = {0};
 				WndClass.cbSize = sizeof(WndClass);
-				GetClassInfoExA(((EX_WND*)this)->Instance, Name.c_str(),&WndClass);
+				GetClassInfoExA(((EX_WND*)this)->Instance, Name.c_str(), &WndClass);
 				WndClass.lpszClassName = nullptr;
 				return WndClass;
 			}
 
 			inline bool operator()(LPWNDCLASSW lpWndClass)
-			{		
+			{
 				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
 				bool r = GetClassInfoW(((EX_WND*)this)->Instance, Name.c_str(), lpWndClass) != 0;
 				lpWndClass->lpszClassName = nullptr;
@@ -400,25 +409,25 @@ public:
 			}
 
 			inline bool operator()(LPWNDCLASSA lpWndClass)
-			{		
+			{
 				std::basic_string<CHAR> Name = ((EX_WND*)this)->NameClass;
-				bool r = GetClassInfoA(((EX_WND*)this)->Instance,Name.c_str(), lpWndClass) != 0;
+				bool r = GetClassInfoA(((EX_WND*)this)->Instance, Name.c_str(), lpWndClass) != 0;
 				lpWndClass->lpszClassName = nullptr;
 				return r;
 			}
 
 			inline bool operator()(LPWNDCLASSEXW lpWndClass)
-			{		
+			{
 				std::basic_string<WCHAR> Name = ((EX_WND*)this)->NameClass;
-				bool r = GetClassInfoExW(((EX_WND*)this)->Instance,Name.c_str(), lpWndClass) != 0;
+				bool r = GetClassInfoExW(((EX_WND*)this)->Instance, Name.c_str(), lpWndClass) != 0;
 				lpWndClass->lpszClassName = nullptr;
 				return r;
 			}
 
 			inline bool operator()(LPWNDCLASSEXA lpWndClass)
-			{		
+			{
 				std::basic_string<CHAR> Name = ((EX_WND*)this)->NameClass;
-				bool r = GetClassInfoExA(((EX_WND*)this)->Instance,Name.c_str(), lpWndClass) != 0;
+				bool r = GetClassInfoExA(((EX_WND*)this)->Instance, Name.c_str(), lpWndClass) != 0;
 				lpWndClass->lpszClassName = nullptr;
 				return r;
 			}
@@ -428,7 +437,8 @@ public:
 		*HDC; Get;
 		*Retrieves a handle to a device context (DC) for the client area of a specified window or for the entire screen.
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator HDC() const { return ::GetDC(hWnd); }
@@ -436,9 +446,10 @@ public:
 
 		/*
 		*EX_WND__, HWND; Get, Set;
-		*Changes the parent window of the specified child window. 
+		*Changes the parent window of the specified child window.
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 
@@ -455,9 +466,10 @@ public:
 
 		/*
 		*bool; Get;
-		*Determines whether the specified window handle identifies an existing window. 
+		*Determines whether the specified window handle identifies an existing window.
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator bool() const { return ::IsWindow(hWnd) != 0; }
@@ -465,9 +477,10 @@ public:
 
 		/*
 		*bool; Get;
-		*Determines the visibility state of the specified window. 
+		*Determines the visibility state of the specified window.
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator bool() const { return ::IsWindowVisible(hWnd); }
@@ -475,9 +488,10 @@ public:
 
 		/*
 		*bool; Get;
-		*Determines whether the specified window is a native Unicode window. 
+		*Determines whether the specified window is a native Unicode window.
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator bool() const { return ::IsWindowUnicode(hWnd); }
@@ -487,7 +501,8 @@ public:
 		*bool; Get;
 		*Determines whether the specified window is minimized (iconic).
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator bool() const { return ::IsIconic(hWnd); }
@@ -500,22 +515,24 @@ public:
 		//WND_COMBO__ AsCombo;
 
 
-		class {
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator LONG() const
-			{		
+			{
 				RECT Rect;
 				::GetClientRect(hWnd, &Rect);
 				return Rect.right - Rect.left;
 			}
 		} ClientWidth;
 
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator LONG() const
-			{		
+			{
 				RECT Rect;
 				::GetClientRect(hWnd, &Rect);
 				return Rect.bottom - Rect.top;
@@ -526,7 +543,8 @@ public:
 		*long; Get, Set;
 		*Set or get window width.
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			operator long() const
@@ -547,7 +565,8 @@ public:
 		*long; Get, Set;
 		*Set or get window height.
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator long() const
@@ -564,7 +583,8 @@ public:
 			}
 		} Height;
 
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			operator LONG() const
@@ -582,7 +602,8 @@ public:
 			}
 		} Left;
 
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			operator LONG() const
@@ -600,7 +621,8 @@ public:
 			}
 		} Top;
 
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator LONG() const
@@ -621,7 +643,8 @@ public:
 			}
 		} Right;
 
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator LONG() const
@@ -642,7 +665,8 @@ public:
 			}
 		} Bottom;
 
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator RECT() const
@@ -686,7 +710,8 @@ public:
 			}
 		} Rectangle;
 
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator RECT() const
@@ -731,7 +756,8 @@ public:
 			}
 		} RectangleRelScreen;
 
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator RECT() const
@@ -773,14 +799,15 @@ public:
 		*HFONT; Get, Set;
 		*Set or get current font of window.
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
 		public:
 			/*
 			Use CreateFont for set new font.
-			Example: 
-			CreateFont (14, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, ANSI_CHARSET, 
-			OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
+			Example:
+			CreateFont (14, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, ANSI_CHARSET,
+			OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 			DEFAULT_PITCH | FF_SWISS, L"Times New Roman");
 			*/
 			inline operator HFONT() const
@@ -800,9 +827,10 @@ public:
 		*HMENU; Get, Set;
 		*Set or get current menu of window.
 		*/
-		class{
+		class
+		{
 			HWND hWnd;
-		public:			
+		public:
 			inline operator HMENU() const
 			{
 				//use CreateMenu
@@ -826,7 +854,7 @@ public:
 		public:
 			/*
 			@RgnDest - region for copy. use CreateRectRgn
-			@return 
+			@return
 			NULLREGION
 			SIMPLEREGION
 			COMPLEXREGION
@@ -844,7 +872,7 @@ public:
 
 	inline operator HWND() const { return hWnd; }
 
-	inline EX_WND__() {	hWnd = NULL; }
+	inline EX_WND__() { hWnd = NULL; }
 
 	inline EX_WND__(HWND nhWnd) { hWnd = nhWnd; }
 
@@ -855,7 +883,8 @@ public:
 	inline bool operator !() { return hWnd == NULL; }
 
 private:
-	class _FOR_GET_ADDRESS {
+	class _FOR_GET_ADDRESS
+	{
 		HWND hWnd;
 	public:
 		inline operator HWND*() { return &hWnd; }
@@ -874,11 +903,11 @@ public:
 
 	inline bool operator!=(EX_WND__ Wnd) const { return Wnd.hWnd != hWnd; }
 
-	inline EX_WND__ operator[](int nIDDlgItem)  { return GetDlgItem(hWnd, nIDDlgItem); }
+	inline EX_WND__ operator[](int nIDDlgItem) { return GetDlgItem(hWnd, nIDDlgItem); }
 
 	inline bool BringToTop() { return BringWindowToTop(hWnd) != FALSE; }
 
-	inline bool Show(int nCmdShow = SW_SHOW) { return ShowWindow(hWnd,nCmdShow) != FALSE; }
+	inline bool Show(int nCmdShow = SW_SHOW) { return ShowWindow(hWnd, nCmdShow) != FALSE; }
 
 	inline bool Update() { return UpdateWindow(hWnd) != FALSE; }
 
@@ -894,8 +923,8 @@ public:
 
 	static inline EX_WND__ GetFocus() { return (EX_WND__)::GetFocus(); }
 
-	static inline EX_WND CreateDlg(int IdRes, DLGPROC WindowProc, HINSTANCE ProcessHandler = NULL, HWND ParentWindowHandler = NULL) 
-	{ 
+	static inline EX_WND CreateDlg(int IdRes, DLGPROC WindowProc, HINSTANCE ProcessHandler = NULL, HWND ParentWindowHandler = NULL)
+	{
 		return CreateDialog(ProcessHandler, MAKEINTRESOURCE(IdRes), ParentWindowHandler, WindowProc);
 	}
 
@@ -911,18 +940,18 @@ public:
 
 	static void EnterMainLoop()
 	{
-		for (MSG msg; GetMessage(&msg, NULL, NULL, NULL);) 
-		{  
-			TranslateMessage(&msg); 
+		for(MSG msg; GetMessage(&msg, NULL, NULL, NULL);)
+		{
+			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
 	}
 
 	static void EnterMainLoop(DLGPROC ProcForInterceptKeys)
 	{
-		for (MSG msg; GetMessage(&msg, NULL, NULL, NULL);) 
-		{  
-			TranslateMessage(&msg); 
+		for(MSG msg; GetMessage(&msg, NULL, NULL, NULL);)
+		{
+			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 			if((msg.message == WM_KEYDOWN) || (msg.message == WM_KEYUP))
 				ProcForInterceptKeys(msg.hwnd, msg.message, msg.wParam, msg.lParam);
@@ -931,15 +960,15 @@ public:
 
 
 	/////////
-	inline bool ShowContextMenu(HMENU hMenu, UINT Flags = TPM_LEFTALIGN|TPM_TOPALIGN|TPM_LEFTBUTTON|TPM_RETURNCMD|TPM_NONOTIFY)
+	inline bool ShowContextMenu(HMENU hMenu, UINT Flags = TPM_LEFTALIGN | TPM_TOPALIGN | TPM_LEFTBUTTON | TPM_RETURNCMD | TPM_NONOTIFY)
 	{
 		//Use CreatePopupMenu for creating menu
 		POINT Poi;
 		GetCursorPos(&Poi);
-		return TrackPopupMenu(hMenu, Flags, Poi.x, Poi.y , 0, hWnd, NULL) != FALSE;
+		return TrackPopupMenu(hMenu, Flags, Poi.x, Poi.y, 0, hWnd, NULL) != FALSE;
 	}
 
-	inline bool ShowContextMenu(HMENU hMenu,  UINT Flags, int x, int y) { return TrackPopupMenu(hMenu, Flags, x, y, 0, hWnd, NULL) != FALSE; }
+	inline bool ShowContextMenu(HMENU hMenu, UINT Flags, int x, int y) { return TrackPopupMenu(hMenu, Flags, x, y, 0, hWnd, NULL) != FALSE; }
 
 	static inline EX_WND__ ByPoint(LPPOINT Point) { return  (EX_WND__)::WindowFromPoint(*Point); }
 
@@ -951,7 +980,7 @@ public:
 	inline bool Close() { return ::CloseWindow(hWnd) != FALSE; }
 
 	/*Destroys window. */
-	inline bool Destroy() { return ::DestroyWindow(hWnd) != FALSE;  }
+	inline bool Destroy() { return ::DestroyWindow(hWnd) != FALSE; }
 
 	/*The CreateCompatibleDC function creates a memory device context (DC) compatible with the window.*/
 	inline HDC CreateCompatibleDC() { return ::CreateCompatibleDC(::GetDC(hWnd)); }
@@ -967,10 +996,10 @@ public:
 	inline bool EndDialog(INT_PTR Result = 0) { return ::EndDialog(hWnd, Result) != FALSE; }
 
 	/*Creates a timer with the specified time-out value.*/
-	inline UINT_PTR SetTimer(UINT Time, UINT_PTR nIDEvent = NULL, TIMERPROC tp = NULL) { return ::SetTimer(hWnd,nIDEvent,Time,tp); }
+	inline UINT_PTR SetTimer(UINT Time, UINT_PTR nIDEvent = NULL, TIMERPROC tp = NULL) { return ::SetTimer(hWnd, nIDEvent, Time, tp); }
 
 	/*Destroys the specified timer.*/
-	inline BOOL KillTimer(UINT_PTR nIDEvent = NULL) { return ::KillTimer(hWnd,nIDEvent); }
+	inline BOOL KillTimer(UINT_PTR nIDEvent = NULL) { return ::KillTimer(hWnd, nIDEvent); }
 
 	inline void SwitchToThisWindow(BOOL fAltTab = FALSE) { return ::SwitchToThisWindow(hWnd, fAltTab); }
 
@@ -982,7 +1011,7 @@ private:
 		HWND * Buf;
 	} FOR_ENUM_WINDOWS;
 
-	static BOOL CALLBACK EnumChildProc(HWND hwnd,LPARAM lParam)
+	static BOOL CALLBACK EnumChildProc(HWND hwnd, LPARAM lParam)
 	{
 		FOR_ENUM_WINDOWS * arg = (FOR_ENUM_WINDOWS *)lParam;
 		if(arg->CurElement < arg->MaxElements)
@@ -1018,7 +1047,7 @@ public:
 
 #ifdef USE_WONDER_CONTROLS
 template<bool l>
-bool EX_WND__<l>::___g = ([](){InitCommonControls(); return true;})(); 
+bool EX_WND__<l>::___g = ([]() { InitCommonControls(); return true; })();
 #endif
 
 #define EX_WND_FIELD_AND_METHODS \
@@ -1109,9 +1138,9 @@ class WND_COMBO__
 
 		inline size_t get_str(char* Buffer, size_t Len) { return (int)SendMessageA(hWnd, CB_GETLBTEXT, (WPARAM)Index, (LPARAM)Buffer); }
 
-		inline size_t get_str(wchar_t* Buffer, size_t Len) { return (int)SendMessageW(hWnd, CB_GETLBTEXT, (WPARAM)Index, (LPARAM)Buffer);}
+		inline size_t get_str(wchar_t* Buffer, size_t Len) { return (int)SendMessageW(hWnd, CB_GETLBTEXT, (WPARAM)Index, (LPARAM)Buffer); }
 
-		void set_str(char* Str) 
+		void set_str(char* Str)
 		{
 			auto Data = ComboBox_GetItemData(hWnd, Index);
 			ComboBox_DeleteString(hWnd, Index);
@@ -1119,8 +1148,8 @@ class WND_COMBO__
 			ComboBox_SetItemData(hWnd, Index, Data);
 		}
 
-		void set_str(wchar_t* Str) 
-		{ 
+		void set_str(wchar_t* Str)
+		{
 			auto Data = ComboBox_GetItemData(hWnd, Index);
 			ComboBox_DeleteString(hWnd, Index);
 			Index = SendMessageW(hWnd, CB_INSERTSTRING, (WPARAM)Index, (LPARAM)Str);
@@ -1142,7 +1171,7 @@ public:
 
 			EX_WND::__TEXT_PROPERTY_SET_GET<__ELEMENT_TEXT> Text;
 
-			class 
+			class
 			{
 				HWND hWnd;
 				int Index;
@@ -1151,7 +1180,7 @@ public:
 				operator T() const { return (T)ComboBox_GetItemData(hWnd, Index); }
 
 				template<class T>
-				T operator =(T Data) 
+				T operator =(T Data)
 				{
 					ComboBox_SetItemData(hWnd, Index, Data);
 					return Data;
@@ -1171,13 +1200,13 @@ public:
 	union
 	{
 		HWND hWnd;
-		class : public EX_WND
+		class: public EX_WND
 		{
 		public:
 			EX_WND_FIELD_AND_METHODS;
 		};
 
-		class 
+		class
 		{
 			HWND hWnd;
 		public:
@@ -1196,7 +1225,7 @@ public:
 			inline ITEM operator()() { return ITEM(operator int(), hWnd); }
 		} CurSel;
 
-		class 
+		class
 		{
 			HWND hWnd;
 		public:
@@ -1244,11 +1273,11 @@ public:
 		return Item;
 	}
 
-	WND_COMBO__(){};
+	WND_COMBO__() {};
 
-	WND_COMBO__(EX_WND Wnd){hWnd = Wnd;}
+	WND_COMBO__(EX_WND Wnd) { hWnd = Wnd; }
 
-	operator HWND() const {return hWnd;}
+	operator HWND() const { return hWnd; }
 
 	inline ITEM FindByString(LPCSTR Str, int StartIndex = 0)
 	{
@@ -1274,7 +1303,7 @@ public:
 		return ITEM(Index, hWnd);
 	}
 
-	inline ITEM FindByItemData(LPARAM data, int StartIndex = 0) { return ITEM(ComboBox_FindItemData(hWnd, StartIndex, data), hWnd);}
+	inline ITEM FindByItemData(LPARAM data, int StartIndex = 0) { return ITEM(ComboBox_FindItemData(hWnd, StartIndex, data), hWnd); }
 
 	int ResetContent() { return ComboBox_ResetContent(hWnd); }
 
@@ -1289,11 +1318,11 @@ class WND_LIST__
 
 
 public:
-	WND_LIST__(){hWnd = NULL;}
+	WND_LIST__() { hWnd = NULL; }
 
-	WND_LIST__(EX_WND Wnd){hWnd = Wnd;}
+	WND_LIST__(EX_WND Wnd) { hWnd = Wnd; }
 
-	operator EX_WND(){return hWnd;}
+	operator EX_WND() { return hWnd; }
 
 	class COLUMN
 	{
@@ -1305,7 +1334,7 @@ public:
 				int Index;
 			};
 		public:
-			inline int get_str_len() { std::basic_string<CHAR> s; get_stl_str(s); return s.length();}
+			inline int get_str_len() { std::basic_string<CHAR> s; get_stl_str(s); return s.length(); }
 
 			void get_stl_str(std::basic_string<WCHAR>& Str)
 			{
@@ -1319,12 +1348,12 @@ public:
 					Str.resize(Col.cchTextMax);
 					Col.pszText = (LPWSTR)Str.c_str();
 					SendMessageA(hWnd, LVM_GETCOLUMNW, (WPARAM)Index, (LPARAM)&Col);
-				}while((l = wcslen(Str.c_str())) >= (Col.cchTextMax - 3));
+				} while((l = wcslen(Str.c_str())) >= (Col.cchTextMax - 3));
 				Str.resize(l);
 			}
 
 			void get_stl_str(std::basic_string<CHAR>& Str)
-			{				
+			{
 				LV_COLUMNA Col;
 				Col.mask = LVCF_TEXT;
 				Col.cchTextMax = 0;
@@ -1335,12 +1364,12 @@ public:
 					Str.resize(Col.cchTextMax);
 					Col.pszText = (LPSTR)Str.c_str();
 					SendMessageA(hWnd, LVM_GETCOLUMNA, (WPARAM)Index, (LPARAM)&Col);
-				}while((l = strlen(Str.c_str())) >= (Col.cchTextMax - 3));
+				} while((l = strlen(Str.c_str())) >= (Col.cchTextMax - 3));
 				Str.resize(l);
 			}
 
-			inline size_t get_str(char* Buffer, size_t Len) 
-			{ 
+			inline size_t get_str(char* Buffer, size_t Len)
+			{
 				LV_COLUMNA Col;
 				Col.mask = LVCF_TEXT;
 				Col.cchTextMax = Len;
@@ -1349,8 +1378,8 @@ public:
 				return strnlen(Buffer, Len);
 			}
 
-			inline size_t get_str(wchar_t* Buffer, size_t Len) 
-			{ 
+			inline size_t get_str(wchar_t* Buffer, size_t Len)
+			{
 				LV_COLUMNW Col;
 				Col.mask = LVCF_TEXT;
 				Col.cchTextMax = Len;
@@ -1359,7 +1388,7 @@ public:
 				return wcsnlen(Buffer, Len);
 			}
 
-			inline void set_str(char* Val) 
+			inline void set_str(char* Val)
 			{
 				LV_COLUMNA Col;
 				Col.mask = LVCF_TEXT;
@@ -1367,15 +1396,15 @@ public:
 				SendMessageA(hWnd, LVM_SETCOLUMNA, (WPARAM)Index, (LPARAM)&Col);
 			}
 
-			inline void set_str(wchar_t* Val) 
-			{ 
+			inline void set_str(wchar_t* Val)
+			{
 				LV_COLUMNW Col;
 				Col.mask = LVCF_TEXT;
 				Col.pszText = Val;
 				SendMessageW(hWnd, LVM_SETCOLUMNW, (WPARAM)Index, (LPARAM)&Col);
 			}
 		};
-	public:	
+	public:
 		union
 		{
 			struct
@@ -1467,11 +1496,11 @@ public:
 			return Col;
 		}
 
-		inline BOOL operator()(LPLVCOLUMNA Column) {return (BOOL)SendMessageA(hWnd, LVM_SETCOLUMNA, (WPARAM)Index, (LPARAM)Column);}
+		inline BOOL operator()(LPLVCOLUMNA Column) { return (BOOL)SendMessageA(hWnd, LVM_SETCOLUMNA, (WPARAM)Index, (LPARAM)Column); }
 
-		inline BOOL operator()(LPLVCOLUMNW Column) {return (BOOL)SendMessageW(hWnd, LVM_SETCOLUMNW, (WPARAM)Index, (LPARAM)Column);}
+		inline BOOL operator()(LPLVCOLUMNW Column) { return (BOOL)SendMessageW(hWnd, LVM_SETCOLUMNW, (WPARAM)Index, (LPARAM)Column); }
 
-		inline LPLVCOLUMNA operator=(LPLVCOLUMNA Column){ SendMessageA(hWnd, LVM_SETCOLUMNA, (WPARAM)Index, (LPARAM)Column);return Column; }
+		inline LPLVCOLUMNA operator=(LPLVCOLUMNA Column) { SendMessageA(hWnd, LVM_SETCOLUMNA, (WPARAM)Index, (LPARAM)Column); return Column; }
 
 		inline LPLVCOLUMNW operator=(LPLVCOLUMNW Column)
 		{
@@ -1483,7 +1512,7 @@ public:
 	};
 
 	class SUBITEM
-	{	
+	{
 		class __SUBITEM_TEXT
 		{
 			struct
@@ -1493,7 +1522,7 @@ public:
 				int SubItem;
 			};
 		public:
-			inline int get_str_len() { std::basic_string<CHAR> s; get_stl_str(s); return s.length();}
+			inline int get_str_len() { std::basic_string<CHAR> s; get_stl_str(s); return s.length(); }
 
 			void get_stl_str(std::basic_string<WCHAR>& Str)
 			{
@@ -1508,12 +1537,12 @@ public:
 					Str.resize(It.cchTextMax);
 					It.pszText = (LPWSTR)Str.c_str();
 					SendMessageW(hWnd, LVM_GETITEMTEXTW, (WPARAM)Index, (LPARAM)&It);
-				}while((l = wcslen(Str.c_str())) >= (It.cchTextMax - 3));
+				} while((l = wcslen(Str.c_str())) >= (It.cchTextMax - 3));
 				Str.resize(l);
 			}
 
 			void get_stl_str(std::basic_string<CHAR>& Str)
-			{				
+			{
 				LV_ITEMA It;
 				It.iSubItem = SubItem;
 				It.iItem = Index;
@@ -1525,12 +1554,12 @@ public:
 					Str.resize(It.cchTextMax);
 					It.pszText = (LPSTR)Str.c_str();
 					SendMessageA(hWnd, LVM_GETITEMTEXTA, (WPARAM)Index, (LPARAM)&It);
-				}while((l = strlen(Str.c_str())) >= (It.cchTextMax - 3));
+				} while((l = strlen(Str.c_str())) >= (It.cchTextMax - 3));
 				Str.resize(l);
 			}
 
-			inline size_t get_str(char* Buffer, size_t Len) 
-			{ 
+			inline size_t get_str(char* Buffer, size_t Len)
+			{
 				LV_ITEMA It;
 				It.iSubItem = SubItem;
 				It.iItem = Index;
@@ -1540,8 +1569,8 @@ public:
 				return strnlen(Buffer, Len);
 			}
 
-			inline size_t get_str(wchar_t* Buffer, size_t Len) 
-			{ 
+			inline size_t get_str(wchar_t* Buffer, size_t Len)
+			{
 				LV_ITEMW It;
 				It.iSubItem = SubItem;
 				It.iItem = Index;
@@ -1551,7 +1580,7 @@ public:
 				return wcsnlen(Buffer, Len);
 			}
 
-			inline void set_str(char* Val) 
+			inline void set_str(char* Val)
 			{
 				LV_ITEMA It;
 				It.iSubItem = SubItem;
@@ -1560,8 +1589,8 @@ public:
 				SendMessageW(hWnd, LVM_SETITEMTEXTA, (WPARAM)Index, (LPARAM)&It);
 			}
 
-			inline void set_str(wchar_t* Val) 
-			{ 
+			inline void set_str(wchar_t* Val)
+			{
 				LV_ITEMW It;
 				It.iSubItem = SubItem;
 				It.iItem = Index;
@@ -1593,10 +1622,10 @@ public:
 				inline operator RECT()
 				{
 					RECT Rect;
-					ListView_GetSubItemRect(hWnd, Index, SubItem,LVIR_ICON,&Rect);
+					ListView_GetSubItemRect(hWnd, Index, SubItem, LVIR_ICON, &Rect);
 					return Rect;
 				}
-				inline BOOL operator()(LPRECT Rect) { return ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_ICON ,Rect); }
+				inline BOOL operator()(LPRECT Rect) { return ListView_GetSubItemRect(hWnd, Index, SubItem, LVIR_ICON, Rect); }
 			} RectIcon;
 
 			class
@@ -1611,10 +1640,10 @@ public:
 				inline operator RECT()
 				{
 					RECT Rect;
-					ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_BOUNDS ,&Rect);
+					ListView_GetSubItemRect(hWnd, Index, SubItem, LVIR_BOUNDS, &Rect);
 					return Rect;
 				}
-				inline BOOL operator()(LPRECT Rect) { return ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_BOUNDS ,Rect); }
+				inline BOOL operator()(LPRECT Rect) { return ListView_GetSubItemRect(hWnd, Index, SubItem, LVIR_BOUNDS, Rect); }
 
 			} RectBonus;
 
@@ -1630,13 +1659,13 @@ public:
 				inline operator RECT()
 				{
 					RECT Rect;
-					ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_LABEL,&Rect);
+					ListView_GetSubItemRect(hWnd, Index, SubItem, LVIR_LABEL, &Rect);
 					return Rect;
 				}
-				inline BOOL operator()(LPRECT Rect) { return ListView_GetSubItemRect(hWnd,Index,SubItem,LVIR_LABEL ,Rect); }
+				inline BOOL operator()(LPRECT Rect) { return ListView_GetSubItemRect(hWnd, Index, SubItem, LVIR_LABEL, Rect); }
 			} RectLabel;
 
-			class 
+			class
 			{
 				struct
 				{
@@ -1653,7 +1682,7 @@ public:
 					It.mask = LVIF_IMAGE;
 					It.iSubItem = SubItem;
 					It.iItem = Index;
-					ListView_GetItem(hWnd,&It);
+					ListView_GetItem(hWnd, &It);
 					return It.iImage;
 				}
 
@@ -1664,12 +1693,12 @@ public:
 					It.iSubItem = SubItem;
 					It.iItem = Index;
 					It.iImage = iImage;
-					ListView_SetItem(hWnd,&It);
+					ListView_SetItem(hWnd, &It);
 					return iImage;
 				}
 			} Image;
 
-			class 
+			class
 			{
 				struct
 				{
@@ -1685,7 +1714,7 @@ public:
 					It.mask = LVIF_PARAM;
 					It.iItem = Index;
 					It.iSubItem = SubItem;
-					ListView_GetItem(hWnd,&It);
+					ListView_GetItem(hWnd, &It);
 					return (T)It.lParam;
 				}
 
@@ -1697,7 +1726,7 @@ public:
 					It.iItem = Index;
 					It.iSubItem = SubItem;
 					It.lParam = (LPARAM)Val;
-					ListView_SetItem(hWnd,&It);
+					ListView_SetItem(hWnd, &It);
 					return Val;
 				}
 			} UserData;
@@ -1706,8 +1735,8 @@ public:
 		inline operator LV_ITEMW()
 		{
 			LV_ITEMW li;
-			li.mask = LVIF_IMAGE|LVIF_PARAM|LVIF_STATE|LVIF_INDENT;
-			li.stateMask = LVIS_CUT|LVIS_DROPHILITED|LVIS_FOCUSED|LVIS_SELECTED|LVIS_OVERLAYMASK|LVIS_STATEIMAGEMASK;
+			li.mask = LVIF_IMAGE | LVIF_PARAM | LVIF_STATE | LVIF_INDENT;
+			li.stateMask = LVIS_CUT | LVIS_DROPHILITED | LVIS_FOCUSED | LVIS_SELECTED | LVIS_OVERLAYMASK | LVIS_STATEIMAGEMASK;
 			li.iItem = Index;
 			li.iSubItem = SubItem;
 			SendMessageW(hWnd, LVM_GETITEMW, 0, (LPARAM)&li);
@@ -1717,8 +1746,8 @@ public:
 		inline operator LV_ITEMA()
 		{
 			LV_ITEMA li;
-			li.mask = LVIF_IMAGE|LVIF_PARAM|LVIF_STATE|LVIF_INDENT;
-			li.stateMask = LVIS_CUT|LVIS_DROPHILITED|LVIS_FOCUSED|LVIS_SELECTED|LVIS_OVERLAYMASK|LVIS_STATEIMAGEMASK;
+			li.mask = LVIF_IMAGE | LVIF_PARAM | LVIF_STATE | LVIF_INDENT;
+			li.stateMask = LVIS_CUT | LVIS_DROPHILITED | LVIS_FOCUSED | LVIS_SELECTED | LVIS_OVERLAYMASK | LVIS_STATEIMAGEMASK;
 			li.iItem = Index;
 			li.iSubItem = SubItem;
 			SendMessageA(hWnd, LVM_GETITEMA, 0, (LPARAM)&li);
@@ -1772,7 +1801,7 @@ public:
 			public:
 				inline operator UINT() const
 				{
-					return ListView_GetItemState(hWnd, Index, LVIS_CUT|LVIS_DROPHILITED|LVIS_FOCUSED|LVIS_SELECTED|LVIS_OVERLAYMASK|LVIS_STATEIMAGEMASK);
+					return ListView_GetItemState(hWnd, Index, LVIS_CUT | LVIS_DROPHILITED | LVIS_FOCUSED | LVIS_SELECTED | LVIS_OVERLAYMASK | LVIS_STATEIMAGEMASK);
 				}
 
 				inline UINT operator()(UINT Mask)
@@ -1782,7 +1811,7 @@ public:
 
 				inline UINT operator=(UINT NewState)
 				{
-					ListView_SetItemState(hWnd, Index, NewState, LVIS_CUT|LVIS_DROPHILITED|LVIS_FOCUSED|LVIS_SELECTED|LVIS_OVERLAYMASK|LVIS_STATEIMAGEMASK);
+					ListView_SetItemState(hWnd, Index, NewState, LVIS_CUT | LVIS_DROPHILITED | LVIS_FOCUSED | LVIS_SELECTED | LVIS_OVERLAYMASK | LVIS_STATEIMAGEMASK);
 					return NewState;
 				}
 
@@ -1797,7 +1826,7 @@ public:
 					int Index;
 				};
 			public:
-				operator bool() const { return ListView_IsItemVisible(hWnd,Index) == TRUE; }
+				operator bool() const { return ListView_IsItemVisible(hWnd, Index) == TRUE; }
 			} IsVisible;
 		};
 
@@ -1819,66 +1848,72 @@ public:
 	union
 	{
 		HWND hWnd;
-		class : public EX_WND
+		class: public EX_WND
 		{
 		public:
 			EX_WND_FIELD_AND_METHODS;
 		};
 
-		class {
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator COLORREF() const { return ListView_GetBkColor(hWnd); }
 
-			inline COLORREF operator=(COLORREF Val) 
+			inline COLORREF operator=(COLORREF Val)
 			{
-				ListView_SetBkColor(hWnd,Val);
+				ListView_SetBkColor(hWnd, Val);
 				return Val;
 			}
 		} BkColor;
 
-		class {
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator COLORREF() const { return ListView_GetTextColor(hWnd); }
 
 			inline COLORREF operator=(COLORREF Val)
 			{
-				ListView_SetTextColor(hWnd,Val);
+				ListView_SetTextColor(hWnd, Val);
 				return Val;
 			}
 		} TextColor;
 
-		class {
+		class
+		{
 			HWND hWnd;
 		public:
 			inline operator COLORREF() const { return ListView_GetTextBkColor(hWnd); }
 
 			inline COLORREF operator=(COLORREF Val)
 			{
-				ListView_SetTextBkColor(hWnd,Val);
+				ListView_SetTextBkColor(hWnd, Val);
 				return Val;
 			}
 		} TextBkColor;
 
-		class{
+		class
+		{
 		public:
-			union{
+			union
+			{
 				HWND hWnd;
-				class{
+				class
+				{
 					HWND hWnd;
 				public:
 					inline operator int() const
 					{
 						LV_COLUMNW Col = {LVCF_FMT};
 						int Count = 0;
-						for(;(BOOL)SendMessageW(hWnd, LVM_GETCOLUMNW, (WPARAM)Count, (LPARAM)&Col) == TRUE; Count++);
+						for(; (BOOL)SendMessageW(hWnd, LVM_GETCOLUMNW, (WPARAM)Count, (LPARAM)&Col) == TRUE; Count++);
 						return Count;
 					}
 				} Count;
 
 				class __CUR_SEL
-				{	
+				{
 				public:
 
 					class
@@ -1921,7 +1956,7 @@ public:
 
 			inline COLUMN New()
 			{
-				LVCOLUMNW Col = {LVCF_FMT|LVCF_TEXT|LVCF_SUBITEM|LVCF_WIDTH,LVCFMT_CENTER,10,L"",0,0};
+				LVCOLUMNW Col = {LVCF_FMT | LVCF_TEXT | LVCF_SUBITEM | LVCF_WIDTH,LVCFMT_CENTER,10,L"",0,0};
 				int Index = (int)SendMessageW(hWnd, LVM_INSERTCOLUMNW, (WPARAM)(int)Count, (LPARAM)&Col);
 				return COLUMN(hWnd, Index);
 			}
@@ -1940,21 +1975,21 @@ public:
 
 			inline COLUMN New(LPSTR Str, int Width = 10, int Align = LVCFMT_CENTER, int SubItem = 0)
 			{
-				LVCOLUMNA Col = {LVCF_FMT|LVCF_TEXT|LVCF_SUBITEM|LVCF_WIDTH,Align,Width,Str,0,SubItem};
+				LVCOLUMNA Col = {LVCF_FMT | LVCF_TEXT | LVCF_SUBITEM | LVCF_WIDTH,Align,Width,Str,0,SubItem};
 				int Index = (int)SendMessageA(hWnd, LVM_INSERTCOLUMNA, (WPARAM)(int)Count, (LPARAM)&Col);
 				return COLUMN(hWnd, Index);
 			}
 
 			inline COLUMN New(LPWSTR Str, int Width = 10, int Align = LVCFMT_CENTER, int SubItem = 0)
 			{
-				LVCOLUMNW Col = {LVCF_FMT|LVCF_TEXT|LVCF_SUBITEM|LVCF_WIDTH,Align,Width,Str,0,SubItem};
+				LVCOLUMNW Col = {LVCF_FMT | LVCF_TEXT | LVCF_SUBITEM | LVCF_WIDTH,Align,Width,Str,0,SubItem};
 				int Index = (int)SendMessageW(hWnd, LVM_INSERTCOLUMNW, (WPARAM)(int)Count, (LPARAM)&Col);
 				return COLUMN(hWnd, Index);
 			}
 
 		} Columns;
 
-		class 
+		class
 		{
 		public:
 			union
@@ -2040,13 +2075,13 @@ public:
 
 			ITEM Set(LV_ITEMA & Item)
 			{
-				int Index =  (BOOL)SendMessageA(hWnd, LVM_SETITEMA, 0, (LPARAM)&Item);
+				int Index = (BOOL)SendMessageA(hWnd, LVM_SETITEMA, 0, (LPARAM)&Item);
 				return ITEM(hWnd, Index);
 			}
 
 			ITEM Set(LV_ITEMW & Item)
 			{
-				int Index =  (BOOL)SendMessageW(hWnd, LVM_SETITEMW, 0, (LPARAM)&Item);
+				int Index = (BOOL)SendMessageW(hWnd, LVM_SETITEMW, 0, (LPARAM)&Item);
 				return ITEM(hWnd, Index);
 			}
 
@@ -2110,23 +2145,23 @@ public:
 Show dialog for select file in file system.
 */
 inline bool OpenFileDialog
-	(
-	LPWSTR bufFileName, 
-	DWORD sizeBuf, 
-	LPWSTR Filter = nullptr, 
-	LPWSTR Title = nullptr, 
+(
+	LPWSTR bufFileName,
+	DWORD sizeBuf,
+	LPWSTR Filter = nullptr,
+	LPWSTR Title = nullptr,
 	LPWSTR InitialDir = nullptr,
-	HWND hwnd = NULL, 
+	HWND hwnd = NULL,
 	DWORD Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST
-	)
+)
 {
-	OPENFILENAMEW ofn = {0};                  
+	OPENFILENAMEW ofn = {0};
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = hwnd;
 	ofn.lpstrFile = bufFileName;
 	ofn.lpstrFile[0] = L'\0';
 	ofn.nMaxFile = sizeBuf;
-	ofn.lpstrFilter = (Filter == nullptr)? L"All\0*.*\0": Filter;
+	ofn.lpstrFilter = (Filter == nullptr) ? L"All\0*.*\0" : Filter;
 	ofn.nFilterIndex = 1;
 	ofn.lpstrFileTitle = Title;
 	ofn.nMaxFileTitle = 0;
@@ -2136,15 +2171,15 @@ inline bool OpenFileDialog
 }
 
 inline bool OpenFileDialog
-	(
-	LPSTR bufFileName, 
-	DWORD sizeBuf, 
-	LPSTR Filter = nullptr, 
-	LPSTR Title = nullptr, 
+(
+	LPSTR bufFileName,
+	DWORD sizeBuf,
+	LPSTR Filter = nullptr,
+	LPSTR Title = nullptr,
 	LPSTR InitialDir = nullptr,
-	HWND hwnd = NULL, 
+	HWND hwnd = NULL,
 	DWORD Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST
-	)
+)
 {
 	OPENFILENAMEA ofn = {0};
 	ofn.lStructSize = sizeof(ofn);
@@ -2152,7 +2187,7 @@ inline bool OpenFileDialog
 	ofn.lpstrFile = bufFileName;
 	ofn.lpstrFile[0] = '\0';
 	ofn.nMaxFile = sizeBuf;
-	ofn.lpstrFilter = (Filter == nullptr)?"All\0*.*\0": Filter;
+	ofn.lpstrFilter = (Filter == nullptr) ? "All\0*.*\0" : Filter;
 	ofn.nFilterIndex = 1;
 	ofn.lpstrFileTitle = Title;
 	ofn.nMaxFileTitle = 0;
@@ -2163,23 +2198,23 @@ inline bool OpenFileDialog
 
 
 inline bool SaveFileDialog
-	(
-	LPWSTR bufFileName, 
-	DWORD sizeBuf, 
-	LPWSTR Filter = nullptr, 
-	LPWSTR Title = nullptr, 
+(
+	LPWSTR bufFileName,
+	DWORD sizeBuf,
+	LPWSTR Filter = nullptr,
+	LPWSTR Title = nullptr,
 	LPWSTR InitialDir = nullptr,
-	HWND hwnd = NULL, 
+	HWND hwnd = NULL,
 	DWORD Flags = 0
-	)
+)
 {
-	OPENFILENAMEW ofn = {0};                  
+	OPENFILENAMEW ofn = {0};
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = hwnd;
 	ofn.lpstrFile = bufFileName;
 	ofn.lpstrFile[0] = L'\0';
 	ofn.nMaxFile = sizeBuf;
-	ofn.lpstrFilter = (Filter == nullptr)?L"All\0*.*\0": Filter;
+	ofn.lpstrFilter = (Filter == nullptr) ? L"All\0*.*\0" : Filter;
 	ofn.nFilterIndex = 1;
 	ofn.lpstrFileTitle = Title;
 	ofn.nMaxFileTitle = 0;
@@ -2190,15 +2225,15 @@ inline bool SaveFileDialog
 
 
 inline bool SaveFileDialog
-	(
-	LPSTR bufFileName, 
-	DWORD sizeBuf, 
-	LPSTR Filter = nullptr, 
-	LPSTR Title = nullptr, 
+(
+	LPSTR bufFileName,
+	DWORD sizeBuf,
+	LPSTR Filter = nullptr,
+	LPSTR Title = nullptr,
 	LPSTR InitialDir = nullptr,
-	HWND hwnd = NULL, 
+	HWND hwnd = NULL,
 	DWORD Flags = 0
-	)
+)
 {
 
 	OPENFILENAMEA ofn = {0};
@@ -2207,7 +2242,7 @@ inline bool SaveFileDialog
 	ofn.lpstrFile = bufFileName;
 	ofn.lpstrFile[0] = '\0';
 	ofn.nMaxFile = sizeBuf;
-	ofn.lpstrFilter = (Filter == nullptr)? "All\0*.*\0": Filter;
+	ofn.lpstrFilter = (Filter == nullptr) ? "All\0*.*\0" : Filter;
 	ofn.nFilterIndex = 1;
 	ofn.lpstrFileTitle = Title;
 	ofn.nMaxFileTitle = 0;

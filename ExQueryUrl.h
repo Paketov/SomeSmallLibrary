@@ -865,6 +865,7 @@ public:
 
 		CHECK_EVENTS()
 		{
+			SetEventLocker = false;
 			IsHaveSignal = IsSignalSended = false;
 #if defined(HAVE_KEVENT___)
 			kq = kqueue();

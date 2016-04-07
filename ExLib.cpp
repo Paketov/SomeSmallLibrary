@@ -36,25 +36,25 @@ template<bool IsSkipSpace, bool InfInd, typename TypeNumber, typename TypeChar>
 int _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsigned char Radix = 10);
 
 template
-	<
-	bool		IsSkipSpace, 
-	typename	TypeChar, 
-	typename	TypeNumber, 
+<
+	bool		IsSkipSpace,
+	typename	TypeChar,
+	typename	TypeNumber,
 	typename	StreamType
-	>
-	int _i_StreamToNumber(TypeNumber * Dest, StreamType& InStream, unsigned char Radix);
+>
+int _i_StreamToNumber(TypeNumber * Dest, StreamType& InStream, unsigned char Radix);
 
 
 
 template
-	<
-	bool		IsSkipSpace, 
+<
+	bool		IsSkipSpace,
 	bool		InfInd,
-	typename	TypeChar, 
+	typename	TypeChar,
 	typename	TypeNumber,
 	typename	StreamType
-	>
-	int _d_StreamToNumber(TypeNumber* Dest, StreamType& InStream, unsigned char Radix);
+>
+int _d_StreamToNumber(TypeNumber* Dest, StreamType& InStream, unsigned char Radix);
 
 
 /////////////////////////
@@ -67,7 +67,7 @@ struct __stream_io: public __stream_io__base
 		TypeChar c;
 		s.get(c);
 		return c;
-	}	
+	}
 
 	template<typename TypeChar>
 	static inline TypeChar GetChar(FILE* s)
@@ -80,12 +80,12 @@ struct __stream_io: public __stream_io__base
 
 	template<typename TypeChar>
 	static inline void UnGetChar(std::basic_istream<TypeChar>& s, TypeChar v) { s.unget(); }
-	static inline void UnGetChar(FILE* s, wchar_t v) { ungetwc(v, s);}
-	static inline void UnGetChar(FILE* s, char v) { ungetc(v, s);}
-	static inline bool PutChar(FILE* s, char v) { return fputc(v, s) != EOF;}
-	static inline bool PutChar(FILE* s, wchar_t v) { return fputwc(v, s) != WEOF;}
+	static inline void UnGetChar(FILE* s, wchar_t v) { ungetwc(v, s); }
+	static inline void UnGetChar(FILE* s, char v) { ungetc(v, s); }
+	static inline bool PutChar(FILE* s, char v) { return fputc(v, s) != EOF; }
+	static inline bool PutChar(FILE* s, wchar_t v) { return fputwc(v, s) != WEOF; }
 	template<typename TypeChar>
-	static inline bool PutChar(std::basic_ostream<TypeChar> & s, TypeChar c) { return !s.put(c).fail();}	
+	static inline bool PutChar(std::basic_ostream<TypeChar> & s, TypeChar c) { return !s.put(c).fail(); }
 };
 
 
@@ -99,7 +99,7 @@ int _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsigned c
 	static const long double Ind = Inf * 0;
 	static const long double Qnan = -Ind;
 
-	long double uNumber = (Number < 0)? -Number: Number;
+	long double uNumber = (Number < 0) ? -Number : Number;
 	short Exp = 0;
 	int CountWrited = 0;
 
@@ -109,31 +109,31 @@ int _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsigned c
 			Str[CountWrited++] = CHAR_TYPE(TypeChar, '-');
 		if(CountWrited >= Len)
 			return -CountWrited;
-	}else
+	} else
 		return 0;
 
 	if(Number != Number)   //Is NaN
-	{	
+	{
 		const TypeChar * IndVal = STR_TYPE(TypeChar, "1.#IND00");
-		for(unsigned char i = 0;(CountWrited < Len) && (i < sizeof("1.#IND00"));CountWrited++, i++)
+		for(unsigned char i = 0; (CountWrited < Len) && (i < sizeof("1.#IND00")); CountWrited++, i++)
 			Str[CountWrited] = IndVal[i];
 		return CountWrited;
-	}else if(uNumber == Inf) //Is infinity
+	} else if(uNumber == Inf) //Is infinity
 	{
 		const TypeChar * IndVal = STR_TYPE(TypeChar, "1.#INF00");
-		for(unsigned char i = 0;(CountWrited < Len) && (i < sizeof("1.#INF00"));CountWrited++, i++)
+		for(unsigned char i = 0; (CountWrited < Len) && (i < sizeof("1.#INF00")); CountWrited++, i++)
 			Str[CountWrited] = IndVal[i];
 		return CountWrited;
-	}else if(uNumber == Qnan) //Is qnan
+	} else if(uNumber == Qnan) //Is qnan
 	{
 		const TypeChar * IndVal = STR_TYPE(TypeChar, "1.#QNAN00");
-		for(unsigned char i = 0;(CountWrited < Len) && (i < sizeof("1.#QNAN00"));CountWrited++, i++)
+		for(unsigned char i = 0; (CountWrited < Len) && (i < sizeof("1.#QNAN00")); CountWrited++, i++)
 			Str[CountWrited] = IndVal[i];
 		return CountWrited;
-	}else if((uNumber != 0.0) && ((uNumber < MinExp) || (uNumber > MaxExp)))//Is have expanent
+	} else if((uNumber != 0.0) && ((uNumber < MinExp) || (uNumber > MaxExp)))//Is have expanent
 	{
 		Exp = ((*(short*)((char*)&uNumber + (sizeof(uNumber) - sizeof(Exp))) & 0x7ff0) >> 4) - 1023;
-		Exp = (short)(log(pow(2.0,Exp)) / log(Radix));
+		Exp = (short)(log(pow(2.0, Exp)) / log(Radix));
 		uNumber *= pow(Radix, -Exp);
 	}
 
@@ -150,31 +150,31 @@ int _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsigned c
 
 	if(IsScaleEps)
 	{
-		for(;Integer > 0;Integer /= Radix, Eps1 *= Radix)
-		{
-			unsigned char digval = Integer % Radix;				
-			*(--c) = DIGIT_TO_ALPHA(TypeChar, digval);
-		}
-	}else
-	{
-		for(;Integer > 0;Integer /= Radix)
+		for(; Integer > 0; Integer /= Radix, Eps1 *= Radix)
 		{
 			unsigned char digval = Integer % Radix;
 			*(--c) = DIGIT_TO_ALPHA(TypeChar, digval);
 		}
-	}			
+	} else
+	{
+		for(; Integer > 0; Integer /= Radix)
+		{
+			unsigned char digval = Integer % Radix;
+			*(--c) = DIGIT_TO_ALPHA(TypeChar, digval);
+		}
+	}
 	if(c == m)
 		*(--c) = CHAR_TYPE(TypeChar, '0');
 
-	for(;c < m;c++, CountWrited++)
+	for(; c < m; c++, CountWrited++)
 		if(CountWrited >= Len)
 			return -CountWrited;
 		else
 			Str[CountWrited] = *c;
 
-	Str[CountWrited++] = CHAR_TYPE(TypeChar,'.');
+	Str[CountWrited++] = CHAR_TYPE(TypeChar, '.');
 	{
-		long double Eps2 = 1.0 - Eps1;	
+		long double Eps2 = 1.0 - Eps1;
 		while(((uNumber - (unsigned long long)uNumber) > Eps1) &&
 			((uNumber - (unsigned long long)uNumber) < Eps2))
 		{
@@ -188,7 +188,7 @@ int _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsigned c
 		Integer++;
 
 	c = m;
-	for(;Integer > 1; Integer /= Radix)
+	for(; Integer > 1; Integer /= Radix)
 	{
 		unsigned char digval = Integer % Radix;
 		*(--c) = DIGIT_TO_ALPHA(TypeChar, digval);
@@ -196,7 +196,7 @@ int _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsigned c
 	if(c == m)
 		*(--c) = CHAR_TYPE(TypeChar, '0');
 
-	for(;c < m;c++, CountWrited++)
+	for(; c < m; c++, CountWrited++)
 		if(CountWrited >= Len)
 			return -CountWrited;
 		else
@@ -226,9 +226,9 @@ int _i_NumberToString(TypeNumber Number, TypeChar * Str, size_t Len, unsigned ch
 	typename std::make_unsigned<TypeNumber>::type AbsNum;
 	if(std::is_signed<TypeNumber>::value && (Number < 0) && (s < b))
 	{
-		*(s++) = CHAR_TYPE(TypeChar,'-');
+		*(s++) = CHAR_TYPE(TypeChar, '-');
 		AbsNum = -Number;
-	}else
+	} else
 		AbsNum = Number;
 
 	TypeChar Buf[40];
@@ -237,11 +237,11 @@ int _i_NumberToString(TypeNumber Number, TypeChar * Str, size_t Len, unsigned ch
 	{
 		decltype(AbsNum % Radix) digval = AbsNum % Radix;
 		*(--c) = DIGIT_TO_ALPHA(TypeChar, digval);
-	}while((AbsNum /= Radix) > 0);
-	for(;(c < m) && (s < b);c++, s++)
+	} while((AbsNum /= Radix) > 0);
+	for(; (c < m) && (s < b); c++, s++)
 		*s = *c;
 	if(s < b)
-		*s = CHAR_TYPE(TypeChar,'\0');
+		*s = CHAR_TYPE(TypeChar, '\0');
 	return s - Str;
 }
 
@@ -254,15 +254,15 @@ int _i_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsig
 		CountReaded += SkipSpace(Str, Len);
 	if(std::is_signed<TypeNumber>::value && (CountReaded < Len))
 		switch(Str[CountReaded])
-	{
-		case CHAR_TYPE(TypeChar, '-'):
-			Negative = -1;
-		case CHAR_TYPE(TypeChar, '+'):
-			CountReaded++;
-	}
+		{
+			case CHAR_TYPE(TypeChar, '-'):
+				Negative = -1;
+			case CHAR_TYPE(TypeChar, '+'):
+				CountReaded++;
+		}
 	TypeNumber Ret = (TypeNumber)0;
 	size_t t = CountReaded;
-	for(;CountReaded < Len;CountReaded++)
+	for(; CountReaded < Len; CountReaded++)
 	{
 		unsigned char Digit = Str[CountReaded] - CHAR_TYPE(TypeChar, '0');
 		if(Digit > 9)
@@ -276,7 +276,7 @@ int _i_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsig
 		Ret = Ret * Radix + Digit;
 	}
 	if(t == CountReaded) return -CountReaded;
-	*Dest =  Ret * Negative;
+	*Dest = Ret * Negative;
 	return CountReaded;
 }
 
@@ -299,35 +299,35 @@ int _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsig
 	CountReaded++;
 	long double Result = IntegerPart;
 
-	if(InfInd && ((CountReaded + 4) <  Len) && (Str[CountReaded] == CHAR_TYPE(TypeChar, '#')))
+	if(InfInd && ((CountReaded + 4) < Len) && (Str[CountReaded] == CHAR_TYPE(TypeChar, '#')))
 	{
 		if
 			(
-			CMP_I(Str[CountReaded + 1], 'i') && 
-			CMP_I(Str[CountReaded + 2], 'n')
-			)
+				CMP_I(Str[CountReaded + 1], 'i') &&
+				CMP_I(Str[CountReaded + 2], 'n')
+				)
 		{
 			switch(Str[CountReaded + 3])
 			{
-			case 'F':
-			case 'f'://#INF
-				Result *= Inf;
-				CountReaded += 4;
-				goto lblSingOut;
-			case 'D':
-			case 'd'://#IND
-				Result *= Ind;
-				CountReaded += 4;
-				goto lblSingOut;
+				case 'F':
+				case 'f'://#INF
+					Result *= Inf;
+					CountReaded += 4;
+					goto lblSingOut;
+				case 'D':
+				case 'd'://#IND
+					Result *= Ind;
+					CountReaded += 4;
+					goto lblSingOut;
 			}
-		}else if
+		} else if
 			(
-			((CountReaded + 5) < Len)		 && 
-			CMP_I(Str[CountReaded + 1], 'q') && 
-			CMP_I(Str[CountReaded + 2], 'n') && 
-			CMP_I(Str[CountReaded + 3], 'a') && 
-			CMP_I(Str[CountReaded + 4], 'n')
-			)
+			((CountReaded + 5) < Len) &&
+				CMP_I(Str[CountReaded + 1], 'q') &&
+				CMP_I(Str[CountReaded + 2], 'n') &&
+				CMP_I(Str[CountReaded + 3], 'a') &&
+				CMP_I(Str[CountReaded + 4], 'n')
+				)
 		{//#QNAN
 			Result *= Qnan;
 			CountReaded += 5;
@@ -342,7 +342,7 @@ lblSingOut:
 	{
 		unsigned long long	FractPart = 1;
 		unsigned			CountNum = 0;
-		for(;CountReaded < Len; CountReaded++, CountNum++)
+		for(; CountReaded < Len; CountReaded++, CountNum++)
 		{
 			unsigned char Digit = Str[CountReaded] - CHAR_TYPE(TypeChar, '0');
 			if(Digit > 9)
@@ -356,7 +356,7 @@ lblSingOut:
 			FractPart = FractPart * Radix + Digit;
 		}
 		long double DoubleFract = 0.0;
-		for(;FractPart > 1; FractPart /= Radix)
+		for(; FractPart > 1; FractPart /= Radix)
 			DoubleFract = (DoubleFract + (long double)(FractPart % Radix)) * (long double)0.1;
 
 		if(Result < 0.0)
@@ -377,38 +377,38 @@ lblSingOut:
 		}
 	}
 lblTrueOut:
-	*Dest =  TypeNumber(Result);
+	*Dest = TypeNumber(Result);
 	return CountReaded;
 }
 
 
 template
-	<
-	bool		IsSkipSpace, 
-	typename	TypeChar, 
-	typename	TypeNumber, 
+<
+	bool		IsSkipSpace,
+	typename	TypeChar,
+	typename	TypeNumber,
 	typename	StreamType
-	>
-	int _i_StreamToNumber(TypeNumber * Dest, StreamType& InStream, unsigned char Radix)
-{		
+>
+int _i_StreamToNumber(TypeNumber * Dest, StreamType& InStream, unsigned char Radix)
+{
 	char Negative = 1;
 	int CountReaded = 0;
 	if(IsSkipSpace)
 		CountReaded += _SkipSpace<TypeChar>(InStream);
-	TypeChar Cur =  __stream_io::GetChar<TypeChar>(InStream);
+	TypeChar Cur = __stream_io::GetChar<TypeChar>(InStream);
 	CountReaded++;
 	if(std::is_signed<TypeNumber>::value)
 		switch(Cur)
-	{
-		case CHAR_TYPE(TypeChar, '-'):
-			Negative = -1;
-		case CHAR_TYPE(TypeChar, '+'):
-			Cur =  __stream_io::GetChar<TypeChar>(InStream);
-			CountReaded++;
-	}
+		{
+			case CHAR_TYPE(TypeChar, '-'):
+				Negative = -1;
+			case CHAR_TYPE(TypeChar, '+'):
+				Cur = __stream_io::GetChar<TypeChar>(InStream);
+				CountReaded++;
+		}
 	TypeNumber Ret = (TypeNumber)0;
 	size_t t = CountReaded;
-	for(;;Cur =  __stream_io::GetChar<TypeChar>(InStream), CountReaded++)
+	for(;; Cur = __stream_io::GetChar<TypeChar>(InStream), CountReaded++)
 	{
 		unsigned char Digit = Cur - CHAR_TYPE(TypeChar, '0');
 		if(Digit > 9)
@@ -429,14 +429,14 @@ template
 
 
 template
-	<
-	bool		IsSkipSpace, 
+<
+	bool		IsSkipSpace,
 	bool		InfInd,
-	typename	TypeChar, 
+	typename	TypeChar,
 	typename	TypeNumber,
 	typename	StreamType
-	>
-	int _d_StreamToNumber(TypeNumber* Dest, StreamType& InStream, unsigned char Radix)
+>
+int _d_StreamToNumber(TypeNumber* Dest, StreamType& InStream, unsigned char Radix)
 {
 
 	static const long double Inf = 9999e+200 * 9999e+200 * 9999e+200;
@@ -448,60 +448,60 @@ template
 	if((CountReaded = _i_StreamToNumber<IsSkipSpace, TypeChar>(&IntegerPart, InStream, Radix)) < 0)
 		return CountReaded;
 
-	TypeChar Cur =  __stream_io::GetChar<TypeChar>(InStream);
+	TypeChar Cur = __stream_io::GetChar<TypeChar>(InStream);
 	if(Cur != CHAR_TYPE(TypeChar, '.'))
-	{		
+	{
 		*Dest = TypeNumber(IntegerPart);
 		__stream_io::UnGetChar(InStream, Cur);
 		return CountReaded;
 	}
 	CountReaded++;
 	long double Result = IntegerPart;
-	Cur =  __stream_io::GetChar<TypeChar>(InStream);
+	Cur = __stream_io::GetChar<TypeChar>(InStream);
 	CountReaded++;
 
 	if(InfInd && (Cur == CHAR_TYPE(TypeChar, '#')))
 	{
-		Cur =  __stream_io::GetChar<TypeChar>(InStream);
+		Cur = __stream_io::GetChar<TypeChar>(InStream);
 		CountReaded++;
 		if(CMP_I(Cur, 'i'))
 		{
-			Cur =  __stream_io::GetChar<TypeChar>(InStream);
+			Cur = __stream_io::GetChar<TypeChar>(InStream);
 			CountReaded++;
 			if(CMP_I(Cur, 'n'))
 			{
-				Cur =  __stream_io::GetChar<TypeChar>(InStream);
+				Cur = __stream_io::GetChar<TypeChar>(InStream);
 				CountReaded++;
 				switch(Cur)
 				{
-				case 'F': case 'f':
-					Result = IntegerPart * Inf;
-					Cur =  __stream_io::GetChar<TypeChar>(InStream);
-					CountReaded++;
-					goto lblSingOut;
-				case 'D': case 'd':
-					Result = IntegerPart * Ind;
-					Cur =  __stream_io::GetChar<TypeChar>(InStream);
-					CountReaded++;
-					goto lblSingOut;
+					case 'F': case 'f':
+						Result = IntegerPart * Inf;
+						Cur = __stream_io::GetChar<TypeChar>(InStream);
+						CountReaded++;
+						goto lblSingOut;
+					case 'D': case 'd':
+						Result = IntegerPart * Ind;
+						Cur = __stream_io::GetChar<TypeChar>(InStream);
+						CountReaded++;
+						goto lblSingOut;
 				}
 			}
-		}else if(CMP_I(Cur, 'q'))
+		} else if(CMP_I(Cur, 'q'))
 		{
-			Cur =  __stream_io::GetChar<TypeChar>(InStream);
+			Cur = __stream_io::GetChar<TypeChar>(InStream);
 			CountReaded++;
 			if(CMP_I(Cur, 'n'))
 			{
-				Cur =  __stream_io::GetChar<TypeChar>(InStream);
+				Cur = __stream_io::GetChar<TypeChar>(InStream);
 				CountReaded++;
 				if(CMP_I(Cur, 'a'))
 				{
-					Cur =  __stream_io::GetChar<TypeChar>(InStream);
+					Cur = __stream_io::GetChar<TypeChar>(InStream);
 					CountReaded++;
 					if(CMP_I(Cur, 'n'))
 					{
 						Result = IntegerPart * Qnan;
-						Cur =  __stream_io::GetChar<TypeChar>(InStream);
+						Cur = __stream_io::GetChar<TypeChar>(InStream);
 						CountReaded++;
 						goto lblSingOut;
 					}
@@ -517,21 +517,21 @@ lblSingOut:
 	{
 		unsigned long long FractPart = 1;
 		unsigned CountNum = 0;
-		for(;;CountNum++, Cur =  __stream_io::GetChar<TypeChar>(InStream), CountReaded++)
+		for(;; CountNum++, Cur = __stream_io::GetChar<TypeChar>(InStream), CountReaded++)
 		{
 			unsigned char Digit = Cur - CHAR_TYPE(TypeChar, '0');
 			if(Digit > 9)
 			{
 				Digit = Cur - (CHAR_TYPE(TypeChar, 'a') - 10);
 				if(Digit >= Radix)
-					Digit = Cur- (CHAR_TYPE(TypeChar, 'A') - 10);
+					Digit = Cur - (CHAR_TYPE(TypeChar, 'A') - 10);
 				if(Digit >= Radix)
 					break;
 			}
 			FractPart = FractPart * Radix + Digit;
 		}
 		long double DoubleFract = 0.0;
-		for(;FractPart > 1; FractPart /= Radix)
+		for(; FractPart > 1; FractPart /= Radix)
 			DoubleFract = (DoubleFract + (long double)(FractPart % Radix)) * (long double)0.1;
 
 		if(Result < 0.0)
@@ -549,7 +549,7 @@ lblSingOut:
 			Result *= pow((long double)Radix, Exp);
 			CountReaded += r;
 		}
-	}else
+	} else
 	{
 		__stream_io::UnGetChar(InStream, Cur);
 		CountReaded--;
@@ -575,14 +575,14 @@ void __StringConvertCodePage(unsigned InCp, unsigned OutCp, const std::basic_str
 		"ANSI"
 	};
 	iconv_t convert_hnd = (iconv_t)-1;
-	size_t SizeInBuf,  SizeOutBuf;
+	size_t SizeInBuf, SizeOutBuf;
 #	endif
 
 	if(std::is_equal<_InCharType, wchar_t>::value && std::is_equal<_OutCharType, wchar_t>::value)
 	{
 		OutStr = (_OutCharType*)InStr.c_str();
 		return;
-	}else if(std::is_equal<_InCharType, wchar_t>::value)
+	} else if(std::is_equal<_InCharType, wchar_t>::value)
 	{
 #	ifdef WIN32
 		unsigned NewSize = WideCharToMultiByte(OutCp, 0, (LPCWSTR)InStr.c_str(), InStr.length(), nullptr, 0, nullptr, nullptr);
@@ -596,10 +596,10 @@ void __StringConvertCodePage(unsigned InCp, unsigned OutCp, const std::basic_str
 		OutStr.resize(SizeOutBuf);
 		SizeOutBuf *= sizeof(_OutCharType);
 #	endif
-	}else if(std::is_equal<_OutCharType, wchar_t>::value)
+	} else if(std::is_equal<_OutCharType, wchar_t>::value)
 	{
 #	ifdef WIN32
-		unsigned NewSize = MultiByteToWideChar(InCp, 0, (LPCSTR)InStr.c_str(),InStr.length(), nullptr, 0);
+		unsigned NewSize = MultiByteToWideChar(InCp, 0, (LPCSTR)InStr.c_str(), InStr.length(), nullptr, 0);
 		OutStr.resize(NewSize);
 		MultiByteToWideChar(InCp, 0, (LPCSTR)InStr.c_str(), InStr.length(), (LPWSTR)OutStr.c_str(), NewSize);
 #	else
@@ -610,7 +610,7 @@ void __StringConvertCodePage(unsigned InCp, unsigned OutCp, const std::basic_str
 		OutStr.resize(SizeInBuf);
 		SizeOutBuf = SizeInBuf * sizeof(_OutCharType);
 #	endif
-	}else
+	} else
 	{
 		if(InCp == OutCp)
 		{
@@ -618,13 +618,13 @@ void __StringConvertCodePage(unsigned InCp, unsigned OutCp, const std::basic_str
 			return;
 		}
 #	ifdef WIN32
-		unsigned size = MultiByteToWideChar(InCp, 0, (LPCSTR)InStr.c_str(),InStr.length(), nullptr, 0);
+		unsigned size = MultiByteToWideChar(InCp, 0, (LPCSTR)InStr.c_str(), InStr.length(), nullptr, 0);
 		std::wstring unicode_str(size, '\0');
 		MultiByteToWideChar(InCp, 0, (LPCSTR)InStr.c_str(), InStr.length(), &unicode_str[0], size);
 
-		int NewSize = WideCharToMultiByte(OutCp, 0, unicode_str.c_str(),unicode_str.length(), nullptr, 0, nullptr, nullptr);
+		int NewSize = WideCharToMultiByte(OutCp, 0, unicode_str.c_str(), unicode_str.length(), nullptr, 0, nullptr, nullptr);
 		OutStr.resize(NewSize);
-		WideCharToMultiByte(OutCp, 0, unicode_str.c_str(),unicode_str.length(),(LPSTR)OutStr.c_str(), NewSize, nullptr, nullptr);
+		WideCharToMultiByte(OutCp, 0, unicode_str.c_str(), unicode_str.length(), (LPSTR)OutStr.c_str(), NewSize, nullptr, nullptr);
 #	else
 		convert_hnd = iconv_open(CodePageStr[OutCp], CodePageStr[InCp]);
 		if(convert_hnd == (iconv_t)-1)
@@ -646,8 +646,7 @@ void __StringConvertCodePage(unsigned InCp, unsigned OutCp, const std::basic_str
 				OutStr.resize(OutStr.length() + 20);
 				SizeOutBuf = 20 * sizeof(_OutCharType);
 				OutBuf = (char*)OutStr.c_str() + j;
-			}
-			else if(SizeInBuf == 0)
+			} else if(SizeInBuf == 0)
 				break;
 			else
 			{
@@ -672,7 +671,7 @@ inline size_t _SkipSpace(StreamType&& Stream)
 	TypeChar c;
 	while(true)
 	{
-		c =  __stream_io::GetChar<TypeChar>(Stream);
+		c = __stream_io::GetChar<TypeChar>(Stream);
 		if(!IsSpace(c))
 			break;
 		CountSkiped++;
@@ -688,23 +687,23 @@ void CodeUrl(const InString & InStr, OutString & OutStr, unsigned InCodePage = C
 	if(std::is_equal<_InCharType, wchar_t>::value)
 	{
 		std::string a;
-		StringConvertCodePage(0,CP_UTF8,InStr, a);
+		StringConvertCodePage(0, CP_UTF8, InStr, a);
 		unsigned SizeOutStr = a.length() * 3;
 		OutStr.resize(SizeOutStr);
 		if(std::is_equal<_InCharType, wchar_t>::value)
 		{
 			for(unsigned i = 0, e = a.length(); i < e; i++)
-				swprintf((wchar_t*)&OutStr[i * 3],4,L"%%%02x",a[i] & 0xff);
-		}else
+				swprintf((wchar_t*)&OutStr[i * 3], 4, L"%%%02x", a[i] & 0xff);
+		} else
 		{
 			for(unsigned i = 0, e = a.length(); i < e; i++)
-				sprintf((char*)&OutStr[i * 3],"%%%02x",a[i] & 0xff);
+				sprintf((char*)&OutStr[i * 3], "%%%02x", a[i] & 0xff);
 		}
-	}else
+	} else
 	{
 		std::string a;
 		if(InCodePage != CP_UTF8)
-			StringConvertCodePage(InCodePage,CP_UTF8,InStr, a);
+			StringConvertCodePage(InCodePage, CP_UTF8, InStr, a);
 		else
 			a = (char*)InStr.c_str();
 		unsigned SizeOutStr = a.length() * 3;
@@ -712,11 +711,11 @@ void CodeUrl(const InString & InStr, OutString & OutStr, unsigned InCodePage = C
 		if(std::is_equal<_InCharType, wchar_t>::value)
 		{
 			for(unsigned i = 0, e = a.length(); i < e; i++)
-				swprintf((wchar_t*)&OutStr[i * 3],4,L"%%%02x",a[i] & 0xff);
-		}else
+				swprintf((wchar_t*)&OutStr[i * 3], 4, L"%%%02x", a[i] & 0xff);
+		} else
 		{
 			for(unsigned i = 0, e = a.length(); i < e; i++)
-				sprintf((char*)&OutStr[i * 3],"%%%02x",a[i] & 0xff);
+				sprintf((char*)&OutStr[i * 3], "%%%02x", a[i] & 0xff);
 		}
 	}
 }
@@ -728,13 +727,13 @@ bool IsSpace(char c)
 {
 	switch(c)
 	{
-	case CHAR_TYPE(char, ' '):
-	case CHAR_TYPE(char, '\t'):
-	case CHAR_TYPE(char, '\n'):
-	case CHAR_TYPE(char, '\v'):
-	case CHAR_TYPE(char, '\f'):
-	case CHAR_TYPE(char, '\r'):
-		return true;
+		case CHAR_TYPE(char, ' '):
+		case CHAR_TYPE(char, '\t'):
+		case CHAR_TYPE(char, '\n'):
+		case CHAR_TYPE(char, '\v'):
+		case CHAR_TYPE(char, '\f'):
+		case CHAR_TYPE(char, '\r'):
+			return true;
 	}
 	return false;
 }
@@ -743,13 +742,13 @@ bool IsSpace(wchar_t c)
 {
 	switch(c)
 	{
-	case CHAR_TYPE(wchar_t, ' '):
-	case CHAR_TYPE(wchar_t, '\t'):
-	case CHAR_TYPE(wchar_t, '\n'):
-	case CHAR_TYPE(wchar_t, '\v'):
-	case CHAR_TYPE(wchar_t, '\f'):
-	case CHAR_TYPE(wchar_t, '\r'):
-		return true;
+		case CHAR_TYPE(wchar_t, ' '):
+		case CHAR_TYPE(wchar_t, '\t'):
+		case CHAR_TYPE(wchar_t, '\n'):
+		case CHAR_TYPE(wchar_t, '\v'):
+		case CHAR_TYPE(wchar_t, '\f'):
+		case CHAR_TYPE(wchar_t, '\r'):
+			return true;
 	}
 	return false;
 }
@@ -758,7 +757,7 @@ bool IsSpace(wchar_t c)
 size_t SkipSpace(const char* String, size_t Len)
 {
 	size_t CountSkiped = 0;
-	for(size_t i = 0;i < Len; i++)
+	for(size_t i = 0; i < Len; i++)
 	{
 		if(!IsSpace(String[i]))
 			return CountSkiped;
@@ -771,7 +770,7 @@ size_t SkipSpace(const char* String, size_t Len)
 size_t SkipSpace(const wchar_t* String, size_t Len)
 {
 	size_t CountSkiped = 0;
-	for(size_t i = 0;i < Len; i++)
+	for(size_t i = 0; i < Len; i++)
 	{
 		if(!IsSpace(String[i]))
 			return CountSkiped;
@@ -785,7 +784,7 @@ size_t SkipSpace(std::basic_istream<char> & Stream) { return _SkipSpace<char>(St
 size_t SkipSpace(std::basic_istream<wchar_t> & Stream) { return _SkipSpace<wchar_t>(Stream); }
 size_t SkipSpace(FILE * Stream) { return _SkipSpace<wchar_t>(Stream); }
 
-void StringConvertCodePage(unsigned InCp, unsigned OutCp, const wchar_t* InStr, std::basic_string<char>& OutStr) 
+void StringConvertCodePage(unsigned InCp, unsigned OutCp, const wchar_t* InStr, std::basic_string<char>& OutStr)
 {
 	std::basic_string<wchar_t> TmpStr(InStr);
 	__StringConvertCodePage(InCp, OutCp, TmpStr, OutStr);
@@ -822,7 +821,7 @@ int NumberToString(long long Number, char* Str, size_t Len, unsigned char Radix)
 int NumberToString(long long Number, wchar_t* Str, size_t Len, unsigned char Radix) { return _i_NumberToString(Number, Str, Len, Radix); }
 int NumberToString(unsigned long long Number, char* Str, size_t Len, unsigned char Radix) { return _i_NumberToString(Number, Str, Len, Radix); }
 int NumberToString(unsigned long long Number, wchar_t* Str, size_t Len, unsigned char Radix) { return _i_NumberToString(Number, Str, Len, Radix); }
-int NumberToString(float Val, char* Str, size_t LenBuf, unsigned char RadX, long double Eps) { return _d_NumberToString<false>((long double)Val, Str, LenBuf, RadX, Eps);}
+int NumberToString(float Val, char* Str, size_t LenBuf, unsigned char RadX, long double Eps) { return _d_NumberToString<false>((long double)Val, Str, LenBuf, RadX, Eps); }
 int NumberToString(float Val, wchar_t* Str, size_t LenBuf, unsigned char RadX, long double Eps) { return _d_NumberToString<false>((long double)Val, Str, LenBuf, RadX, Eps); }
 int NumberToString(float Val, char* Str, size_t LenBuf, unsigned char RadX) { return _d_NumberToString<true>((long double)Val, Str, LenBuf, RadX, 0.000000001); }
 int NumberToString(float Val, wchar_t* Str, size_t LenBuf, unsigned char RadX) { return _d_NumberToString<true>((long double)Val, Str, LenBuf, RadX, 0.000000001); }
@@ -916,9 +915,9 @@ char* UnixPathToSystemPath(const char* Path, char* Dest, size_t LenDest)
 	{
 		if(Path[2] == '/')
 			sprintf_s(Dest, LenDest, "%c:%s", Path[1], Path + 2);
-		else 
+		else
 			sprintf_s(Dest, LenDest, "%c:\\", Path[1]);
-	}else
+	} else
 		strncpy(Dest, Path, LenDest);
 	for(char* r; (r = strchr(Dest, '/')) != nullptr; ) *r = '\\';
 #else
@@ -969,208 +968,208 @@ namespace winsock
 {
 	int GetLastErrSocket()
 	{
-		switch (WSAGetLastError()) 
+		switch(WSAGetLastError())
 		{
-		case WSAEADDRINUSE:
+			case WSAEADDRINUSE:
 #ifdef EADDRINUSE
-			return EADDRINUSE;
+				return EADDRINUSE;
 #else
-			break;
+				break;
 #endif
-		case WSAEADDRNOTAVAIL:
+			case WSAEADDRNOTAVAIL:
 #ifdef EADDRNOTAVAIL
-			return EADDRNOTAVAIL;
+				return EADDRNOTAVAIL;
 #else
-			break;
+				break;
 #endif
-		case WSAEAFNOSUPPORT:
+			case WSAEAFNOSUPPORT:
 #ifdef EAFNOSUPPORT
-			return EAFNOSUPPORT;
+				return EAFNOSUPPORT;
 #else
-			break;
+				break;
 #endif
-		case WSAEALREADY:
+			case WSAEALREADY:
 #ifdef EALREADY
-			return EALREADY;
+				return EALREADY;
 #else
-			break;
+				break;
 #endif
-		case WSAEBADF:			return EBADF;
-		case WSAECONNABORTED:
+			case WSAEBADF:			return EBADF;
+			case WSAECONNABORTED:
 #ifdef ECONNABORTED
-			return ECONNABORTED;
+				return ECONNABORTED;
 #else
-			break;
+				break;
 #endif
-		case WSAECONNREFUSED:
+			case WSAECONNREFUSED:
 #ifdef ECONNREFUSED
-			return ECONNREFUSED;
+				return ECONNREFUSED;
 #else
-			break;
+				break;
 #endif
-		case WSAECONNRESET:
+			case WSAECONNRESET:
 #ifdef ECONNRESET
-			return ECONNRESET;
+				return ECONNRESET;
 #else
-			break;
+				break;
 #endif
-		case WSAEDESTADDRREQ:
+			case WSAEDESTADDRREQ:
 #ifdef EDESTADDRREQ
-			return EDESTADDRREQ;
+				return EDESTADDRREQ;
 #else
-			break;
+				break;
 #endif
-		case WSAEFAULT:			return EFAULT;
-		case WSAEHOSTDOWN:
+			case WSAEFAULT:			return EFAULT;
+			case WSAEHOSTDOWN:
 #ifdef EHOSTDOWN
-			return EHOSTDOWN;
+				return EHOSTDOWN;
 #else
-			break;
+				break;
 #endif
-		case WSAEHOSTUNREACH:
+			case WSAEHOSTUNREACH:
 #ifdef EHOSTUNREACH
-			return EHOSTUNREACH;
+				return EHOSTUNREACH;
 #else
-			break;
+				break;
 #endif
-		case WSAEINPROGRESS:
+			case WSAEINPROGRESS:
 #ifdef EINPROGRESS
-			return EINPROGRESS;
+				return EINPROGRESS;
 #else
-			break;
+				break;
 #endif
-		case WSAEINTR:			return EINTR;
-		case WSAEINVAL:			return EINVAL;
-		case WSAEISCONN:
+			case WSAEINTR:			return EINTR;
+			case WSAEINVAL:			return EINVAL;
+			case WSAEISCONN:
 #ifdef EISCONN
-			return EISCONN;
+				return EISCONN;
 #else
-			break;
+				break;
 #endif
-		case WSAELOOP:
+			case WSAELOOP:
 #ifdef ELOOP
-			return ELOOP;
+				return ELOOP;
 #else
-			break;
+				break;
 #endif
-		case WSAEMFILE:			return EMFILE;
-		case WSAEMSGSIZE:
+			case WSAEMFILE:			return EMFILE;
+			case WSAEMSGSIZE:
 #ifdef EMSGSIZE
-			return EMSGSIZE;
+				return EMSGSIZE;
 #else
-			break;
+				break;
 #endif
-		case WSAENAMETOOLONG:	return ENAMETOOLONG;
-		case WSAENETDOWN:
+			case WSAENAMETOOLONG:	return ENAMETOOLONG;
+			case WSAENETDOWN:
 #ifdef ENETDOWN
-			return ENETDOWN;
+				return ENETDOWN;
 #else
-			break;
+				break;
 #endif
-		case WSAENETRESET:
+			case WSAENETRESET:
 #ifdef ENETRESET
-			return ENETRESET;
+				return ENETRESET;
 #else
-			break;
+				break;
 #endif
-		case WSAENETUNREACH:
+			case WSAENETUNREACH:
 #ifdef ENETUNREACH
-			return ENETUNREACH;
+				return ENETUNREACH;
 #else
-			break;
+				break;
 #endif
-		case WSAENOBUFS:
+			case WSAENOBUFS:
 #ifdef ENOBUFS
-			return ENOBUFS;
+				return ENOBUFS;
 #else
-			break;
+				break;
 #endif
-		case WSAENOPROTOOPT:
+			case WSAENOPROTOOPT:
 #ifdef ENOPROTOOPT
-			return ENOPROTOOPT;
+				return ENOPROTOOPT;
 #else
-			break;
+				break;
 #endif
-		case WSAENOTCONN:
+			case WSAENOTCONN:
 #ifdef ENOTCONN
-			return ENOTCONN;
+				return ENOTCONN;
 #else
-			break;
+				break;
 #endif
-		case WSANOTINITIALISED:	return EAGAIN;
-		case WSAENOTSOCK:
+			case WSANOTINITIALISED:	return EAGAIN;
+			case WSAENOTSOCK:
 #ifdef ENOTSOCK
-			return ENOTSOCK;
+				return ENOTSOCK;
 #else
-			break;
+				break;
 #endif
-		case WSAEOPNOTSUPP:		return EOPNOTSUPP;
-		case WSAEPFNOSUPPORT:
+			case WSAEOPNOTSUPP:		return EOPNOTSUPP;
+			case WSAEPFNOSUPPORT:
 #ifdef EPFNOSUPPORT 
-			return EPFNOSUPPORT;
+				return EPFNOSUPPORT;
 #else 
-			break;
+				break;
 #endif
-		case WSAEPROTONOSUPPORT:
+			case WSAEPROTONOSUPPORT:
 #ifdef EPROTONOSUPPORT
-			return EPROTONOSUPPORT;
+				return EPROTONOSUPPORT;
 #else
-			break;
+				break;
 #endif
-		case WSAEPROTOTYPE:
+			case WSAEPROTOTYPE:
 #ifdef EPROTOTYPE
-			return EPROTOTYPE;
+				return EPROTOTYPE;
 #else
-			break;
+				break;
 #endif
-		case WSAESHUTDOWN:
+			case WSAESHUTDOWN:
 #ifdef ESHUTDOWN
-			return ESHUTDOWN;
+				return ESHUTDOWN;
 #else
-			break;
+				break;
 #endif
-		case WSAESOCKTNOSUPPORT:
+			case WSAESOCKTNOSUPPORT:
 #ifdef ESOCKTNOSUPPORT
-			return ESOCKTNOSUPPORT;
+				return ESOCKTNOSUPPORT;
 #else
-			break;
+				break;
 #endif
-		case WSAETIMEDOUT:
+			case WSAETIMEDOUT:
 #ifdef ETIMEDOUT
-			return ETIMEDOUT;
+				return ETIMEDOUT;
 #else
-			break;
+				break;
 #endif
-		case WSAETOOMANYREFS:
+			case WSAETOOMANYREFS:
 #ifdef ETOOMANYREFS
-			return ETOOMANYREFS;
+				return ETOOMANYREFS;
 #else
-			break;
+				break;
 #endif
-		case ERROR_IO_PENDING:
-		case WSAEWOULDBLOCK:
+			case ERROR_IO_PENDING:
+			case WSAEWOULDBLOCK:
 #ifdef EWOULDBLOCK
-			return EWOULDBLOCK;
+				return EWOULDBLOCK;
 #else
-			return EAGAIN;
+				return EAGAIN;
 #endif
-		case WSAHOST_NOT_FOUND:
+			case WSAHOST_NOT_FOUND:
 #ifdef EHOSTUNREACH
-			return EHOSTUNREACH;
+				return EHOSTUNREACH;
 #else
-			break;
+				break;
 #endif
-		case WSASYSNOTREADY:
-		case WSATRY_AGAIN:		return EAGAIN;
-		case WSAVERNOTSUPPORTED:
+			case WSASYSNOTREADY:
+			case WSATRY_AGAIN:		return EAGAIN;
+			case WSAVERNOTSUPPORTED:
 #ifdef DB_OPNOTSUP
-			return DB_OPNOTSUP;
+				return DB_OPNOTSUP;
 #else
-			break;
+				break;
 #endif
-		case WSAEACCES:			return EACCES;
-		case 0:
-			return 0;
+			case WSAEACCES:			return EACCES;
+			case 0:
+				return 0;
 		}
 
 		return EFAULT;
@@ -1179,7 +1178,7 @@ namespace winsock
 
 static netent* readnetnetworklist_()
 {
-	char Name[BUFSIZ+1], c, NetworksPath[MAX_PATH];
+	char Name[BUFSIZ + 1], c, NetworksPath[MAX_PATH];
 	::netent * NewNet = (::netent*)malloc(sizeof(::netent));
 	unsigned CurNnet = 0;
 	char * WinDirPath = getenv("windir");
@@ -1200,7 +1199,7 @@ static netent* readnetnetworklist_()
 			}
 			ungetc(c, FNetworks);
 			unsigned short IpAddr[4] = {0};
-			int CountReaded = fscanf(FNetworks, "%[^ #\n\t\v\f\r] %hu.%hu.%hu.%hu", Name, IpAddr,IpAddr+1,IpAddr+2, IpAddr+3);
+			int CountReaded = fscanf(FNetworks, "%[^ #\n\t\v\f\r] %hu.%hu.%hu.%hu", Name, IpAddr, IpAddr + 1, IpAddr + 2, IpAddr + 3);
 			if(CountReaded < 2)
 				continue;
 			NewNet[CurNnet].n_name = StringDuplicate(Name);
@@ -1217,7 +1216,7 @@ static netent* readnetnetworklist_()
 			}
 			NewNet[CurNnet].n_aliases[NumberAliases] = NULL;
 			NewNet[CurNnet].n_addrtype = AF_INET;
-			NewNet[CurNnet].n_net = ((unsigned char)IpAddr[3] << 24)|((unsigned char)IpAddr[2] << 16)|((unsigned char)IpAddr[1]<<8)|((unsigned char)IpAddr[0]<<0);
+			NewNet[CurNnet].n_net = ((unsigned char)IpAddr[3] << 24) | ((unsigned char)IpAddr[2] << 16) | ((unsigned char)IpAddr[1] << 8) | ((unsigned char)IpAddr[0] << 0);
 			CurNnet++;
 			NewNet = (decltype(NewNet))realloc(NewNet, (CurNnet + 1) * sizeof(::netent));
 		}
@@ -1229,11 +1228,11 @@ lblOut:
 }
 #define readnetnetworklist readnetnetworklist_
 
-static netent* GetNetworksInfo(){ static struct ::netent * gn = readnetnetworklist(); return gn;}
+static netent* GetNetworksInfo() { static struct ::netent * gn = readnetnetworklist(); return gn; }
 
 static netent* getnetbyname_(const char *name)
 {
-	for(::netent * gn = GetNetworksInfo();gn->n_name;gn++)
+	for(::netent * gn = GetNetworksInfo(); gn->n_name; gn++)
 		if(StringCompare(name, gn->n_name) == 0)
 			return gn;
 	return NULL;
@@ -1242,16 +1241,16 @@ static netent* getnetbyname_(const char *name)
 
 static netent* getnetbyaddr_(long net, int type)
 {
-	for(::netent * gn = GetNetworksInfo();gn->n_name;gn++)
+	for(::netent * gn = GetNetworksInfo(); gn->n_name; gn++)
 		if((gn->n_net == net) && (gn->n_addrtype == type))
 			return gn;
 	return NULL;
-} 
+}
 #define getnetbyaddr getnetbyaddr_
 
 static servent* readservicelist_()
 {
-	char Name[BUFSIZ+1], ProtocolName[BUFSIZ+1], c, NetworksPath[MAX_PATH];
+	char Name[BUFSIZ + 1], ProtocolName[BUFSIZ + 1], c, NetworksPath[MAX_PATH];
 	::servent * NewServEnt = (::servent*)malloc(sizeof(::servent));
 	unsigned CurNnet = 0;
 	char * WinDirPath = getenv("windir");
@@ -1278,16 +1277,16 @@ static servent* readservicelist_()
 				continue;
 			NewServEnt[CurNnet].s_name = NULL;
 			NewServEnt[CurNnet].s_proto = NULL;
-			for(unsigned i = 0;(i < CurNnet) && (!NewServEnt[CurNnet].s_proto || !NewServEnt[CurNnet].s_name);i++)
+			for(unsigned i = 0; (i < CurNnet) && (!NewServEnt[CurNnet].s_proto || !NewServEnt[CurNnet].s_name); i++)
 			{
 				if(StringICompare(Name, NewServEnt[i].s_name) == 0)
 					NewServEnt[CurNnet].s_name = NewServEnt[i].s_name;//For economy memory :)
 				if(StringICompare(ProtocolName, NewServEnt[i].s_proto) == 0)
 					NewServEnt[CurNnet].s_proto = NewServEnt[i].s_proto;//For economy memory :)
 			}
-			if(NewServEnt[CurNnet].s_name == NULL) 
+			if(NewServEnt[CurNnet].s_name == NULL)
 				NewServEnt[CurNnet].s_name = StringDuplicate(Name);
-			if(NewServEnt[CurNnet].s_proto == NULL) 
+			if(NewServEnt[CurNnet].s_proto == NULL)
 				NewServEnt[CurNnet].s_proto = StringDuplicate(ProtocolName);
 			unsigned NumberAliases = 0;
 			NewServEnt[CurNnet].s_aliases = (char**)malloc(sizeof(char*));
@@ -1312,7 +1311,7 @@ lblOut:
 }
 #define readservicelist readservicelist_
 
-static servent* GetServiceInfo(){ static struct ::servent * gn = readservicelist(); return gn;}
+static servent* GetServiceInfo() { static struct ::servent * gn = readservicelist(); return gn; }
 
 static servent* getservbyport_(int port, const char* proto)
 {
@@ -1324,13 +1323,13 @@ static servent* getservbyport_(int port, const char* proto)
 			if(StringICompare(proto, gn->s_proto) == 0)
 				return gn;
 		}
-		return NULL;
+	return NULL;
 }
 #define getservbyport getservbyport_
 
 static servent* getservbyname_(const char* Name, const char* proto)
 {
-	for(::servent * gn = GetServiceInfo();gn->s_name;gn++)
+	for(::servent * gn = GetServiceInfo(); gn->s_name; gn++)
 		if(StringICompare(Name, gn->s_name) == 0)
 		{
 			if(proto == NULL)
@@ -1338,7 +1337,7 @@ static servent* getservbyname_(const char* Name, const char* proto)
 			if(StringICompare(proto, gn->s_proto) == 0)
 				return gn;
 		}
-		return NULL;
+	return NULL;
 }
 #define getservbyname getservbyname_
 
@@ -1362,7 +1361,7 @@ static void EndWsa()
 		WSACleanup();
 }
 
-int ____f = ([] { GetWsa(); return 0;})();
+int ____f = ([] { GetWsa(); return 0; })();
 
 #else
 #	define closesocket(socket)  close(socket)
@@ -1372,37 +1371,37 @@ QUERY_URL::SOCKET_ADDR::___PORT::_READABLE::operator QUERY_URL::TPORT() const
 {
 	switch(Addr.sa_family)
 	{
-	case AF_INET: return htons(AddrInet.sin_port);
-	case AF_INET6: return htons(AddrInet6.sin6_port);
+		case AF_INET: return htons(AddrInet.sin_port);
+		case AF_INET6: return htons(AddrInet6.sin6_port);
 	}
 	return 0;
 }
 
 QUERY_URL::SOCKET_ADDR::___PORT::operator QUERY_URL::TPORT() const
-{ 
+{
 	switch(Readable.Addr.sa_family)
 	{
-	case AF_INET: return Readable.AddrInet.sin_port;
-	case AF_INET6: return Readable.AddrInet6.sin6_port;
+		case AF_INET: return Readable.AddrInet.sin_port;
+		case AF_INET6: return Readable.AddrInet6.sin6_port;
 	}
 	return 0;
 }
 
 QUERY_URL::TPORT QUERY_URL::SOCKET_ADDR::___PORT::operator=(TPORT Prt)
-{ 
+{
 	switch(Readable.Addr.sa_family)
 	{
-	case AF_INET: return Readable.AddrInet.sin_port = Prt;
-	case AF_INET6: return Readable.AddrInet6.sin6_port = Prt;
+		case AF_INET: return Readable.AddrInet.sin_port = Prt;
+		case AF_INET6: return Readable.AddrInet6.sin6_port = Prt;
 	}
-	return 0; 
+	return 0;
 }
 char* QUERY_URL::SOCKET_ADDR::___PORT::ToString(char* DestBuf, size_t LenBuf) const
-{ 
+{
 	switch(Readable.Addr.sa_family)
 	{
-	case AF_INET: sprintf_s(DestBuf, LenBuf, "%i", (int)htons(Readable.AddrInet.sin_port)); return DestBuf;
-	case AF_INET6: sprintf_s(DestBuf, LenBuf, "%i", (int)htons(Readable.AddrInet6.sin6_port)); return DestBuf;
+		case AF_INET: sprintf_s(DestBuf, LenBuf, "%i", (int)htons(Readable.AddrInet.sin_port)); return DestBuf;
+		case AF_INET6: sprintf_s(DestBuf, LenBuf, "%i", (int)htons(Readable.AddrInet6.sin6_port)); return DestBuf;
 	}
 	return nullptr;
 }
@@ -1424,7 +1423,7 @@ const char* QUERY_URL::SOCKET_ADDR::_IP::FromString(const char* AddrStr)
 {
 	void* m = *this;
 	if(m == nullptr) return nullptr;
-	return (inet_pton(Addr.sa_family, AddrStr, m) == 1)? AddrStr : nullptr;
+	return (inet_pton(Addr.sa_family, AddrStr, m) == 1) ? AddrStr : nullptr;
 }
 
 const std::basic_string<char>& QUERY_URL::SOCKET_ADDR::_IP::FromString(const std::basic_string<char>& AddrStr) { FromString(AddrStr.c_str()); return AddrStr; }
@@ -1452,8 +1451,8 @@ std::basic_string<char>& QUERY_URL::ADDRESS_INFO::_HOST_NAME::operator= (std::ba
 	return New;
 }
 
-QUERY_URL::ADDRESS_INFO::ADDRESSES::_COUNT::operator int() 
-{ 
+QUERY_URL::ADDRESS_INFO::ADDRESSES::_COUNT::operator int()
+{
 	int Count = 0;
 	for(decltype(ai) i = ai; i; Count++, i = i->ai_next);
 	return Count;
@@ -1480,12 +1479,12 @@ QUERY_URL::ADDRESS_INFO::ADDRESS_INFO(const char * FullAddress)
 	{
 		HostName.PortName->append(FullAddress, (unsigned)_Pos - (unsigned)FullAddress);
 		_Pos += 3;
-	}else 
+	} else
 	{
 		HostName.PortName = "http";
 		_Pos = FullAddress;
 	}
-	int CountReaded = sscanf(_Pos,"%*[^/:]%n%*c%hu", &Pos, &Port);
+	int CountReaded = sscanf(_Pos, "%*[^/:]%n%*c%hu", &Pos, &Port);
 	HostName.HostName->append(_Pos, Pos);
 	if(CountReaded > 1)
 		HostName.PortName = std::to_string(Port);
@@ -1537,8 +1536,8 @@ void QUERY_URL::ADDRESS_INFO::InitFields()
 }
 
 
-int QUERY_URL::IPv6ADDR::FromString(const char* BufSource) 
-{ 
+int QUERY_URL::IPv6ADDR::FromString(const char* BufSource)
+{
 	char b[200];
 	int n = -1;
 	sscanf(BufSource, "%199[0-9a-fA-F:]%n", b, &n);
@@ -1553,11 +1552,11 @@ std::basic_string<char> QUERY_URL::IPv6ADDR::ToString() const
 	ToString(b, INET6_ADDRSTRLEN + 1);
 	return b;
 }
-char* QUERY_URL::IPv6ADDR::ToString(char* Dest, size_t Len) const { return (AddrToString(Addr, Dest, Len,  AF_INET6)? Dest: nullptr); }
+char* QUERY_URL::IPv6ADDR::ToString(char* Dest, size_t Len) const { return (AddrToString(Addr, Dest, Len, AF_INET6) ? Dest : nullptr); }
 
 
-int QUERY_URL::IPv4ADDR::FromString(const char* BufSource) 
-{ 
+int QUERY_URL::IPv4ADDR::FromString(const char* BufSource)
+{
 	char b[200]; b[0] = '\0';
 	int n = -1;
 	sscanf(BufSource, "%199[0-9.]%n", b, &n);
@@ -1572,7 +1571,7 @@ std::basic_string<char> QUERY_URL::IPv4ADDR::ToString() const
 	ToString(b, INET6_ADDRSTRLEN + 1);
 	return b;
 }
-char* QUERY_URL::IPv4ADDR::ToString(char* Dest, size_t Len) const { return (AddrToString(Addr, Dest, Len,  AF_INET)? Dest: nullptr); }
+char* QUERY_URL::IPv4ADDR::ToString(char* Dest, size_t Len) const { return (AddrToString(Addr, Dest, Len, AF_INET) ? Dest : nullptr); }
 
 QUERY_URL::PROTOCOL_INTERATOR::_NAME::operator char*()
 {
@@ -1587,10 +1586,10 @@ QUERY_URL::PROTOCOL_INTERATOR::_INDEX::operator short()
 }
 
 
-QUERY_URL::PROTOCOL_INTERATOR::P_NAME::_COUNT::operator int() 
-{ 
+QUERY_URL::PROTOCOL_INTERATOR::P_NAME::_COUNT::operator int()
+{
 	int Count = 0;
-	for(;Cur->p_aliases[Count]; Count++);
+	for(; Cur->p_aliases[Count]; Count++);
 	return Count;
 }
 
@@ -1635,11 +1634,11 @@ QUERY_URL::PROTOCOL_INTERATOR QUERY_URL::PORT_SERVICE_INTERATOR::_USED_PROTOCOL:
 
 
 
-QUERY_URL::PORT_SERVICE_INTERATOR::P_NAME::_COUNT::operator int() 
-{ 
+QUERY_URL::PORT_SERVICE_INTERATOR::P_NAME::_COUNT::operator int()
+{
 	int Count = 0;
 	if(Cur == nullptr) return Count;
-	for(;Cur->s_aliases[Count]; Count++);
+	for(; Cur->s_aliases[Count]; Count++);
 	return Count;
 }
 
@@ -1657,10 +1656,10 @@ char * QUERY_URL::NET_INTERATOR::P_NAME::operator[](unsigned Index)
 	return "";
 }
 
-QUERY_URL::NET_INTERATOR::P_NAME::_COUNT::operator int() 
-{ 
+QUERY_URL::NET_INTERATOR::P_NAME::_COUNT::operator int()
+{
 	int Count = 0;
-	for(;Cur->n_aliases[Count]; Count++);
+	for(; Cur->n_aliases[Count]; Count++);
 	return Count;
 }
 
@@ -1706,10 +1705,10 @@ QUERY_URL::INFO_HOST_INTERATOR::_LENGTH_ADDRESS::operator short() const
 	return Cur->h_length;
 }
 
-QUERY_URL::INFO_HOST_INTERATOR::P_NAME::_COUNT::operator int() 
-{ 
+QUERY_URL::INFO_HOST_INTERATOR::P_NAME::_COUNT::operator int()
+{
 	int Count = 0;
-	for(;Cur->h_aliases[Count]; Count++);
+	for(; Cur->h_aliases[Count]; Count++);
 	return Count;
 }
 
@@ -1722,7 +1721,7 @@ char* QUERY_URL::INFO_HOST_INTERATOR::P_NAME::operator[](unsigned Index)
 
 QUERY_URL::INFO_HOST_INTERATOR::P_ADDRESES::ADDRESS_INTERATOR::ADDRESS_INTERATOR(void * nCur, short nAddrType)
 {
-	Cur	  = nCur;
+	Cur = nCur;
 	AddrType = nAddrType;
 }
 
@@ -1745,7 +1744,7 @@ QUERY_URL::INFO_HOST_INTERATOR::P_ADDRESES::ADDRESS_INTERATOR::operator std::bas
 QUERY_URL::INFO_HOST_INTERATOR::P_ADDRESES::_COUNT::operator int()
 {
 	int Count = 0;
-	for(;Cur->h_addr_list[Count]; Count++);
+	for(; Cur->h_addr_list[Count]; Count++);
 	return Count;
 }
 
@@ -1758,9 +1757,9 @@ QUERY_URL::INFO_HOST_INTERATOR::P_ADDRESES::ADDRESS_INTERATOR QUERY_URL::INFO_HO
 
 long long QUERY_URL::SendFile(QUERY_URL& InSocket, size_t Count) { return SendFile(InSocket.RemoteIp.hSocket, Count, 0); }
 
-bool QUERY_URL::EvntBind(){ return true;}
+bool QUERY_URL::EvntBind() { return true; }
 
-bool QUERY_URL::EvntConnect() { return true;}
+bool QUERY_URL::EvntConnect() { return true; }
 
 bool QUERY_URL::EvntAcceptClient(TDESCR ClientDescr) { return true; }
 
@@ -1801,13 +1800,13 @@ void QUERY_URL::InitFields()
 }
 
 int QUERY_URL::SetOption(int hSocket, int Level, int Option, bool& New)
-{										
+{
 	int v = New;
 	return setsockopt(hSocket, Level, Option, (char*)&v, sizeof(int));
 }
 
 int QUERY_URL::GetOption(int hSocket, int Level, int Option, bool& New)
-{										
+{
 	int v = 0;
 	int l = sizeof(v);
 	auto r = getsockopt(hSocket, Level, Option, (char*)&v, &l);
@@ -1865,13 +1864,13 @@ bool QUERY_URL::__REMOTE_IP::GetRemoteAddress(SOCKET_ADDR & Address) const
 
 //As c string
 char* QUERY_URL::__REMOTE_IP::ToString(char * Dest, size_t Len) const
-{			
+{
 	SOCKET_ADDR sa;
 	if(GetRemoteAddress(sa))
 	{
 		sa.Ip.ToString(Dest, Len);
 		return Dest;
-	}	
+	}
 	return nullptr;
 }
 
@@ -1936,13 +1935,13 @@ bool QUERY_URL::__LOCAL_IP::GetLocalAddress(SOCKET_ADDR& Address) const
 }
 
 char* QUERY_URL::__LOCAL_IP::ToString(char * Dest, size_t Len) const
-{			
+{
 	SOCKET_ADDR sa;
 	if(GetLocalAddress(sa))
 	{
 		sa.Ip.ToString(Dest, Len);
 		return Dest;
-	}	
+	}
 	return nullptr;
 }
 
@@ -1975,28 +1974,28 @@ const char* QUERY_URL::__PROTOCOL_FAMILY::ToString() const
 	SOCKET_ADDR SockAddr;
 	if(!__QUERY_URL_PROPERTY_THIS->RemoteIp.GetRemoteAddress(SockAddr))
 		return "";
-	switch(SockAddr.ProtocolFamily) 
-	{ 
-	case AF_UNSPEC: return "UNSPEC"; 
-	case AF_UNIX: return "UNIX";
-	case AF_INET: return "IPv4"; 
-	case AF_INET6: return "IPv6"; 
-	case AF_NETBIOS: return "NETBIOS";
-	} 
-	return ""; 
+	switch(SockAddr.ProtocolFamily)
+	{
+		case AF_UNSPEC: return "UNSPEC";
+		case AF_UNIX: return "UNIX";
+		case AF_INET: return "IPv4";
+		case AF_INET6: return "IPv6";
+		case AF_NETBIOS: return "NETBIOS";
+	}
+	return "";
 }
 
 bool QUERY_URL::__IS_NON_BLOCKED::operator=(bool NewVal)
 {
 #ifdef WIN_PLATFORM
 	u_long nonBlocking = NewVal;
-	if (ioctlsocket(hSocket, FIONBIO, &nonBlocking) == SOCKET_ERROR)
+	if(ioctlsocket(hSocket, FIONBIO, &nonBlocking) == SOCKET_ERROR)
 		URL_SET_LAST_ERR_IN_PROPERTY
 	else
-	IsNonBlocked = NewVal;
+		IsNonBlocked = NewVal;
 #else
 	int nonBlocking = NewVal;
-	if (fcntl(hSocket, F_SETFL, O_NONBLOCK, nonBlocking) == -1)
+	if(fcntl(hSocket, F_SETFL, O_NONBLOCK, nonBlocking) == -1)
 		URL_SET_LAST_ERR;
 #endif
 	return NewVal;
@@ -2038,7 +2037,7 @@ QUERY_URL::__OPTIONS::OPTION_INTERATOR QUERY_URL::__OPTIONS::operator()(int OptI
 QUERY_URL::PROTOCOL_INTERATOR QUERY_URL::GetSystemProtocol(int Index) { return PROTOCOL_INTERATOR(getprotobynumber(Index)); }
 QUERY_URL::PROTOCOL_INTERATOR QUERY_URL::GetSystemProtocol(const char * Name) { return PROTOCOL_INTERATOR(getprotobyname(Name)); }
 QUERY_URL::PORT_SERVICE_INTERATOR QUERY_URL::GetSystemService(int PortNumber, const char * Prot) { return PORT_SERVICE_INTERATOR(getservbyport(htons(PortNumber), Prot)); }
-QUERY_URL::PORT_SERVICE_INTERATOR QUERY_URL::GetSystemService(const char * Name, const char * Prot)  { return PORT_SERVICE_INTERATOR(getservbyname(Name, Prot)); }
+QUERY_URL::PORT_SERVICE_INTERATOR QUERY_URL::GetSystemService(const char * Name, const char * Prot) { return PORT_SERVICE_INTERATOR(getservbyname(Name, Prot)); }
 QUERY_URL::NET_INTERATOR QUERY_URL::GetSystemNetwork(long net, int type) { return NET_INTERATOR(getnetbyaddr(net, type)); }
 QUERY_URL::NET_INTERATOR QUERY_URL::GetSystemNetwork(const char * Name) { return NET_INTERATOR(getnetbyname(Name)); }
 QUERY_URL::INFO_HOST_INTERATOR QUERY_URL::GetInfoAboutHost(const void * Addr, int Len, int Type) { return INFO_HOST_INTERATOR(gethostbyaddr((const char*)Addr, Len, Type)); }
@@ -2059,12 +2058,12 @@ bool QUERY_URL::Connect(ADDRESS_INFO::ADDRESS_INTERATOR& Address)
 	{
 		URL_SET_LAST_ERR;
 		return false;
-	}else if (connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) == SOCKET_ERROR)
+	} else if(connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) == SOCKET_ERROR)
 	{
 		URL_SET_LAST_ERR;
 		Close();
 		return false;
-	}		
+	}
 	RemoteIp.ProtocolType = i->ai_protocol;
 	return EvntConnect();
 }
@@ -2078,11 +2077,11 @@ bool QUERY_URL::Connect(ADDRESS_INFO& AddrInfo)
 		Close();
 	}
 	addrinfo *i = AddrInfo;
-	for (; i != nullptr; i = i->ai_next) 
+	for(; i != nullptr; i = i->ai_next)
 	{
 		if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == INVALID_SOCKET)
 			continue;
-		if (connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) != SOCKET_ERROR)
+		if(connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) != SOCKET_ERROR)
 			break;
 		Close();
 	}
@@ -2092,20 +2091,20 @@ bool QUERY_URL::Connect(ADDRESS_INFO& AddrInfo)
 		return false;
 	}
 	RemoteIp.ProtocolType = i->ai_protocol;
-	return EvntConnect(); 
+	return EvntConnect();
 }
 
 
 bool QUERY_URL::Connect
-	(
-	const char* Port, 
-	const char* HostAddr, 
-	int Socktype, 
-	int Protocol, 
-	int Family, 
+(
+	const char* Port,
+	const char* HostAddr,
+	int Socktype,
+	int Protocol,
+	int Family,
 	int Flags
-	)
-{	
+)
+{
 	if(IsOpen)
 	{
 		ShutdownSendRecive();
@@ -2123,11 +2122,11 @@ bool QUERY_URL::Connect
 		return false;
 	}
 
-	for (i = ah; i != nullptr; i = i->ai_next) 
+	for(i = ah; i != nullptr; i = i->ai_next)
 	{
 		if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == INVALID_SOCKET)
 			continue;
-		if (connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) != SOCKET_ERROR)
+		if(connect(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) != SOCKET_ERROR)
 			break;
 		Close();
 	}
@@ -2141,12 +2140,12 @@ bool QUERY_URL::Connect
 	RemoteIp.ProtocolType = i->ai_protocol;
 	if(ah != nullptr)
 		freeaddrinfo(ah);
-	return EvntConnect(); 
+	return EvntConnect();
 }
 
 
 bool QUERY_URL::Bind(ADDRESS_INFO::ADDRESS_INTERATOR& Address, int MaxConnection)
-{	
+{
 	if(IsOpen)
 	{
 		ShutdownSendRecive();
@@ -2157,12 +2156,12 @@ bool QUERY_URL::Bind(ADDRESS_INFO::ADDRESS_INTERATOR& Address, int MaxConnection
 	{
 		URL_SET_LAST_ERR;
 		return false;
-	}else if(bind(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) == SOCKET_ERROR)
+	} else if(bind(RemoteIp.hSocket, i->ai_addr, i->ai_addrlen) == SOCKET_ERROR)
 	{
 		Close();
 		URL_SET_LAST_ERR;
 		return false;
-	}else if(listen(RemoteIp.hSocket, MaxConnection) == SOCKET_ERROR)
+	} else if(listen(RemoteIp.hSocket, MaxConnection) == SOCKET_ERROR)
 	{
 		Close();
 		URL_SET_LAST_ERR;
@@ -2174,14 +2173,14 @@ bool QUERY_URL::Bind(ADDRESS_INFO::ADDRESS_INTERATOR& Address, int MaxConnection
 }
 
 bool QUERY_URL::Bind(ADDRESS_INFO& AddrInfo, int MaxConnection)
-{	
+{
 	if(IsOpen)
 	{
 		ShutdownSendRecive();
 		Close();
 	}
 	addrinfo *i = AddrInfo;
-	for (;i != nullptr; i = i->ai_next) 
+	for(; i != nullptr; i = i->ai_next)
 	{
 		if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == INVALID_SOCKET)
 			continue;
@@ -2203,21 +2202,21 @@ bool QUERY_URL::Bind(ADDRESS_INFO& AddrInfo, int MaxConnection)
 
 
 bool QUERY_URL::Bind
-	(
-	const char * Port, 
-	int MaxConnection, 
-	int Socktype, 
+(
+	const char * Port,
+	int MaxConnection,
+	int Socktype,
 	int Protocol,
-	int Family, 
+	int Family,
 	int Flags
-	)
-{	
+)
+{
 	if(IsOpen)
 	{
 		ShutdownSendRecive();
 		Close();
 	}
-	addrinfo host_info = {0},*ah = nullptr, *i;
+	addrinfo host_info = {0}, *ah = nullptr, *i;
 	host_info.ai_socktype = Socktype;
 	host_info.ai_family = Family;
 	host_info.ai_protocol = Protocol;
@@ -2228,7 +2227,7 @@ bool QUERY_URL::Bind
 		return false;
 	}
 
-	for (i = ah; i != nullptr; i = i->ai_next) 
+	for(i = ah; i != nullptr; i = i->ai_next)
 	{
 		if((RemoteIp.hSocket = socket(i->ai_family, i->ai_socktype, i->ai_protocol)) == INVALID_SOCKET)
 			continue;
@@ -2335,26 +2334,26 @@ FILE* QUERY_URL::OpenAsFile(const char * mode)
 {
 	FILE* File;
 #ifdef WIN_PLATFORM
-	const char * m = mode; 
+	const char * m = mode;
 	int fileflag = 0;
-	while (*mode == ' ') ++mode;
-	switch (*mode) 
+	while(*mode == ' ') ++mode;
+	switch(*mode)
 	{
-	case 'r': fileflag = _O_RDONLY; break;
-	case 'w': fileflag = _O_CREAT | _O_WRONLY; break;
-	case 'a': fileflag = _O_APPEND; break;
-	default:  URL_SET_LAST_ERR_VAL(EFAULT); return nullptr;
+		case 'r': fileflag = _O_RDONLY; break;
+		case 'w': fileflag = _O_CREAT | _O_WRONLY; break;
+		case 'a': fileflag = _O_APPEND; break;
+		default:  URL_SET_LAST_ERR_VAL(EFAULT); return nullptr;
 	}
 	while(*++mode)
-		switch(*mode) 
-	{
-		case ' ': break;
-		case '+': fileflag |= _O_RDWR; break;
-		case 'b': fileflag |= _O_BINARY; break;
-		case 't': fileflag |= _O_TEXT; break;
-		case 'c': break; case 'n': break;
-		default: URL_SET_LAST_ERR_VAL(EFAULT); return nullptr;
-	}
+		switch(*mode)
+		{
+			case ' ': break;
+			case '+': fileflag |= _O_RDWR; break;
+			case 'b': fileflag |= _O_BINARY; break;
+			case 't': fileflag |= _O_TEXT; break;
+			case 'c': break; case 'n': break;
+			default: URL_SET_LAST_ERR_VAL(EFAULT); return nullptr;
+		}
 
 	int fd = _open_osfhandle((intptr_t)RemoteIp.hSocket, fileflag);
 	if(fd == -1)
@@ -2449,10 +2448,10 @@ long long QUERY_URL::SendFile(TDESCR InFileDescriptor, size_t Count, off_t Offse
 #elif defined(__FreeBSD__)
 	off_t sbytes = 0;
 	int r = sendfile(RemoteIp.hSocket, InFileDescriptor, Offset, Count, 0, &sbytes, 0);
-	if (r == -1)
+	if(r == -1)
 	{
 		if(errno == EAGAIN)
-			return (sbytes?sbytes:-1);
+			return (sbytes ? sbytes : -1);
 		URL_SET_LAST_ERR;
 		return -1;
 	}
@@ -2460,18 +2459,18 @@ long long QUERY_URL::SendFile(TDESCR InFileDescriptor, size_t Count, off_t Offse
 #elif defined(__linux__)
 	off_t o = Offset;
 	long long done = 0;
-	while (Count)
+	while(Count)
 	{
-		off_t todo = (Count > 0x7fffffff)? 0x7fffffff: Count;
+		off_t todo = (Count > 0x7fffffff) ? 0x7fffffff : Count;
 		off_t i = sendfile(RemoteIp.hSocket, InFileDescriptor, &o, todo);
-		if (i == todo) 
+		if(i == todo)
 		{
 			done += todo;
 			Count -= todo;
-			if (Count == 0) 
+			if(Count == 0)
 				return done;
 			continue;
-		} else if (i == -1) 
+		} else if(i == -1)
 		{
 			URL_SET_LAST_ERR;
 			return -1;
@@ -2488,47 +2487,47 @@ long long QUERY_URL::SendFile(TDESCR InFileDescriptor, size_t Count, off_t Offse
 			URL_SET_LAST_ERR;
 			return -1;
 		}
-		unsigned long long SizeBuf;
-		int r, wr, w = 0;
-		void* Buf;
+	unsigned long long SizeBuf;
+	int r, wr, w = 0;
+	void* Buf;
 #	ifdef SO_SNDBUF
-		SizeBuf = SockOptions.SendSizeBuffer;
+	SizeBuf = SockOptions.SendSizeBuffer;
 #	else
-		SizeBuf = 0xffff;
+	SizeBuf = 0xffff;
 #	endif
-		SizeBuf = (SizeBuf < Count)?SizeBuf: Count;
-		Buf = malloc(SizeBuf);
-		if(Buf == nullptr)
+	SizeBuf = (SizeBuf < Count) ? SizeBuf : Count;
+	Buf = malloc(SizeBuf);
+	if(Buf == nullptr)
+	{
+		URL_SET_LAST_ERR;
+		return -1;
+	}
+	while(true)
+	{
+		if((r = read(InFileDescriptor, Buf, SizeBuf)) == -1)
 		{
+			if(w > 0)
+				return w;
 			URL_SET_LAST_ERR;
+			free(Buf);
 			return -1;
 		}
-		while(true)
+		if((wr = write(RemoteIp.hSocket, Buf, r)) == -1)
 		{
-			if((r = read(InFileDescriptor, Buf, SizeBuf)) == -1)
-			{
-				if(w > 0)
-					return w;
-				URL_SET_LAST_ERR;
-				free(Buf);
-				return -1;
-			}
-			if((wr = write(RemoteIp.hSocket, Buf, r)) == -1)
-			{
-				URL_SET_LAST_ERR;
-				free(Buf);
-				return -1;
-			}
-			if(r < SizeBuf)
-			{
-				free(Buf);
-				return wr;
-			}
-			w += wr;
-			SizeBuf = ((Count - w) < SizeBuf)?(Count - w): SizeBuf;
+			URL_SET_LAST_ERR;
+			free(Buf);
+			return -1;
 		}
-		free(Buf);
-		return 0;
+		if(r < SizeBuf)
+		{
+			free(Buf);
+			return wr;
+		}
+		w += wr;
+		SizeBuf = ((Count - w) < SizeBuf) ? (Count - w) : SizeBuf;
+	}
+	free(Buf);
+	return 0;
 #endif
 }
 
@@ -2543,7 +2542,7 @@ bool QUERY_URL::Close()
 	{
 		RemoteIp.hSocket = INVALID_SOCKET;
 		return true;
-	}	
+	}
 	return false;
 }
 
@@ -2551,21 +2550,21 @@ bool QUERY_URL::ShutdownSend()
 {
 	if(!EvntBeforeShutdown(SHUT_WR))
 		return false;
-	return shutdown(RemoteIp.hSocket, SHUT_WR) != SOCKET_ERROR; 
+	return shutdown(RemoteIp.hSocket, SHUT_WR) != SOCKET_ERROR;
 }
 
 bool QUERY_URL::ShutdownRecive()
-{		
+{
 	if(!EvntBeforeShutdown(SHUT_RD))
 		return false;
-	return shutdown(RemoteIp.hSocket, SHUT_RD) != SOCKET_ERROR; 
+	return shutdown(RemoteIp.hSocket, SHUT_RD) != SOCKET_ERROR;
 }
 
 bool QUERY_URL::ShutdownSendRecive()
 {
 	if(!EvntBeforeShutdown(SHUT_RDWR))
 		return false;
-	return shutdown(RemoteIp.hSocket, SHUT_RDWR) != SOCKET_ERROR; 
+	return shutdown(RemoteIp.hSocket, SHUT_RDWR) != SOCKET_ERROR;
 }
 
 
@@ -2581,20 +2580,20 @@ lblTryAgain:
 		if((LastErr == ERROR_INVALID_PARAMETER) && (ovlp == nullptr))
 		{
 			if(!IsNonBlocked)
-				Overlap.hEvent = CreateEventW(nullptr, true, false, nullptr); 
-			ovlp = &Overlap; 
+				Overlap.hEvent = CreateEventW(nullptr, true, false, nullptr);
+			ovlp = &Overlap;
 			goto lblTryAgain;
-		}else if(LastErr == ERROR_IO_PENDING)
+		} else if(LastErr == ERROR_IO_PENDING)
 		{
 			if(Overlap.hEvent != NULL)
 			{
-				WaitForSingleObject(Overlap.hEvent, INFINITE);	
+				WaitForSingleObject(Overlap.hEvent, INFINITE);
 				if(GetOverlappedResult((HANDLE)RemoteIp.hSocket, ovlp, &Written, TRUE))
 				{
 					CloseHandle(Overlap.hEvent);
 					return Written;
 				}
-			}else
+			} else
 			{
 				URL_SET_LAST_ERR_VAL(EWOULDBLOCK);
 				return -1;
@@ -2628,20 +2627,20 @@ lblTryAgain:
 		if((LastErr == ERROR_INVALID_PARAMETER) && (ovlp == nullptr))
 		{
 			if(!IsNonBlocked)
-				Overlap.hEvent = CreateEventW(nullptr, true, false, nullptr); 
-			ovlp = &Overlap; 
+				Overlap.hEvent = CreateEventW(nullptr, true, false, nullptr);
+			ovlp = &Overlap;
 			goto lblTryAgain;
-		}else if(LastErr == ERROR_IO_PENDING)
+		} else if(LastErr == ERROR_IO_PENDING)
 		{
 			if(Overlap.hEvent != NULL)
 			{
-				WaitForSingleObject(Overlap.hEvent, INFINITE);	
+				WaitForSingleObject(Overlap.hEvent, INFINITE);
 				if(GetOverlappedResult((HANDLE)RemoteIp.hSocket, ovlp, &Readed, TRUE))
 				{
 					CloseHandle(Overlap.hEvent);
 					return Readed;
 				}
-			}else
+			} else
 			{
 				URL_SET_LAST_ERR_VAL(EWOULDBLOCK);
 				return -1;
@@ -2680,11 +2679,11 @@ int QUERY_URL::Recive(void * Buf, size_t SizeBuf, int Flags)
 }
 
 int QUERY_URL::Recive
-	(
-	std::basic_string<char>& StrBuf, 
-	std::basic_string<char>::size_type MaxLen, 
+(
+	std::basic_string<char>& StrBuf,
+	std::basic_string<char>::size_type MaxLen,
 	int Flags
-	)
+)
 {
 	char* Buf;
 	//Ignore MSG_PEEK
@@ -2696,17 +2695,17 @@ int QUERY_URL::Recive
 	StrBuf.resize(CountBytesInBuff);
 	Buf = (char*)StrBuf.c_str();
 	while(true)
-	{				
+	{
 		if(CurSize >= MaxLen)
 			break;
 		if(CountBytesInBuff > (MaxLen - CurSize))
-			CountBytesInBuff = MaxLen - CurSize; 
+			CountBytesInBuff = MaxLen - CurSize;
 		ReadedSize = Recive(Buf, CountBytesInBuff, Flags);
 		if(ReadedSize == SOCKET_ERROR)
 		{
 			URL_SET_LAST_ERR;
 			return -1;
-		}else if(ReadedSize == 0)
+		} else if(ReadedSize == 0)
 			break;
 		else
 		{
@@ -2723,7 +2722,7 @@ int QUERY_URL::Recive
 }
 
 int QUERY_URL::ReciveFrom(void * Buffer, size_t LenBuff, SOCKET_ADDR& AddressSender, int Flags)
-{ 
+{
 	int Len = sizeof(SOCKET_ADDR);
 	int CountRecived;
 	if((CountRecived = recvfrom(RemoteIp.hSocket, (char*)Buffer, LenBuff, Flags, AddressSender, &Len)) == SOCKET_ERROR)
@@ -2737,7 +2736,7 @@ int QUERY_URL::ReciveFrom(void * Buffer, size_t LenBuff, ADDRESS_INFO::ADDRESS_I
 }
 
 int QUERY_URL::SendTo(const void * Buffer, size_t LenBuff, SOCKET_ADDR& AddressReciver, int Flags)
-{ 
+{
 	int CountSending;
 	if((CountSending = sendto(RemoteIp.hSocket, (const char*)Buffer, LenBuff, Flags, AddressReciver, sizeof(SOCKET_ADDR))) == SOCKET_ERROR)
 		URL_SET_LAST_ERR;
@@ -2802,7 +2801,7 @@ int QUERY_URL::SendAndRecive(std::basic_string<char>& strQuery, std::basic_strin
 
 /*
 *
-*			start ExQueryUrlOpenSSL.h 
+*			start ExQueryUrlOpenSSL.h
 *
 */
 
@@ -2811,7 +2810,7 @@ int QUERY_URL::SendAndRecive(std::basic_string<char>& strQuery, std::basic_strin
 #include "ExQueryUrlOpenSSL.h"
 
 bool QUERY_URL_OPEN_SSL::EvntConnect()
-{	
+{
 	EvntBeforeClose();
 	if(SSLLastError.ctx == nullptr)
 	{
@@ -2895,7 +2894,7 @@ char* QUERY_URL_OPEN_SSL::REMOTE_CERT::_SUBJECT_NAME::operator()(char * Buf, siz
 {
 	if(ssl == nullptr)
 		return nullptr;
-	X509* Cert = SSL_get_peer_certificate (ssl);
+	X509* Cert = SSL_get_peer_certificate(ssl);
 	if(Cert == nullptr)
 		return nullptr;
 	char * str = X509_NAME_oneline(X509_get_subject_name(Cert), 0, 0);
@@ -2914,7 +2913,7 @@ QUERY_URL_OPEN_SSL::REMOTE_CERT::_SUBJECT_NAME::operator std::basic_string<char>
 {
 	if(ssl == nullptr)
 		return "";
-	X509* Cert = SSL_get_peer_certificate (ssl);
+	X509* Cert = SSL_get_peer_certificate(ssl);
 	if(Cert == nullptr)
 		return "";
 	char * str = X509_NAME_oneline(X509_get_subject_name(Cert), 0, 0);
@@ -2933,7 +2932,7 @@ char* QUERY_URL_OPEN_SSL::REMOTE_CERT::_ISSUER_NAME::operator()(char * Buf, size
 {
 	if(ssl == nullptr)
 		return nullptr;
-	X509* Cert = SSL_get_peer_certificate (ssl);
+	X509* Cert = SSL_get_peer_certificate(ssl);
 	if(Cert == nullptr)
 		return nullptr;
 	char * str = X509_NAME_oneline(X509_get_issuer_name(Cert), 0, 0);
@@ -2952,7 +2951,7 @@ QUERY_URL_OPEN_SSL::REMOTE_CERT::_ISSUER_NAME::operator std::basic_string<char>(
 {
 	if(ssl == nullptr)
 		return "";
-	X509* Cert = SSL_get_peer_certificate (ssl);
+	X509* Cert = SSL_get_peer_certificate(ssl);
 	if(Cert == nullptr)
 		return "";
 	char * str = X509_NAME_oneline(X509_get_issuer_name(Cert), 0, 0);
@@ -2972,7 +2971,7 @@ QUERY_URL_OPEN_SSL::REMOTE_CERT::_IS_HAVE::operator bool()
 {
 	if(ssl == nullptr)
 		return false;
-	X509* Cert = SSL_get_peer_certificate (ssl);
+	X509* Cert = SSL_get_peer_certificate(ssl);
 	if(Cert != nullptr)
 	{
 		X509_free(Cert);
@@ -3125,10 +3124,10 @@ bool QUERY_URL_OPEN_SSL::InitCTXVersion(const SSL_METHOD* MethodSSL)
 }
 
 bool QUERY_URL_OPEN_SSL::SetLocalCertificate
-	(	
-	const char * CertFile, 
-	const char * PrivateKeyFile, 
-	int TypeCertFile, 
+(
+	const char * CertFile,
+	const char * PrivateKeyFile,
+	int TypeCertFile,
 	int TypeKeyFile,
 	const SSL_METHOD* MethodSSL,
 	bool IsVerifyClient,
@@ -3136,7 +3135,7 @@ bool QUERY_URL_OPEN_SSL::SetLocalCertificate
 	const char * CAPath,
 	int ModeVerify,
 	int VerifyDepth
-	)
+)
 {
 	if(!InitCTXVersion(MethodSSL))
 		return false;
@@ -3158,7 +3157,7 @@ lblErrOut:
 		goto lblErrOut;
 	if(IsVerifyClient)
 	{
-		if (!SSL_CTX_load_verify_locations(SSLLastError.ctx, CAFile, CAPath)) 
+		if(!SSL_CTX_load_verify_locations(SSLLastError.ctx, CAFile, CAPath))
 			goto lblErrOut;
 
 		SSL_CTX_set_verify(SSLLastError.ctx, ModeVerify, nullptr);
@@ -3170,7 +3169,7 @@ bool QUERY_URL_OPEN_SSL::AcceptClient(QUERY_URL_OPEN_SSL & DestCoonection)
 {
 	DestCoonection.Close();
 	if(!QUERY_URL::AcceptClient(DestCoonection))
-		return false;	
+		return false;
 	DestCoonection.SSLLastError.ssl = SSL_new(SSLLastError.ctx);
 	if(DestCoonection.SSLLastError.ssl == nullptr)
 	{
@@ -3186,14 +3185,14 @@ bool QUERY_URL_OPEN_SSL::AcceptClient(QUERY_URL_OPEN_SSL & DestCoonection)
 	{
 		SSLLastError = SSL_get_error(DestCoonection.SSLLastError.ssl, 0);
 		goto lblErrOut2;
-	}else if(r < 0)
+	} else if(r < 0)
 	{
 lblErrOut:
 		SSLLastError.Set();
 lblErrOut2:
 		DestCoonection.QUERY_URL::ShutdownSendRecive();
 		DestCoonection.QUERY_URL::Close();
-		return false;		
+		return false;
 	}
 	return true;
 }
@@ -3220,7 +3219,7 @@ int QUERY_URL_OPEN_SSL::Recive(void * Buf, size_t SizeBuf, int Flags)
 		goto lblErr;
 	int ReadedSize;
 
-	if((ReadedSize = ((Flags & MSG_PEEK)? SSL_peek: SSL_read)(SSLLastError.ssl, Buf, SizeBuf)) < 0)
+	if((ReadedSize = ((Flags & MSG_PEEK) ? SSL_peek : SSL_read)(SSLLastError.ssl, Buf, SizeBuf)) < 0)
 	{
 		SSLLastError.Set();
 lblErr:
@@ -3231,11 +3230,11 @@ lblErr:
 }
 
 int QUERY_URL_OPEN_SSL::Recive
-	(
-	std::basic_string<char>& StrBuf, 
-	std::basic_string<char>::size_type MaxLen, 
+(
+	std::basic_string<char>& StrBuf,
+	std::basic_string<char>::size_type MaxLen,
 	int Flags
-	)
+)
 {
 	if(SSLLastError.ssl == nullptr)
 		goto lblErr;
@@ -3251,7 +3250,7 @@ int QUERY_URL_OPEN_SSL::Recive
 		if(CurSize >= MaxLen)
 			break;
 		if(CountBytesInBuff > (MaxLen - CurSize))
-			CountBytesInBuff = MaxLen - CurSize; 
+			CountBytesInBuff = MaxLen - CurSize;
 		int ReadedSize = SSL_read(SSLLastError.ssl, Buf, CountBytesInBuff);
 		if(ReadedSize < 0)
 		{
@@ -3259,7 +3258,7 @@ int QUERY_URL_OPEN_SSL::Recive
 lblErr:
 			QUERY_URL::SetLastErr(EFAULT);
 			return -1;
-		}else if(ReadedSize == 0)
+		} else if(ReadedSize == 0)
 			break;
 		else
 		{
@@ -3287,7 +3286,7 @@ long long QUERY_URL_OPEN_SSL::SendFile(QUERY_URL& InSocket, size_t Count)
 #	else
 	SizeBuf = 0xffff;
 #	endif
-	SizeBuf = (SizeBuf < Count)?SizeBuf: Count;
+	SizeBuf = (SizeBuf < Count) ? SizeBuf : Count;
 	Buf = malloc(SizeBuf);
 	if(Buf == nullptr)
 	{
@@ -3315,7 +3314,7 @@ lblErr:
 			return wr;
 		}
 		w += wr;
-		SizeBuf = ((Count - w) < SizeBuf)?(Count - w): SizeBuf;
+		SizeBuf = ((Count - w) < SizeBuf) ? (Count - w) : SizeBuf;
 	}
 	free(Buf);
 	return 0;
@@ -3345,7 +3344,7 @@ long long QUERY_URL_OPEN_SSL::SendFile(TDESCR InFileDescriptor, size_t Count, of
 #	else
 	SizeBuf = 0xffff;
 #	endif
-	SizeBuf = (SizeBuf < Count)?SizeBuf: Count;
+	SizeBuf = (SizeBuf < Count) ? SizeBuf : Count;
 	Buf = malloc(SizeBuf);
 	if(Buf == nullptr)
 	{
@@ -3356,44 +3355,44 @@ long long QUERY_URL_OPEN_SSL::SendFile(TDESCR InFileDescriptor, size_t Count, of
 	while(true)
 	{
 #ifdef _WIN32
-lblTryAgain:
-	{
-		DWORD rt;
-		if(!ReadFile((HANDLE)InFileDescriptor, Buf, SizeBuf, &rt, &Overlap))
+		lblTryAgain :
 		{
-			DWORD LastErr = GetLastError();
-			if(LastErr == ERROR_IO_PENDING)
+			DWORD rt;
+			if(!ReadFile((HANDLE)InFileDescriptor, Buf, SizeBuf, &rt, &Overlap))
 			{
-				if((LastErr == ERROR_INVALID_PARAMETER) && (ovlp == nullptr))
+				DWORD LastErr = GetLastError();
+				if(LastErr == ERROR_IO_PENDING)
 				{
-					Overlap.hEvent = CreateEventW(nullptr, true, false, nullptr); 
-					ovlp = &Overlap; 
-					goto lblTryAgain;
-				}else if(LastErr == ERROR_IO_PENDING)
-				{
-					if(Overlap.hEvent != NULL)
+					if((LastErr == ERROR_INVALID_PARAMETER) && (ovlp == nullptr))
 					{
-						WaitForSingleObject(Overlap.hEvent, INFINITE);	
-						if(!GetOverlappedResult((HANDLE)InFileDescriptor, ovlp, &rt, TRUE))
+						Overlap.hEvent = CreateEventW(nullptr, true, false, nullptr);
+						ovlp = &Overlap;
+						goto lblTryAgain;
+					} else if(LastErr == ERROR_IO_PENDING)
+					{
+						if(Overlap.hEvent != NULL)
 						{
-							CloseHandle(Overlap.hEvent); 	
+							WaitForSingleObject(Overlap.hEvent, INFINITE);
+							if(!GetOverlappedResult((HANDLE)InFileDescriptor, ovlp, &rt, TRUE))
+							{
+								CloseHandle(Overlap.hEvent);
+								goto lblErr2;
+							}
+						} else
+						{
+							QUERY_URL::SetLastErr(EWOULDBLOCK);
 							goto lblErr2;
 						}
-					}else
+					} else
 					{
-						QUERY_URL::SetLastErr(EWOULDBLOCK);
-						goto lblErr2;
+						if(Overlap.hEvent != NULL)
+							CloseHandle(Overlap.hEvent);
+						goto lblErr;
 					}
-				}else
-				{
-					if(Overlap.hEvent != NULL)
-						CloseHandle(Overlap.hEvent); 
-					goto lblErr;
 				}
 			}
+			r = rt;
 		}
-		r = rt;
-	}
 #else
 		r = read(InFileDescriptor, Buf, SizeBuf);
 #endif
@@ -3417,7 +3416,7 @@ lblErr2:
 			return wr;
 		}
 		w += wr;
-		SizeBuf = ((Count - w) < SizeBuf)?(Count - w): SizeBuf;
+		SizeBuf = ((Count - w) < SizeBuf) ? (Count - w) : SizeBuf;
 	}
 	free(Buf);
 	return 0;
@@ -3432,7 +3431,7 @@ lblErr2:
 
 /*
 *
-*			end ExQueryUrlOpenSSL.h 
+*			end ExQueryUrlOpenSSL.h
 *
 */
 
@@ -3451,23 +3450,23 @@ int StrToTm(const char* Str, tm* Result)
 	char DayOfWeekName[6] = {0}, MonthName[6] = {0};
 	int n = -1;
 	if(sscanf
-		(
-		Str, 
-		"%4s %4s %2i %2i:%2i:%2i %i%n", 
-		DayOfWeekName, 
+	(
+		Str,
+		"%4s %4s %2i %2i:%2i:%2i %i%n",
+		DayOfWeekName,
 		MonthName,
-		&OutTm.tm_mday,	 
-		&OutTm.tm_hour, 
-		&OutTm.tm_min, 
-		&OutTm.tm_sec, 
+		&OutTm.tm_mday,
+		&OutTm.tm_hour,
+		&OutTm.tm_min,
+		&OutTm.tm_sec,
 		&OutTm.tm_year,
 		&n
-		) 
+		)
 		< 7) return -1;
 	OutTm.tm_mon = OutTm.tm_wday = -1;
 	OutTm.tm_year -= 1900;
-	static const char  *Week[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
-	static const char  *Months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+	static const char  *Week[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+	static const char  *Months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 	for(unsigned i = 0; i < (sizeof(Week) / sizeof(Week[0])); i++)
 		if(*(uint32_t*)DayOfWeekName == *(uint32_t*)(Week[i]))
 		{
@@ -3558,31 +3557,31 @@ std::basic_string<char> TimeMilisecSubToString(long long t1, long long t2)
 
 static int __GetRealPrior(PRIORITY p)
 {
-	switch (p)
+	switch(p)
 	{
-	case PRIORITY::IDLE: return THREAD_PRIORITY_IDLE;
-	case PRIORITY::LOWER: return THREAD_PRIORITY_LOWEST;
-	case PRIORITY::LOW: return THREAD_PRIORITY_BELOW_NORMAL;
-	case PRIORITY::NORMAL: return THREAD_PRIORITY_NORMAL;
-	case PRIORITY::HIGH: return THREAD_PRIORITY_ABOVE_NORMAL;
-	case PRIORITY::HIGHER: return THREAD_PRIORITY_HIGHEST;
-	case PRIORITY::REALTIME: return THREAD_PRIORITY_TIME_CRITICAL;
-	default: return THREAD_PRIORITY_NORMAL;
+		case PRIORITY::IDLE: return THREAD_PRIORITY_IDLE;
+		case PRIORITY::LOWER: return THREAD_PRIORITY_LOWEST;
+		case PRIORITY::LOW: return THREAD_PRIORITY_BELOW_NORMAL;
+		case PRIORITY::NORMAL: return THREAD_PRIORITY_NORMAL;
+		case PRIORITY::HIGH: return THREAD_PRIORITY_ABOVE_NORMAL;
+		case PRIORITY::HIGHER: return THREAD_PRIORITY_HIGHEST;
+		case PRIORITY::REALTIME: return THREAD_PRIORITY_TIME_CRITICAL;
+		default: return THREAD_PRIORITY_NORMAL;
 	}
 }
 
 static PRIORITY __GetPrior(int Code)
 {
-	switch (Code)
+	switch(Code)
 	{
-	case THREAD_PRIORITY_IDLE: return PRIORITY::IDLE;
-	case THREAD_PRIORITY_LOWEST: return PRIORITY::LOWER;
-	case THREAD_PRIORITY_BELOW_NORMAL: return PRIORITY::LOW;
-	case THREAD_PRIORITY_NORMAL: return PRIORITY::NORMAL;
-	case THREAD_PRIORITY_ABOVE_NORMAL: return PRIORITY::HIGH;
-	case THREAD_PRIORITY_HIGHEST: return PRIORITY::HIGHER;
-	case THREAD_PRIORITY_TIME_CRITICAL: return PRIORITY::REALTIME;
-	default: return PRIORITY::NONE;
+		case THREAD_PRIORITY_IDLE: return PRIORITY::IDLE;
+		case THREAD_PRIORITY_LOWEST: return PRIORITY::LOWER;
+		case THREAD_PRIORITY_BELOW_NORMAL: return PRIORITY::LOW;
+		case THREAD_PRIORITY_NORMAL: return PRIORITY::NORMAL;
+		case THREAD_PRIORITY_ABOVE_NORMAL: return PRIORITY::HIGH;
+		case THREAD_PRIORITY_HIGHEST: return PRIORITY::HIGHER;
+		case THREAD_PRIORITY_TIME_CRITICAL: return PRIORITY::REALTIME;
+		default: return PRIORITY::NONE;
 	}
 }
 
@@ -3594,31 +3593,31 @@ static PRIORITY __GetPrior(int Code)
 
 static int __GetRealPrior(PRIORITY p)
 {
-	switch (p)
+	switch(p)
 	{
-	case PRIORITY::IDLE: return 45;
-	case PRIORITY::LOWER: return 51;
-	case PRIORITY::LOW: return 57;
-	case PRIORITY::NORMAL: return 63;
-	case PRIORITY::HIGH: return 69;
-	case PRIORITY::HIGHER: return 75;
-	case PRIORITY::REALTIME: return 81;
-	default: return 63;
+		case PRIORITY::IDLE: return 45;
+		case PRIORITY::LOWER: return 51;
+		case PRIORITY::LOW: return 57;
+		case PRIORITY::NORMAL: return 63;
+		case PRIORITY::HIGH: return 69;
+		case PRIORITY::HIGHER: return 75;
+		case PRIORITY::REALTIME: return 81;
+		default: return 63;
 	}
 }
 
 static PRIORITY __GetPrior(int Code)
 {
-	switch (Code)
+	switch(Code)
 	{
-	case 45: return PRIORITY::IDLE;
-	case 51: return PRIORITY::LOWER;
-	case 57: return PRIORITY::LOW;
-	case 63: return PRIORITY::NORMAL;
-	case 69: return PRIORITY::HIGH;
-	case 75: return PRIORITY::HIGHER;
-	case 81: return PRIORITY::REALTIME;
-	default: return PRIORITY::NONE;
+		case 45: return PRIORITY::IDLE;
+		case 51: return PRIORITY::LOWER;
+		case 57: return PRIORITY::LOW;
+		case 63: return PRIORITY::NORMAL;
+		case 69: return PRIORITY::HIGH;
+		case 75: return PRIORITY::HIGHER;
+		case 81: return PRIORITY::REALTIME;
+		default: return PRIORITY::NONE;
 	}
 }
 
@@ -3627,21 +3626,21 @@ static PRIORITY __GetPrior(int Code)
 bool SetThreadPrior(PRIORITY priority, std::thread& Thread)
 {
 #ifdef WIN_PLATFORM
-	return SetThreadPriority((std::is_default_ref(Thread))? GetCurrentThread(): Thread.native_handle(), __GetRealPrior(priority)) != FALSE;
+	return SetThreadPriority((std::is_default_ref(Thread)) ? GetCurrentThread() : Thread.native_handle(), __GetRealPrior(priority)) != FALSE;
 #else
 	sched_param schedparams;
 	schedparams.sched_priority = __GetRealPrior(priority);
-	return pthread_setschedparam((std::is_default_ref(Thread))? pthread_self(): Thread.native_handle(), SCHED_OTHER, &schedparams) == 0;
+	return pthread_setschedparam((std::is_default_ref(Thread)) ? pthread_self() : Thread.native_handle(), SCHED_OTHER, &schedparams) == 0;
 #endif
 }
 
 PRIORITY GetThreadPrior(std::thread& Thread)
 {
 #ifdef WIN_PLATFORM
-	return __GetPrior(GetThreadPriority((std::is_default_ref(Thread))? GetCurrentThread(): Thread.native_handle()));
+	return __GetPrior(GetThreadPriority((std::is_default_ref(Thread)) ? GetCurrentThread() : Thread.native_handle()));
 #else
 	sched_param schedparams;
-	pthread_getschedparam((std::is_default_ref(Thread))? pthread_self(): Thread.native_handle(), std::make_default_pointer(), &schedparams);
+	pthread_getschedparam((std::is_default_ref(Thread)) ? pthread_self() : Thread.native_handle(), std::make_default_pointer(), &schedparams);
 	return __GetPrior(schedparams.sched_priority);
 #endif
 }
@@ -3649,9 +3648,9 @@ PRIORITY GetThreadPrior(std::thread& Thread)
 bool SetThreadAffinity(unsigned long long Mask, std::thread& Thread)
 {
 #ifdef WIN_PLATFORM
-	return SetThreadAffinityMask((std::is_default_ref(Thread))? GetCurrentThread(): Thread.native_handle(), Mask) != 0;
+	return SetThreadAffinityMask((std::is_default_ref(Thread)) ? GetCurrentThread() : Thread.native_handle(), Mask) != 0;
 #else
-	return pthread_setaffinity_np((std::is_default_ref(Thread))? pthread_self(): Thread.native_handle(), sizeof(Mask), (const cpu_set_t*)&Mask) == 0;
+	return pthread_setaffinity_np((std::is_default_ref(Thread)) ? pthread_self() : Thread.native_handle(), sizeof(Mask), (const cpu_set_t*)&Mask) == 0;
 #endif
 }
 
@@ -3659,12 +3658,12 @@ bool GetThreadAffinity(unsigned long long* Mask, std::thread& Thread)
 {
 #ifdef WIN_PLATFORM
 	GROUP_AFFINITY ga = {0};
-	if(GetThreadGroupAffinity((std::is_default_ref(Thread))? GetCurrentThread(): Thread.native_handle(), &ga) == FALSE)
+	if(GetThreadGroupAffinity((std::is_default_ref(Thread)) ? GetCurrentThread() : Thread.native_handle(), &ga) == FALSE)
 		return false;
 	*Mask = ga.Mask;
 	return true;
 #else
-	return pthread_getaffinity_np((std::is_default_ref(Thread))? pthread_self(): Thread.native_handle(), LenMaskBytes, (const cpu_set_t*)Mask) == 0;
+	return pthread_getaffinity_np((std::is_default_ref(Thread)) ? pthread_self() : Thread.native_handle(), LenMaskBytes, (const cpu_set_t*)Mask) == 0;
 #endif
 }
 
@@ -3739,61 +3738,61 @@ const std::basic_string<char> EX_HTTP::URI_REGEX::UserInfo = "(?:[[:alnum:]-._~!
 
 
 const std::basic_string<char> EX_HTTP::URI_REGEX::IPv4Segment = "(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])";
-const std::basic_string<char> EX_HTTP::URI_REGEX::IPv4Address = "(?:(?:"+IPv4Segment+"\\.){3,3}"+IPv4Segment+")";
-const std::basic_string<char> EX_HTTP::URI_REGEX::IPv4RegEx = "("+IPv4Address+")";
+const std::basic_string<char> EX_HTTP::URI_REGEX::IPv4Address = "(?:(?:" + IPv4Segment + "\\.){3,3}" + IPv4Segment + ")";
+const std::basic_string<char> EX_HTTP::URI_REGEX::IPv4RegEx = "(" + IPv4Address + ")";
 
 const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Segment = "[0-9a-fA-F]{1,4}";
 
-const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Full = "(?:(?:"+IPv6Segment+":){7,7}"+IPv6Segment+")";
-const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Short1 = "(?:(?:"+IPv6Segment+":){1,7}:)";    //1::
-const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Short2 = "(?:(?:"+IPv6Segment+":){1,6}:"+IPv6Segment+")";
-const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Short3 = "(?:(?:"+IPv6Segment+":){1,5}(?::"+IPv6Segment+"){1,2})";
-const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Short4 = "(?:(?:"+IPv6Segment+":){1,4}(?::"+IPv6Segment+"){1,3})";
-const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Short5 = "(?:(?:"+IPv6Segment+":){1,3}(?::"+IPv6Segment+"){1,4})";
-const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Short6 = "(?:(?:"+IPv6Segment+":){1,2}(?::"+IPv6Segment+"){1,5})";
-const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Short7 = "(?:"+IPv6Segment+":(?:(?::"+IPv6Segment+"){1,6}))";
-const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Short8 = "(?::(?:(?::"+IPv6Segment+"){1,7}|:))"; //::2:3:4:5:6:7:8
-const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6_IPv4Mapped = "(?:::(?:ffff(?::0{1,4}){0,1}:){0,1}"+IPv4Address+")"; //::255.255.255.255 отображённый IPv4
-const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6_IPv4Embedded = "(?:(?:"+IPv6Segment+":){1,4}:"+IPv4Address+")"; //2001:db8:3:4::192.0.2.33 встроенный IPv4
+const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Full = "(?:(?:" + IPv6Segment + ":){7,7}" + IPv6Segment + ")";
+const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Short1 = "(?:(?:" + IPv6Segment + ":){1,7}:)";    //1::
+const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Short2 = "(?:(?:" + IPv6Segment + ":){1,6}:" + IPv6Segment + ")";
+const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Short3 = "(?:(?:" + IPv6Segment + ":){1,5}(?::" + IPv6Segment + "){1,2})";
+const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Short4 = "(?:(?:" + IPv6Segment + ":){1,4}(?::" + IPv6Segment + "){1,3})";
+const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Short5 = "(?:(?:" + IPv6Segment + ":){1,3}(?::" + IPv6Segment + "){1,4})";
+const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Short6 = "(?:(?:" + IPv6Segment + ":){1,2}(?::" + IPv6Segment + "){1,5})";
+const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Short7 = "(?:" + IPv6Segment + ":(?:(?::" + IPv6Segment + "){1,6}))";
+const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Short8 = "(?::(?:(?::" + IPv6Segment + "){1,7}|:))"; //::2:3:4:5:6:7:8
+const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6_IPv4Mapped = "(?:::(?:ffff(?::0{1,4}){0,1}:){0,1}" + IPv4Address + ")"; //::255.255.255.255 отображённый IPv4
+const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6_IPv4Embedded = "(?:(?:" + IPv6Segment + ":){1,4}:" + IPv4Address + ")"; //2001:db8:3:4::192.0.2.33 встроенный IPv4
 
 const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6Address = "(?:"
-	+IPv6Full+"|"
-	+IPv6Short1+"|"
-	+IPv6Short2+"|"
-	+IPv6Short3+"|"
-	+IPv6Short4+"|"
-	+IPv6Short5+"|"
-	+IPv6Short6+"|"
-	+IPv6Short7+"|"
-	+IPv6Short8+"|"
-	+IPv6_IPv4Mapped+"|"
-	+IPv6_IPv4Embedded+
-	")";
++ IPv6Full + "|"
++ IPv6Short1 + "|"
++ IPv6Short2 + "|"
++ IPv6Short3 + "|"
++ IPv6Short4 + "|"
++ IPv6Short5 + "|"
++ IPv6Short6 + "|"
++ IPv6Short7 + "|"
++ IPv6Short8 + "|"
++ IPv6_IPv4Mapped + "|"
++ IPv6_IPv4Embedded +
+")";
 
-const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6RegEx = "(?:\\[("+IPv6Address+")\\])";
+const std::basic_string<char> EX_HTTP::URI_REGEX::IPv6RegEx = "(?:\\[(" + IPv6Address + ")\\])";
 
-const std::basic_string<char> EX_HTTP::URI_REGEX::SchemeRegEx = "(?:("+Scheme+")://)";
-const std::basic_string<char> EX_HTTP::URI_REGEX::HostRegEx = "(?:"+IPv4RegEx+"|"+IPv6RegEx+"|("+RegNameChar+"+))";//ihost = IP-literal | IPv4address | ireg-name
+const std::basic_string<char> EX_HTTP::URI_REGEX::SchemeRegEx = "(?:(" + Scheme + ")://)";
+const std::basic_string<char> EX_HTTP::URI_REGEX::HostRegEx = "(?:" + IPv4RegEx + "|" + IPv6RegEx + "|(" + RegNameChar + "+))";//ihost = IP-literal | IPv4address | ireg-name
 const std::basic_string<char> EX_HTTP::URI_REGEX::PortRegEx = "(?::(\\d{1,5}))";
-const std::basic_string<char> EX_HTTP::URI_REGEX::PathRegEx = "((?:/"+PcharChar+"*)+)";
-const std::basic_string<char> EX_HTTP::URI_REGEX::ArgRegEx = "(?:("+QueryKeyChar+"+)(?:=("+QueryValChar+"*))?(?:&|$))";
-const std::basic_string<char> EX_HTTP::URI_REGEX::QueryRegEx = "(?:\\?("+QueryChar+"*)+)";
-const std::basic_string<char> EX_HTTP::URI_REGEX::FragmentRegEx = "(?:#("+FragmentChar+"*))";
+const std::basic_string<char> EX_HTTP::URI_REGEX::PathRegEx = "((?:/" + PcharChar + "*)+)";
+const std::basic_string<char> EX_HTTP::URI_REGEX::ArgRegEx = "(?:(" + QueryKeyChar + "+)(?:=(" + QueryValChar + "*))?(?:&|$))";
+const std::basic_string<char> EX_HTTP::URI_REGEX::QueryRegEx = "(?:\\?(" + QueryChar + "*)+)";
+const std::basic_string<char> EX_HTTP::URI_REGEX::FragmentRegEx = "(?:#(" + FragmentChar + "*))";
 
-const std::basic_string<char> EX_HTTP::URI_REGEX::AuthorityRegEx = "(?:(?:("+UserInfo+"+)@)?"+HostRegEx+PortRegEx+"?)";//iauthority = [ iuserinfo "@" ] ihost [ ":" port ]
+const std::basic_string<char> EX_HTTP::URI_REGEX::AuthorityRegEx = "(?:(?:(" + UserInfo + "+)@)?" + HostRegEx + PortRegEx + "?)";//iauthority = [ iuserinfo "@" ] ihost [ ":" port ]
 
-const std::basic_string<char> EX_HTTP::URI_REGEX::HierPart = "(?://"+AuthorityRegEx+PathRegEx+")";
+const std::basic_string<char> EX_HTTP::URI_REGEX::HierPart = "(?://" + AuthorityRegEx + PathRegEx + ")";
 
-const std::basic_string<char> EX_HTTP::URI_REGEX::URIRegEx = "(?:"+SchemeRegEx+"?"+AuthorityRegEx+")?"+PathRegEx+QueryRegEx+"?"+FragmentRegEx+"?";
+const std::basic_string<char> EX_HTTP::URI_REGEX::URIRegEx = "(?:" + SchemeRegEx + "?" + AuthorityRegEx + ")?" + PathRegEx + QueryRegEx + "?" + FragmentRegEx + "?";
 
 int EX_HTTP::GetMethodIndex(const char* MethodName)
 {
 	static HASH_TABLE_STRING_KEY<char, unsigned char, false, unsigned char> HTTPMethods;
-	static bool a = ([](decltype(HTTPMethods)& v) -> bool 
-	{					
+	static bool a = ([](decltype(HTTPMethods)& v) -> bool
+	{
 		for(unsigned char i = 0; i < METHODS::WRONG; i++)
 		{
-			const char* r =  GetMethodName(i);
+			const char* r = GetMethodName(i);
 			if(r[0] != '\0')
 				*v.Insert(r) = i;
 		}
@@ -3812,76 +3811,76 @@ const char* EX_HTTP::GetMsgByStatus(int Status)
 	switch(Status)
 	{
 		//Informational
-	case 100:	return "Continue";
-	case 101:	return "Switching Protocols";
-	case 102:	return "Processing";
-	case 105:	return "Name Not Resolved";
+		case 100:	return "Continue";
+		case 101:	return "Switching Protocols";
+		case 102:	return "Processing";
+		case 105:	return "Name Not Resolved";
 
-		//Success
-	case 200:	return "OK";
-	case 201:	return "Created";
-	case 202:	return "Accepted";
-	case 203:   return "Non-Authoritative Information"; 
-	case 204:	return "No Content";
-	case 205:	return "Reset Content";
-	case 206:	return "Partial Content";
-	case 207:	return "Multi-Status";
-	case 226:	return "IM Used";
+			//Success
+		case 200:	return "OK";
+		case 201:	return "Created";
+		case 202:	return "Accepted";
+		case 203:   return "Non-Authoritative Information";
+		case 204:	return "No Content";
+		case 205:	return "Reset Content";
+		case 206:	return "Partial Content";
+		case 207:	return "Multi-Status";
+		case 226:	return "IM Used";
 
-		//Redirection 
-	case 301:	return "Moved Permanently";
-	case 302:	return "Moved Temporarily";
-	case 303:	return "See Other";
-	case 304:	return "Not Modified";
-	case 305:	return "Use Proxy";
-	case 307:	return "Temporary Redirect";
+			//Redirection 
+		case 301:	return "Moved Permanently";
+		case 302:	return "Moved Temporarily";
+		case 303:	return "See Other";
+		case 304:	return "Not Modified";
+		case 305:	return "Use Proxy";
+		case 307:	return "Temporary Redirect";
 
-		//Client Error 
-	case 400:	return "Bad Request";
-	case 401:	return "Unauthorized";
-	case 402:	return "Payment Required";
-	case 403:	return "Forbidden";
-	case 404:	return "Not Found";
-	case 405:	return "Method Not Allowed";
-	case 406:	return "Not Acceptable";
-	case 407:	return "Proxy Authentication Required";
-	case 408:	return "Request Timeout";
-	case 409:	return "Conflict";
-	case 410:	return "Gone";
-	case 411:	return "Length Required";
-	case 412:	return "Precondition Failed";
-	case 413:	return "Request Entity Too Large";
-	case 414:	return "Request-URI Too Large";
-	case 415:	return "Unsupported Media Type";
-	case 416:	return "Requested Range Not Satisfiable";
-	case 417:	return "Expectation Failed";
-	case 418:	return "I'm a teapot"; //:)
-	case 422:	return "Unprocessable Entity";
-	case 423:	return "Locked";
-	case 424:	return "Failed Dependency";
-	case 425:	return "Unordered Collection";
-	case 426:	return "Upgrade Required";
-	case 428:	return "Precondition Required";
-	case 429:	return "Too Many Requests";
-	case 431:	return "Request Header Fields Too Large";
-	case 434:	return "Requested host unavailable";
-	case 449:	return "Retry With";
-	case 451:	return "Unavailable For Legal Reasons";
-	case 456:	return "Unrecoverable Error";
+			//Client Error 
+		case 400:	return "Bad Request";
+		case 401:	return "Unauthorized";
+		case 402:	return "Payment Required";
+		case 403:	return "Forbidden";
+		case 404:	return "Not Found";
+		case 405:	return "Method Not Allowed";
+		case 406:	return "Not Acceptable";
+		case 407:	return "Proxy Authentication Required";
+		case 408:	return "Request Timeout";
+		case 409:	return "Conflict";
+		case 410:	return "Gone";
+		case 411:	return "Length Required";
+		case 412:	return "Precondition Failed";
+		case 413:	return "Request Entity Too Large";
+		case 414:	return "Request-URI Too Large";
+		case 415:	return "Unsupported Media Type";
+		case 416:	return "Requested Range Not Satisfiable";
+		case 417:	return "Expectation Failed";
+		case 418:	return "I'm a teapot"; //:)
+		case 422:	return "Unprocessable Entity";
+		case 423:	return "Locked";
+		case 424:	return "Failed Dependency";
+		case 425:	return "Unordered Collection";
+		case 426:	return "Upgrade Required";
+		case 428:	return "Precondition Required";
+		case 429:	return "Too Many Requests";
+		case 431:	return "Request Header Fields Too Large";
+		case 434:	return "Requested host unavailable";
+		case 449:	return "Retry With";
+		case 451:	return "Unavailable For Legal Reasons";
+		case 456:	return "Unrecoverable Error";
 
-		//Server Error
-	case 500:	return "Internal Server Error";
-	case 501:	return "Not Implemented";
-	case 502:	return "Bad Gateway";
-	case 503:	return "Service Unavailable";
-	case 504:	return "Gateway Timeout";
-	case 505:	return "HTTP Version Not Supported";
-	case 506:	return "Variant Also Negotiates";
-	case 507:	return "Insufficient Storage";
-	case 508:	return "Loop Detected";
-	case 509:	return "Bandwidth Limit Exceeded";
-	case 510:	return "Not Extended";
-	case 511:	return "Network Authentication Required";
+			//Server Error
+		case 500:	return "Internal Server Error";
+		case 501:	return "Not Implemented";
+		case 502:	return "Bad Gateway";
+		case 503:	return "Service Unavailable";
+		case 504:	return "Gateway Timeout";
+		case 505:	return "HTTP Version Not Supported";
+		case 506:	return "Variant Also Negotiates";
+		case 507:	return "Insufficient Storage";
+		case 508:	return "Loop Detected";
+		case 509:	return "Bandwidth Limit Exceeded";
+		case 510:	return "Not Extended";
+		case 511:	return "Network Authentication Required";
 	}
 	return "";
 }
@@ -3892,63 +3891,63 @@ const char* EX_HTTP::GetMethodName(int Number)
 	switch(Number)
 	{
 		//Response
-	case METHODS::RESPONSE: return "HTTP";
+		case METHODS::RESPONSE: return "HTTP";
 
-		//Basic
-	case METHODS::GET:		return "GET";
-	case METHODS::POST:		return "POST";
-	case METHODS::OPT:		return "OPTIONS";
-	case METHODS::HEAD:		return "HEAD";
-	case METHODS::PUT:		return "PUT";
-	case METHODS::CONN:		return "CONNECT";
-	case METHODS::TRACE:	return "TRACE";
-	case METHODS::DEL:		return "DELETE";
+			//Basic
+		case METHODS::GET:		return "GET";
+		case METHODS::POST:		return "POST";
+		case METHODS::OPT:		return "OPTIONS";
+		case METHODS::HEAD:		return "HEAD";
+		case METHODS::PUT:		return "PUT";
+		case METHODS::CONN:		return "CONNECT";
+		case METHODS::TRACE:	return "TRACE";
+		case METHODS::DEL:		return "DELETE";
 
-		//WebDAV
-		//RFC 2518
-	case METHODS::PROPFIND:	return "PROPFIND";
-	case METHODS::PROPPATCH:return "PROPPATCH";
-	case METHODS::MKCOL:	return "MKCOL";
-	case METHODS::COPY:		return "COPY";
-	case METHODS::MOVE:		return "MOVE";
-	case METHODS::LOCK:		return "LOCK";
-	case METHODS::UNLOCK:	return "UNLOCK";
+			//WebDAV
+			//RFC 2518
+		case METHODS::PROPFIND:	return "PROPFIND";
+		case METHODS::PROPPATCH:return "PROPPATCH";
+		case METHODS::MKCOL:	return "MKCOL";
+		case METHODS::COPY:		return "COPY";
+		case METHODS::MOVE:		return "MOVE";
+		case METHODS::LOCK:		return "LOCK";
+		case METHODS::UNLOCK:	return "UNLOCK";
 
-		//For version control
-		//RFC 3253
-	case METHODS::VERCNTRL:	return "VERSION-CONTROL";
-	case METHODS::REPORT:	return "REPORT";
-	case METHODS::CHKOUT:	return "CHECKOUT";
-	case METHODS::CHKIN:	return "CHECKIN";
-	case METHODS::UNCHKOUT:	return "UNCHECKOUT";
-	case METHODS::MKWRKSPC:	return "MKWORKSPACE";
-	case METHODS::UPDATE:	return "UPDATE";
-	case METHODS::LABEL:	return "LABEL";
-	case METHODS::MERGE:	return "MERGE";
-	case METHODS::BSELNCNTRL:return "BASELINE-CONTROL";
-	case METHODS::MKACTIV:	return "MKACTIVITY";
+			//For version control
+			//RFC 3253
+		case METHODS::VERCNTRL:	return "VERSION-CONTROL";
+		case METHODS::REPORT:	return "REPORT";
+		case METHODS::CHKOUT:	return "CHECKOUT";
+		case METHODS::CHKIN:	return "CHECKIN";
+		case METHODS::UNCHKOUT:	return "UNCHECKOUT";
+		case METHODS::MKWRKSPC:	return "MKWORKSPACE";
+		case METHODS::UPDATE:	return "UPDATE";
+		case METHODS::LABEL:	return "LABEL";
+		case METHODS::MERGE:	return "MERGE";
+		case METHODS::BSELNCNTRL:return "BASELINE-CONTROL";
+		case METHODS::MKACTIV:	return "MKACTIVITY";
 
-		//RFC 3648
-	case METHODS::ORDPCH:	return "ORDERPATCH";
+			//RFC 3648
+		case METHODS::ORDPCH:	return "ORDERPATCH";
 
-		//RFC 3744
-	case METHODS::ACL:		return "ACL";
+			//RFC 3744
+		case METHODS::ACL:		return "ACL";
 
-		//Another
-	case METHODS::PATCH:	return "PATCH";
-	case METHODS::PRI:		return "PRI";
-	case METHODS::POLL:		return "POLL";
-	case METHODS::SRCH:		return "SEARCH";
-	case METHODS::SPACEJMP:	return "SPACEJUMP";
+			//Another
+		case METHODS::PATCH:	return "PATCH";
+		case METHODS::PRI:		return "PRI";
+		case METHODS::POLL:		return "POLL";
+		case METHODS::SRCH:		return "SEARCH";
+		case METHODS::SPACEJMP:	return "SPACEJUMP";
 
-	case METHODS::LINK:		return "LINK";
-	case METHODS::UNLINK:	return "UNLINK";
+		case METHODS::LINK:		return "LINK";
+		case METHODS::UNLINK:	return "UNLINK";
 
-	case METHODS::MKRDCTREF:return "MKREDIRECTREF";
-	case METHODS::UPRDCTREF:return "UPDATEREDIRECTREF";
-	case METHODS::MKCLNDR:	return "MKCALENDAR";
-	case METHODS::REBIND:	return "REBIND";
-	case METHODS::UNBIND:	return "UNBIND";
+		case METHODS::MKRDCTREF:return "MKREDIRECTREF";
+		case METHODS::UPRDCTREF:return "UPDATEREDIRECTREF";
+		case METHODS::MKCLNDR:	return "MKCALENDAR";
+		case METHODS::REBIND:	return "REBIND";
+		case METHODS::UNBIND:	return "UNBIND";
 	}
 	return "";
 }
@@ -3979,20 +3978,20 @@ time_t EX_HTTP::GMTToTime(tm& InTm)
 
 bool EX_HTTP::WriteGMTTime(char * TimeStr, tm& InTm)
 {
-	static const char  *Week[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
-	static const char  *Months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+	static const char  *Week[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+	static const char  *Months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 	auto r = sprintf
-		(
+	(
 		TimeStr,
-		"%3s, %02i %3s %i %02i:%02i:%02i GMT", 
-		Week[InTm.tm_wday], 
-		InTm.tm_mday, 
-		Months[InTm.tm_mon], 
-		InTm.tm_year + 1900, 
-		InTm.tm_hour, 
-		InTm.tm_min, 
+		"%3s, %02i %3s %i %02i:%02i:%02i GMT",
+		Week[InTm.tm_wday],
+		InTm.tm_mday,
+		Months[InTm.tm_mon],
+		InTm.tm_year + 1900,
+		InTm.tm_hour,
+		InTm.tm_min,
 		InTm.tm_sec
-		);
+	);
 	return r >= 0;
 }
 
@@ -4002,26 +4001,26 @@ bool EX_HTTP::ReadGMTTime(const char * TimeStr, tm& OutTm)
 	MeanTime[0] = MonthName[0] = DayOfWeekName[0] = '\0';
 	unsigned short DayOfMonth, Year, Hour, Minute, Sec;
 	auto r = sscanf
-		(
-		TimeStr, 
-		"%4[^ \r\n,\t]%*[^1234567890]%2i %4s %i %2i:%2i:%2i %4s", 
-		DayOfWeekName, 
-		&OutTm.tm_mday, 
-		MonthName, 
-		&OutTm.tm_year, 
-		&OutTm.tm_hour, 
-		&OutTm.tm_min, 
-		&OutTm.tm_sec, 
+	(
+		TimeStr,
+		"%4[^ \r\n,\t]%*[^1234567890]%2i %4s %i %2i:%2i:%2i %4s",
+		DayOfWeekName,
+		&OutTm.tm_mday,
+		MonthName,
+		&OutTm.tm_year,
+		&OutTm.tm_hour,
+		&OutTm.tm_min,
+		&OutTm.tm_sec,
 		MeanTime
-		);
+	);
 	if(r < 8)
 		return false;
 
-	static const char  *Week[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
-	static const char  *Months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+	static const char  *Week[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+	static const char  *Months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 	OutTm.tm_wday = -1;
 	OutTm.tm_year -= 1900;
-	for(unsigned i = 0;i < std::countof(Week);i++)
+	for(unsigned i = 0; i < std::countof(Week); i++)
 		if(*(unsigned*)DayOfWeekName == *(unsigned*)(Week[i]))
 		{
 			OutTm.tm_wday = i;
@@ -4030,12 +4029,12 @@ bool EX_HTTP::ReadGMTTime(const char * TimeStr, tm& OutTm)
 	if(OutTm.tm_wday == -1)
 		return false;
 	OutTm.tm_mon = -1;
-	for(unsigned i = 0;i < std::countof(Months);i++)
+	for(unsigned i = 0; i < std::countof(Months); i++)
 		if(*(unsigned*)MonthName == *(unsigned*)(Months[i]))
 		{
 			OutTm.tm_mon = i;
 			break;
-		}	
+		}
 	if(OutTm.tm_mon == -1)
 		return false;
 	OutTm.tm_isdst = -1;
@@ -4047,8 +4046,9 @@ bool EX_HTTP::ReadGMTTime(const char * TimeStr, tm& OutTm)
 size_t EX_HTTP::SkipInSockBuffer(QUERY_URL* Sock, void* Buf, size_t SizeBuf, size_t CountSkip)
 {
 	size_t Len = CountSkip;
-	do{
-		size_t l = (Len > SizeBuf)? SizeBuf: Len;
+	do
+	{
+		size_t l = (Len > SizeBuf) ? SizeBuf : Len;
 		int CountReaded = Sock->Recive(Buf, l);
 		if(CountReaded <= 0)
 			break;
@@ -4058,69 +4058,68 @@ size_t EX_HTTP::SkipInSockBuffer(QUERY_URL* Sock, void* Buf, size_t SizeBuf, siz
 }
 
 int EX_HTTP::ReadHeadersRow
-	(
+(
 	char* s,
 	void* UsrData,
-	bool (*HeadersFunc)(void* UsrData, const char * Key, const char * Val)
-	)
+	bool(*HeadersFunc)(void* UsrData, const char * Key, const char * Val)
+)
 {
 	unsigned i = 0, j, k;
 	char *Key;
 	while(true)
 	{
 lblMainLoop:
-		for(;;i++)
+		for(;; i++)
 		{
 			switch(s[i])
 			{
-			case ' ': case '\t': case '\n': case '\v': case '\f':
-				continue;
-			case ':':
+				case ' ': case '\t': case '\n': case '\v': case '\f':
+					continue;
+				case ':':
 lblSkip:
-				for(;;i++)
-				{
-					if((s[i] == '\r') && (s[i + 1] == '\n'))
+					for(;; i++)
+					{
+						if((s[i] == '\r') && (s[i + 1] == '\n'))
+						{
+							i += 2;
+							goto lblMainLoop;
+						} else if(s[i] == '\0')
+							return i;
+					}
+				case '\r':
+					if(s[i + 1] == '\n')
 					{
 						i += 2;
 						goto lblMainLoop;
-					}else if(s[i] == '\0')
-						return i;
-				}
-			case '\r':
-				if(s[i + 1] == '\n')
-				{
-					i += 2;
-					goto lblMainLoop;
-				}
-				continue;
-			case '\0':
-				return i;
+					}
+					continue;
+				case '\0':
+					return i;
 			}
 			if((s[i] >= 'a') && (s[i] <= 'z') || (s[i] >= 'A') && (s[i] <= 'Z'))
 				goto lblReadKey;
-		}	
+		}
 lblReadKey:
 		Key = s + i;
 		//Read key
-		for(i++ ;((s[i] >= 'a') && (s[i] <= 'z')) || ((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-');i++);
+		for(i++; ((s[i] >= 'a') && (s[i] <= 'z')) || ((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-'); i++);
 		j = i;
-		for(;(s[i] == ' ') || (s[i] == '\t'); i++);
+		for(; (s[i] == ' ') || (s[i] == '\t'); i++);
 
 		if((s[i] == '\r') && (s[i + 1] == '\n'))
 		{
 			i += 2;
 			goto lblMainLoop;
-		}
-		else if(s[i] == '\0')
+		} else if(s[i] == '\0')
 			return i;
 		else if(s[i] != ':')
 			goto lblSkip;
 
 		//Skip spaces
-		for(i++;(s[i] == ' ') || (s[i] == '\t'); i++);
+		for(i++; (s[i] == ' ') || (s[i] == '\t'); i++);
 
 		//Read val
-		for(k = i;;i++)
+		for(k = i;; i++)
 		{
 			if((s[i] == '\r') && (s[i + 1] == '\n'))
 			{
@@ -4132,7 +4131,7 @@ lblReadKey:
 				}
 				i += 2;
 				goto lblMainLoop;
-			}else if(s[i] == '\0')
+			} else if(s[i] == '\0')
 			{
 				if(i > k)
 				{
@@ -4149,32 +4148,32 @@ lblReadKey:
 
 
 int EX_HTTP::ReadStartLineRow
-	(
+(
 	char* s,
 	char** Method,
 	unsigned* Status,
 	char** StatusMsg_Uri,
 	char** Ver,
 	bool* IsResponse
-	)
+)
 {
 	size_t i = 0;
-	for(;(s[i] == '\r') && (s[i + 1] == '\n'); i += 2);
+	for(; (s[i] == '\r') && (s[i + 1] == '\n'); i += 2);
 	size_t j = i;
 
 	//If method started not a letter
 	if((s[i] < 'A') && (s[i] > 'Z'))
 		return -1;
 	//Read method
-	for(i++ ;((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-'); i++);
+	for(i++; ((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-'); i++);
 
 	if(
-		((i - j) == 4) && 
-		(s[j] == 'H') && 
-		(s[j + 1] == 'T') && 
+		((i - j) == 4) &&
+		(s[j] == 'H') &&
+		(s[j + 1] == 'T') &&
 		(s[j + 2] == 'T') &&
 		(s[j + 3] == 'P')
-		) 
+		)
 	{
 		//If get response
 		*IsResponse = true;
@@ -4183,10 +4182,10 @@ int EX_HTTP::ReadStartLineRow
 		if(s[i] == '/')
 		{
 			//Read version
-			for(i++ ;((s[i] >= '0') && (s[i] <= '9')) || (s[i] == '.'); i++);
+			for(i++; ((s[i] >= '0') && (s[i] <= '9')) || (s[i] == '.'); i++);
 
 			if(i > (e + 1))
-			{					
+			{
 				if((s[i] == '\r') && (s[i + 1] == '\n'))
 					return -1;
 				*Ver = s + (e + 1);
@@ -4197,7 +4196,7 @@ int EX_HTTP::ReadStartLineRow
 		if((s[i] != ' ') && (s[i] != '\t'))
 			return -1;
 		s[e] = '\0';
-		*Method = s + j; 
+		*Method = s + j;
 		//Skip spaces
 		for(i++; (s[i] == '\t') || (s[i] == ' '); i++);
 		{
@@ -4209,7 +4208,7 @@ int EX_HTTP::ReadStartLineRow
 		}
 		for(; (s[i] == '\t') || (s[i] == ' '); i++);
 
-		for(size_t j = i; ;i++)
+		for(size_t j = i; ; i++)
 			if((s[i] == '\r') && (s[i + 1] == '\n'))
 			{
 				if(i > j)
@@ -4218,7 +4217,7 @@ int EX_HTTP::ReadStartLineRow
 					*StatusMsg_Uri = (char*)GetMsgByStatus(*Status);
 				goto lblOut2;
 			}
-	}else
+	} else
 	{
 		*IsResponse = false;
 		if((s[i] != ' ') && (s[i] != '\t'))
@@ -4233,24 +4232,24 @@ int EX_HTTP::ReadStartLineRow
 			for(; !IsSpace(s[i]); i++);
 			if(i <= StartQuery)
 				return -1;
-			*StatusMsg_Uri = s + StartQuery;	
+			*StatusMsg_Uri = s + StartQuery;
 		}
 		if((s[i] == '\r') && (s[i + 1] == '\n'))
 			goto lblOut2;
-		s[i] = '\0';		
+		s[i] = '\0';
 		for(i++; (s[i] == '\t') || (s[i] == ' '); i++);
 
-		if((s[i] == 'H') && (s[i + 1] == 'T') && (s[i + 2] == 'T') && (s[i + 3] == 'P')) 
+		if((s[i] == 'H') && (s[i + 1] == 'T') && (s[i + 2] == 'T') && (s[i + 3] == 'P'))
 		{
 			i += 4;
 			if(s[i] == '/')
 			{
 				size_t StartVer = ++i;
 				//Read version
-				for(;((s[i] >= '0') && (s[i] <= '9')) || (s[i] == '.'); i++);
+				for(; ((s[i] >= '0') && (s[i] <= '9')) || (s[i] == '.'); i++);
 
 				if(i > StartVer)
-				{					
+				{
 					*Ver = s + StartVer;
 					if((s[i] == '\r') && (s[i + 1] == '\n'))
 						goto lblOut2;
@@ -4261,7 +4260,7 @@ int EX_HTTP::ReadStartLineRow
 		}
 	}
 
-	for(; ;i++)
+	for(; ; i++)
 		if((s[i] == '\r') && (s[i + 1] == '\n'))
 		{
 lblOut2:
@@ -4270,26 +4269,26 @@ lblOut2:
 			break;
 		}
 
-		return i;
+	return i;
 }
 
 
 bool EX_HTTP::CheckMethodRow(char* s)
 {
 	size_t i = 0;
-	for(;(s[i] == '\r') && (s[i + 1] == '\n'); i += 2);
+	for(; (s[i] == '\r') && (s[i + 1] == '\n'); i += 2);
 	size_t j = i;
 	if((s[i] < 'A') && (s[i] > 'Z'))
 		return false;
-	for(i++ ;((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-'); i++);
+	for(i++; ((s[i] >= 'A') && (s[i] <= 'Z')) || (s[i] == '-'); i++);
 
 	if(
-		((i - j) == 4) && 
-		(s[j] == 'H') && 
-		(s[j + 1] == 'T') && 
+		((i - j) == 4) &&
+		(s[j] == 'H') &&
+		(s[j + 1] == 'T') &&
 		(s[j + 2] == 'T') &&
 		(s[j + 3] == 'P')
-		) 
+		)
 	{
 		return (s[i] == ' ') || (s[i] == '\t') || ((s[i] == '/') && IsDigit(s[i + 1]));
 	}
@@ -4299,16 +4298,16 @@ bool EX_HTTP::CheckMethodRow(char* s)
 
 
 int EX_HTTP::Recive
-	(
+(
 	QUERY_URL* QueryUrl,
 	void* UsrData,
-	bool (*ResponseFunc)(void*  UsrData, int Status, const char* Msg, const char* ProtoVer),
-	bool (*QueryFunc)(void*  UsrData, const char* Method, const char* Path, const char* ProtoVer),
-	bool (*HeadersFunc)(void*  UsrData, const char* Key, const char* Val),
+	bool(*ResponseFunc)(void*  UsrData, int Status, const char* Msg, const char* ProtoVer),
+	bool(*QueryFunc)(void*  UsrData, const char* Method, const char* Path, const char* ProtoVer),
+	bool(*HeadersFunc)(void*  UsrData, const char* Key, const char* Val),
 	size_t* Readed,
 	bool IsPeek,
-	size_t MaxLenBuf	
-	)
+	size_t MaxLenBuf
+)
 {
 	if(QueryUrl->IsNotHaveRecvData)
 		return ERRORS::SOCKET_HAS_DISCONNECTED;
@@ -4326,7 +4325,7 @@ int EX_HTTP::Recive
 		{
 			Result = ERRORS::NOT_READED_FROM_SOCKET;
 			goto lblOut;
-		}else if(CountReaded == 0)
+		} else if(CountReaded == 0)
 		{
 			Result = ERRORS::NOT_HAVE_DATA_IN_SOCKET;
 			goto lblOut;
@@ -4338,39 +4337,39 @@ int EX_HTTP::Recive
 				EndHeader = c;
 				break;
 			}
-			if(EndHeader == nullptr)
-			{			
-				if(!CheckMethodRow((char*)Buf))
+		if(EndHeader == nullptr)
+		{
+			if(!CheckMethodRow((char*)Buf))
+			{
+				Result = ERRORS::NOT_HAVE_METHOD;
+				goto lblOut;
+			}
+			if(Buf == TmpBuf)
+			{
+				if((Buf = malloc(CurSizeBuf += 300)) == nullptr)
 				{
-					Result = ERRORS::NOT_HAVE_METHOD;
+					Result = ERRORS::NOT_ALLOC_MEMORY;
 					goto lblOut;
 				}
-				if(Buf == TmpBuf)
+			} else
+			{
+				if((Buf = realloc(Buf, CurSizeBuf += 300)) == nullptr)
 				{
-					if((Buf = malloc(CurSizeBuf += 300)) == nullptr)
-					{
-						Result = ERRORS::NOT_ALLOC_MEMORY;
-						goto lblOut;
-					}
-				}else
-				{
-					if((Buf = realloc(Buf, CurSizeBuf += 300)) == nullptr)
-					{
-						Result = ERRORS::NOT_ALLOC_MEMORY;
-						goto lblOut;
-					}
+					Result = ERRORS::NOT_ALLOC_MEMORY;
+					goto lblOut;
 				}
-				continue;
 			}
-			break;
-	}		
+			continue;
+		}
+		break;
+	}
 
 	EndHeader[4] = '\0';
 	SizeHeader = (size_t)EndHeader - (size_t)Buf + 4;
 	{
 		char *Met = "", *StatMsgURI = Met, *Ver = Met;
 		unsigned Stat = 0;
-		bool IsResponse = false;		
+		bool IsResponse = false;
 		if((i = ReadStartLineRow((char*)Buf, &Met, &Stat, &StatMsgURI, &Ver, &IsResponse)) == -1)
 		{
 			Result = ERRORS::INVALID_START_LINE;
@@ -4383,7 +4382,7 @@ int EX_HTTP::Recive
 				Result = ERRORS::USER_INTERRUPT;
 				goto lblOut;
 			}
-		}else
+		} else
 		{
 			if(!QueryFunc(UsrData, Met, StatMsgURI, Ver))
 			{
@@ -4411,11 +4410,11 @@ lblOut:
 int EX_HTTP::SendQuery
 (
 	QUERY_URL* QueryUrl,
-	const char* MethodStr, 
-	const char* Path, 
-	void* UsrData, 
-	bool (*HeadersEnumFunc)(void* UsrData, char ** Key, char ** Val),
-	const char* ProtoVersion 
+	const char* MethodStr,
+	const char* Path,
+	void* UsrData,
+	bool(*HeadersEnumFunc)(void* UsrData, char ** Key, char ** Val),
+	const char* ProtoVersion
 )
 {
 	std::basic_string<char> ResponseBuf = MethodStr;
@@ -4439,10 +4438,10 @@ int EX_HTTP::SendQuery
 int EX_HTTP::SendQuery
 (
 	QUERY_URL* QueryUrl,
-	int TypeMethod, 
-	const char* Path, 
-	void* UsrData, 
-	bool (*HeadersEnumFunc)(void* UsrData, char ** Key, char ** Val),
+	int TypeMethod,
+	const char* Path,
+	void* UsrData,
+	bool(*HeadersEnumFunc)(void* UsrData, char ** Key, char ** Val),
 	const char* ProtoVersion
 )
 {
@@ -4456,10 +4455,10 @@ int EX_HTTP::SendQuery
 int EX_HTTP::SendResponse
 (
 	QUERY_URL* QueryUrl,
-	int Stat, 		
-	void* UsrData, 
-	bool (*HeadersEnumFunc)(void* UsrData, char ** Key, char ** Val),
-	const char* StatMsg, 
+	int Stat,
+	void* UsrData,
+	bool(*HeadersEnumFunc)(void* UsrData, char ** Key, char ** Val),
+	const char* StatMsg,
 	const char* ProtoVersion
 )
 {
@@ -4467,7 +4466,7 @@ int EX_HTTP::SendResponse
 		StatMsg = GetMsgByStatus(Stat);
 	std::basic_string<char> ResponseBuf("", 50);
 	unsigned s = sprintf((char*)ResponseBuf.c_str(), "HTTP/%.20s %i ", ProtoVersion, Stat);
-	ResponseBuf.resize(s);	
+	ResponseBuf.resize(s);
 	ResponseBuf.append(StatMsg);
 	ResponseBuf.append("\r\n", sizeof("\r\n") - 1);
 	for(char* Key, *Val; HeadersEnumFunc(UsrData, &Key, &Val);)
@@ -4480,3 +4479,142 @@ int EX_HTTP::SendResponse
 	ResponseBuf.append("\r\n", sizeof("\r\n") - 1);
 	return QueryUrl->Send(ResponseBuf);
 }
+
+
+
+
+/*
+*	ExBase64.h
+*/
+
+#include "ExBase64.h"
+
+template<bool Pad>
+static size_t _CodeBase64(unsigned char *Dst, const unsigned char *Src, size_t SrcLen, const unsigned char *basis);
+static int _DecodeBase64(unsigned char *Dst, const unsigned char* Src, size_t SrcLen, const unsigned char *DecodeChain);
+
+static const unsigned char CodeChain[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+static const unsigned char CodeChainURL[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+static const unsigned char DecodeChain[] = {
+	77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
+	77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
+	77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 62, 77, 77, 77, 63,
+	52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 77, 77, 77, 77, 77, 77,
+	77,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+	15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 77, 77, 77, 77, 77,
+	77, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+	41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51
+};
+
+static const unsigned char DecodeSeqURL[] = {
+	77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
+	77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
+	77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 62, 77, 77,
+	52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 77, 77, 77, 77, 77, 77,
+	77,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+	15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 77, 77, 77, 77, 63,
+	77, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+	41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51
+};
+
+size_t CodeBase64(char *Dest, const void *Src, size_t SrcLen) { return _CodeBase64<true>((unsigned char*)Dest, (const unsigned char*)Src, SrcLen, CodeChain); }
+size_t CodeBase64URL(char *Dest, const void *Src, size_t SrcLen) { return _CodeBase64<false>((unsigned char*)Dest, (const unsigned char*)Src, SrcLen, CodeChainURL); }
+
+std::basic_string<char> CodeBase64(const void *Src, size_t SrcLen)
+{
+	std::basic_string<char> r("", ((float)SrcLen * 1.4f) + 2);
+	size_t l = _CodeBase64<true>((unsigned char*)r.data(), (const unsigned char*)Src, SrcLen, CodeChain);
+	r.resize(l);
+	return r;
+}
+
+std::basic_string<char> CodeBase64URL(const void *Src, size_t SrcLen)
+{
+	std::basic_string<char> r("", ((float)SrcLen * 1.4f) + 2);
+	size_t l = _CodeBase64<false>((unsigned char*)r.data(), (const unsigned char*)Src, SrcLen, CodeChainURL);
+	r.resize(l);
+	return r;
+}
+
+template<bool Pad>
+static size_t _CodeBase64(unsigned char *Dst, const unsigned char *Src, size_t SrcLen, const unsigned char *CodeChain)
+{
+	const unsigned char *s = Src;
+	unsigned char *d = Dst;
+	size_t l = SrcLen;
+	while(l > 2)
+	{
+		*d++ = CodeChain[(s[0] >> 2) & 0x3f];
+		*d++ = CodeChain[((s[0] & 3) << 4) | (s[1] >> 4)];
+		*d++ = CodeChain[((s[1] & 0x0f) << 2) | (s[2] >> 6)];
+		*d++ = CodeChain[s[2] & 0x3f];
+		s += 3;
+		l -= 3;
+	}
+
+	if(l > 0)
+	{
+		*d++ = CodeChain[(s[0] >> 2) & 0x3f];
+		if(l == 1)
+		{
+			*d++ = CodeChain[(s[0] & 3) << 4];
+			if(Pad) *d++ = '=';
+		} else
+		{
+			*d++ = CodeChain[((s[0] & 3) << 4) | (s[1] >> 4)];
+			*d++ = CodeChain[(s[1] & 0x0f) << 2];
+		}
+		if(Pad) *d++ = '=';
+	}
+	return d - Dst;
+}
+
+int DecodeBase64(void *Dst, const char *Src, size_t SrcLen) { return _DecodeBase64((unsigned char*)Dst, (const unsigned char*)Src, SrcLen, DecodeChain); }
+int DecodeBase64URL(void *Dst, const char *Src, size_t SrcLen) { return _DecodeBase64((unsigned char*)Dst, (const unsigned char*)Src, SrcLen, DecodeSeqURL); }
+
+std::basic_string<char> DecodeBase64(const char *Src, size_t SrcLen)
+{
+	std::basic_string<char> r("", ((float)SrcLen * 0.8f) + 2);
+	int l = DecodeBase64((void*)r.data(), Src, SrcLen);
+	if(l == -1) return std::basic_string<char>();
+	r.resize(l);
+	return r;
+}
+std::basic_string<char> DecodeBase64URL(const char *Src, size_t SrcLen)
+{
+	std::basic_string<char> r("", ((float)SrcLen * 0.8f) + 2);
+	int l = DecodeBase64URL((void*)r.data(), Src, SrcLen);
+	if(l == -1) return std::basic_string<char>();
+	r.resize(l);
+	return r;
+}
+
+static int _DecodeBase64(unsigned char *Dst, const unsigned char* Src, size_t SrcLen, const unsigned char *DecodeChain)
+{
+	size_t l = 0;
+	/*Checkin base64 sequence*/
+	for(; l < SrcLen; l++)
+	{
+		if(Src[l] == '=') break;
+		if((DecodeChain[Src[l]] == 77) || (Src[l] > 122)) return -1;
+	}
+	if(l % 4 == 1) return -1;
+	unsigned char *d = Dst;
+	const unsigned char *s = Src;
+	/*Decode sequence*/
+	while(l > 3)
+	{
+		*d++ = (unsigned char)(DecodeChain[s[0]] << 2 | DecodeChain[s[1]] >> 4);
+		*d++ = (unsigned char)(DecodeChain[s[1]] << 4 | DecodeChain[s[2]] >> 2);
+		*d++ = (unsigned char)(DecodeChain[s[2]] << 6 | DecodeChain[s[3]]);
+		s += 4;
+		l -= 4;
+	}
+
+	if(l > 1) *d++ = (unsigned char)(DecodeChain[s[0]] << 2 | DecodeChain[s[1]] >> 4);
+	if(l > 2) *d++ = (unsigned char)(DecodeChain[s[1]] << 4 | DecodeChain[s[2]] >> 2);
+
+	return d - Dst;
+}
+

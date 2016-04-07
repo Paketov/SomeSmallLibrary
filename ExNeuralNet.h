@@ -580,20 +580,20 @@ lblOutErr:
 	*/
 	bool NewLayer(size_t CountNeuron, size_t Index = 0xffffffff)
 	{
-		if(Index > CountLayers) 
+		if(Index > CountLayers)
 			Index = CountLayers;
 		auto nl = (NEURAL_LAYER**)realloc(CountLayers.nl, (CountLayers + 1) * sizeof(NEURAL_LAYER*));
 		if(nl == nullptr)
 			return false;
 		if(Index != CountLayers)
-			memmove(nl + (Index + 1), nl + Index,  (CountLayers - Index) * sizeof(NEURAL_LAYER*));
+			memmove(nl + (Index + 1), nl + Index, (CountLayers - Index) * sizeof(NEURAL_LAYER*));
 
 		if(Index == CountLayers) //If last layer
 		{
-			nl[Index] = new NEURAL_LAYER((Index != 0) ? nl[Index - 1]->Count: CountLayers.ic, CountNeuron);	
-		}else
+			nl[Index] = new NEURAL_LAYER((Index != 0) ? nl[Index - 1]->Count : CountLayers.ic, CountNeuron);
+		} else
 		{
-			nl[Index] = new NEURAL_LAYER(nl[Index + 1]->get_count_prev(), CountNeuron);	
+			nl[Index] = new NEURAL_LAYER(nl[Index + 1]->get_count_prev(), CountNeuron);
 			nl[Index + 1]->set_count_prev(CountNeuron);
 		}
 		CountLayers.nl = nl;
@@ -609,16 +609,16 @@ lblOutErr:
 	*/
 	bool RemoveLayer(size_t Index)
 	{
-		if(Index >= CountLayers) 
+		if(Index >= CountLayers)
 			return false;
 		auto nl = CountLayers.nl;
 		delete nl[Index];
 		if(Index != (CountLayers - 1)) //If not last layer
 		{
-			memmove(nl + Index, nl + (Index + 1),  (CountLayers - (Index + 1)) * sizeof(NEURAL_LAYER*));
-			nl[Index]->set_count_prev((Index == 0)? CountLayers.ic: nl[Index - 1]->Count);
+			memmove(nl + Index, nl + (Index + 1), (CountLayers - (Index + 1)) * sizeof(NEURAL_LAYER*));
+			nl[Index]->set_count_prev((Index == 0) ? CountLayers.ic : nl[Index - 1]->Count);
 		}
-		nl = (NEURAL_LAYER**)realloc(nl, (CountLayers.cl - 1) * sizeof(NEURAL_LAYER*));	
+		nl = (NEURAL_LAYER**)realloc(nl, (CountLayers.cl - 1) * sizeof(NEURAL_LAYER*));
 		CountLayers.cl--;
 		if(nl != nullptr)
 			CountLayers.nl = nl;
@@ -634,12 +634,12 @@ lblOutErr:
 	*/
 	template<typename InputVectorType, typename OutputVectorType>
 	typename std::enable_if<
-		std::is_convertible<InputVectorType, TypeNum>::value && 
-		std::is_convertible<TypeNum, OutputVectorType>::value ,
+		std::is_convertible<InputVectorType, TypeNum>::value &&
+		std::is_convertible<TypeNum, OutputVectorType>::value,
 		bool
 	>::type
 	Recognize(const InputVectorType* In, OutputVectorType* Out) const
-	{			
+	{
 		if(CountLayers == 0)
 			return false;
 		const size_t cn = MaxCountNeuronInLayer;
@@ -662,7 +662,7 @@ lblOutErr:
 					SolveNeu += *Biases;
 					*dst = ActivateFunc(SolveNeu);
 				}
-			}else
+			} else
 			{
 				for(TypeNum* dst = sl; dst < mdst; dst++)
 				{
@@ -670,7 +670,7 @@ lblOutErr:
 					for(const TypeNum* gl2 = gl; gl2 < mgl2; gl2++, s++)
 						SolveNeu += *gl2 * *s;
 					*dst = ActivateFunc(SolveNeu);
-				}	
+				}
 			}
 			/*in sl placed */
 			std::swap(gl, sl);
@@ -689,12 +689,12 @@ lblOutErr:
 	*/
 	template<typename InputVectorType, typename OutputVectorType>
 	typename std::enable_if<
-		std::is_convertible<InputVectorType, TypeNum>::value && 
-		std::is_convertible<TypeNum, OutputVectorType>::value ,
+		std::is_convertible<InputVectorType, TypeNum>::value &&
+		std::is_convertible<TypeNum, OutputVectorType>::value,
 		bool
 	>::type
-	RecognizeParallel(const InputVectorType* In, OutputVectorType* Out) const
-	{			
+		RecognizeParallel(const InputVectorType* In, OutputVectorType* Out) const
+	{
 		if(CountLayers == 0)
 			return false;
 		const size_t cn = MaxCountNeuronInLayer;
@@ -723,7 +723,7 @@ lblOutErr:
 						sl[i] = ActivateFunc(SolveNeu);
 					}
 				}
-			}else
+			} else
 			{
 #pragma omp parallel
 				{
@@ -735,7 +735,7 @@ lblOutErr:
 							SolveNeu += *gl2 * *s2;
 						sl[i] = ActivateFunc(SolveNeu);
 					}
-				}			
+				}
 			}
 			/*in sl placed */
 			std::swap(gl, sl);
@@ -759,7 +759,6 @@ lblOutErr:
 	>::type
 	GetReverse(const InputVectorType* In, OutputVectorType* Out) const
 	{
-
 		size_t cn, InCount;
 		if(CountLayers == 0)
 			return false;
@@ -790,7 +789,7 @@ lblOutErr:
 					for(TypeNum* slt = sl; s < m; s++, slt++)
 						*slt += TypeNum(tn * *s);
 				}
-			}else
+			} else
 			{
 				for(TypeNum* glt = gl; glt < mglt; glt++)
 				{
@@ -802,7 +801,7 @@ lblOutErr:
 					long double tn = RActivateFunc(*glt) / SumWeigths;
 					for(TypeNum* slt = sl; s < m; s++, slt++)
 						*slt += TypeNum(tn * *s);
-				}			    
+				}
 			}
 			InCount = OutCount;
 			std::swap(gl, sl);
@@ -821,8 +820,8 @@ lblOutErr:
 	*/
 	template<typename InputVectorType, typename OutputVectorType>
 	typename std::enable_if<
-		std::is_convertible<InputVectorType, TypeNum>::value && 
-		std::is_convertible<TypeNum, OutputVectorType>::value ,
+		std::is_convertible<InputVectorType, TypeNum>::value &&
+		std::is_convertible<TypeNum, OutputVectorType>::value,
 		bool
 	>::type
 	GetReverseParallel(const InputVectorType* In, OutputVectorType* Out) const
@@ -918,13 +917,13 @@ lblOutErr:
 		{
 			Error = 0.0;
 			auto SourceNeurons = In;
-			
+
 			//Вычисляем результат для входа сети
 			for(NEURAL_LAYER **nl = CountLayers.nl, **mnl = nl + size_t(CountLayers); nl < mnl; nl++)
 			{
 				auto Out = (*nl)->Count.TmpOut;
 				auto InputWeigths = (*nl)->get_row();
-				auto MaxSourceNeurons = SourceNeurons + (*nl)->get_count_prev(); 
+				auto MaxSourceNeurons = SourceNeurons + (*nl)->get_count_prev();
 				auto MaxDest = Out + size_t((*nl)->Count);
 				auto Derivatives = (*nl)->Count.TmpDer;
 				TACTIVATE_FUNC ActivateFunc = (*nl)->ActivateFunction;
@@ -935,21 +934,21 @@ lblOutErr:
 					for(TypeNum* DestNeuron = Out; DestNeuron < MaxDest; DestNeuron++, Derivatives++, Biases++)
 					{ //For each neuron in current layer
 						TypeNum SolveNeu = TypeNum(0);
-						for(const TypeNum* CurSourceNeuron = SourceNeurons; 
-							CurSourceNeuron < MaxSourceNeurons; 
+						for(const TypeNum* CurSourceNeuron = SourceNeurons;
+							CurSourceNeuron < MaxSourceNeurons;
 							CurSourceNeuron++, InputWeigths++) //for each weigth
 							SolveNeu += *CurSourceNeuron * *InputWeigths;
-						SolveNeu += *Biases; 
+						SolveNeu += *Biases;
 						*DestNeuron = ActivateFunc(SolveNeu);
 						*Derivatives = DerActivateFunc(SolveNeu);
 					}
-				}else
+				} else
 				{
 					for(TypeNum* DestNeuron = Out; DestNeuron < MaxDest; DestNeuron++, Derivatives++)
 					{ //For each neuron in current layer
 						TypeNum SolveNeu = TypeNum(0);
-						for(const TypeNum* CurSourceNeuron = SourceNeurons; 
-							CurSourceNeuron < MaxSourceNeurons; 
+						for(const TypeNum* CurSourceNeuron = SourceNeurons;
+							CurSourceNeuron < MaxSourceNeurons;
 							CurSourceNeuron++, InputWeigths++) //for each weigth
 							SolveNeu += *CurSourceNeuron * *InputWeigths;
 						*DestNeuron = ActivateFunc(SolveNeu);
@@ -961,32 +960,32 @@ lblOutErr:
 
 			//Правим веса последнего слоя
 			{
-				NEURAL_LAYER& nl	= LayerByIndex(CountLayers - 1);
-				auto Derivatives	= nl.Count.TmpDer;
-				auto InputWeigths	= nl.get_row();
-				auto Delta			= nl.Count.TmpDelta;
-				auto OutPrev		= (CountLayers > 1)? (LayerByIndex(CountLayers - 2).Count.TmpOut): In;
-				auto CurOut			= nl.Count.TmpOut;
-				size_t CountPrev	= nl.get_count_prev();
+				NEURAL_LAYER& nl = LayerByIndex(CountLayers - 1);
+				auto Derivatives = nl.Count.TmpDer;
+				auto InputWeigths = nl.get_row();
+				auto Delta = nl.Count.TmpDelta;
+				auto OutPrev = (CountLayers > 1) ? (LayerByIndex(CountLayers - 2).Count.TmpOut) : In;
+				auto CurOut = nl.Count.TmpOut;
+				size_t CountPrev = nl.get_count_prev();
 				if(nl.IsHaveBiases)
 				{
 					auto Biases = nl.Count.Biases;
 					for(size_t q = 0, mq = OutputCount; q < mq; q++)
 					{
-						TypeNum CurError = Result[q] - CurOut[q]; 
-						Error += CurError * CurError; 					
+						TypeNum CurError = Result[q] - CurOut[q];
+						Error += CurError * CurError;
 						TypeNum CurDelta = SpeedLern * (Delta[q] = Derivatives[q] * CurError);//Delta[q] = F`(OUT[q]) * (T[q] - OUT[q])
 						for(size_t p = 0; p < CountPrev; p++)
 							InputWeigths[p] += CurDelta * OutPrev[p];					      //w[p,q](i+1) = q[p,q](i) + n * Delta[q] * OUT[p]
 						InputWeigths += CountPrev;
 						Biases[q] += CurDelta;
 					}
-				}else
+				} else
 				{
 					for(size_t q = 0, mq = OutputCount; q < mq; q++)
 					{
-						TypeNum CurError = Result[q] - CurOut[q]; 
-						Error += CurError * CurError; 
+						TypeNum CurError = Result[q] - CurOut[q];
+						Error += CurError * CurError;
 						TypeNum CurDelta = SpeedLern * (Delta[q] = Derivatives[q] * CurError);//Delta[q] = F`(OUT[q]) * (T[q] - OUT[q])
 						for(size_t p = 0; p < CountPrev; p++)
 							InputWeigths[p] += CurDelta * OutPrev[p];					      //w[p,q](i+1) = q[p,q](i) + n * Delta[q] * OUT[p]
@@ -998,23 +997,23 @@ lblOutErr:
 			//Правим веса внутренних слоёв
 			for(int l = CountLayers - 2; l >= 0; l--)
 			{
-				NEURAL_LAYER& nl		= LayerByIndex(l);
-				auto Derivatives		= nl.Count.TmpDer;
-				auto InputWeigths		= nl.get_row();
-				auto Delta				= nl.Count.TmpDelta;
-				auto WeigthToNextLayer	= nl.get_row();
-				auto DeltaNextLayer		= LayerByIndex(l + 1).Count.TmpDelta;
-				const TypeNum* OutPrev	= (l < 1)? In: LayerByIndex(l - 1).Count.TmpOut;
+				NEURAL_LAYER& nl = LayerByIndex(l);
+				auto Derivatives = nl.Count.TmpDer;
+				auto InputWeigths = nl.get_row();
+				auto Delta = nl.Count.TmpDelta;
+				auto WeigthToNextLayer = nl.get_row();
+				auto DeltaNextLayer = LayerByIndex(l + 1).Count.TmpDelta;
+				const TypeNum* OutPrev = (l < 1) ? In : LayerByIndex(l - 1).Count.TmpOut;
 				size_t NeuronCountInNextLayer = LayerByIndex(l + 1).Count;
-				auto CountPrev			= nl.get_count_prev();
-				size_t NeuronCount		= nl.Count;
+				auto CountPrev = nl.get_count_prev();
+				size_t NeuronCount = nl.Count;
 				if(nl.IsHaveBiases)
 				{
 					auto Biases = nl.Count.Biases;
 					for(size_t q = 0; q < NeuronCount; q++)
 					{
 						TypeNum CurDelta = TypeNum(0);
-						for(size_t k = 0;k < NeuronCountInNextLayer; k++)
+						for(size_t k = 0; k < NeuronCountInNextLayer; k++)
 							CurDelta += DeltaNextLayer[k] * WeigthToNextLayer[k];
 						WeigthToNextLayer += NeuronCountInNextLayer;
 						Delta[q] = (CurDelta *= Derivatives[q]);
@@ -1024,12 +1023,12 @@ lblOutErr:
 						Biases[q] += CurDelta;
 						InputWeigths += CountPrev;
 					}
-				}else
+				} else
 				{
 					for(size_t q = 0; q < NeuronCount; q++)
 					{
 						TypeNum CurDelta = TypeNum(0);
-						for(size_t k = 0;k < NeuronCountInNextLayer; k++)
+						for(size_t k = 0; k < NeuronCountInNextLayer; k++)
 							CurDelta += DeltaNextLayer[k] * WeigthToNextLayer[k];
 						WeigthToNextLayer += NeuronCountInNextLayer;
 						Delta[q] = (CurDelta *= Derivatives[q]);
@@ -1037,7 +1036,7 @@ lblOutErr:
 						for(size_t p = 0; p < CountPrev; p++)
 							InputWeigths[p] += CurDelta * OutPrev[p];
 						InputWeigths += CountPrev;
-					}				
+					}
 				}
 			}
 			Error /= 2.0;
@@ -1075,12 +1074,12 @@ lblOutErr:
 			auto SourceNeurons = In;
 			for(NEURAL_LAYER **nl = CountLayers.nl, **mnl = nl + size_t(CountLayers); nl < mnl; nl++)
 			{
-				auto Out					= (*nl)->Count.TmpOut;
-				auto InputWeigths			= (*nl)->get_row();
-				auto CountPrev				= (*nl)->get_count_prev();
-				auto MaxSourceNeurons		= SourceNeurons + CountPrev; 
-				int CountNeuron				= size_t((*nl)->Count);
-				auto Der					= (*nl)->Count.TmpDer;
+				auto Out = (*nl)->Count.TmpOut;
+				auto InputWeigths = (*nl)->get_row();
+				auto CountPrev = (*nl)->get_count_prev();
+				auto MaxSourceNeurons = SourceNeurons + CountPrev;
+				int CountNeuron = size_t((*nl)->Count);
+				auto Der = (*nl)->Count.TmpDer;
 				TACTIVATE_FUNC ActivateFunc = (*nl)->ActivateFunction;
 				TDER_ACTIVATE_FUNC DerActivateFunc = (*nl)->DerActivateFunction;
 				if((*nl)->IsHaveBiases)
@@ -1092,8 +1091,8 @@ lblOutErr:
 						for(int i = 0; i < CountNeuron; i++)
 						{ //For each neuron in current layer
 							TypeNum SolveNeu = TypeNum(0);
-							for(const TypeNum *CurSourceNeuron = SourceNeurons, const *CurInputWeigth = InputWeigths + i * CountPrev; 
-								CurSourceNeuron < MaxSourceNeurons; 
+							for(const TypeNum *CurSourceNeuron = SourceNeurons, const *CurInputWeigth = InputWeigths + i * CountPrev;
+								CurSourceNeuron < MaxSourceNeurons;
 								CurSourceNeuron++, CurInputWeigth++)
 								SolveNeu += *CurSourceNeuron * *CurInputWeigth;
 							SolveNeu += Biases[i];
@@ -1101,7 +1100,7 @@ lblOutErr:
 							Der[i] = DerActivateFunc(SolveNeu);
 						}
 					}
-				}else
+				} else
 				{
 #pragma omp parallel
 					{
@@ -1109,14 +1108,14 @@ lblOutErr:
 						for(int i = 0; i < CountNeuron; i++)
 						{ //For each neuron in current layer
 							TypeNum SolveNeu = TypeNum(0);
-							for(const TypeNum *CurSourceNeuron = SourceNeurons, const *CurInputWeigth = InputWeigths + i * CountPrev; 
-								CurSourceNeuron < MaxSourceNeurons; 
+							for(const TypeNum *CurSourceNeuron = SourceNeurons, const *CurInputWeigth = InputWeigths + i * CountPrev;
+								CurSourceNeuron < MaxSourceNeurons;
 								CurSourceNeuron++, CurInputWeigth++)
 								SolveNeu += *CurSourceNeuron * *CurInputWeigth;
 							Out[i] = ActivateFunc(SolveNeu);
 							Der[i] = DerActivateFunc(SolveNeu);
 						}
-					}				   
+					}
 				}
 				SourceNeurons = Out;
 			}
@@ -1124,14 +1123,14 @@ lblOutErr:
 
 			//Правим веса последнего слоя
 			{
-				NEURAL_LAYER& nl			= LayerByIndex(CountLayers - 1);
-				auto Derivatives			= nl.Count.TmpDer;
-				auto InputWeigths			= nl.get_row();
-				auto Delta					= nl.Count.TmpDelta;
-				const TypeNum* OutPrev		= (CountLayers > 1)? (LayerByIndex(CountLayers - 2).Count.TmpOut): In;
-				auto CurOut					= nl.Count.TmpOut;
-				auto CountPrev				= nl.get_count_prev();
-				int mq						= OutputCount;
+				NEURAL_LAYER& nl = LayerByIndex(CountLayers - 1);
+				auto Derivatives = nl.Count.TmpDer;
+				auto InputWeigths = nl.get_row();
+				auto Delta = nl.Count.TmpDelta;
+				const TypeNum* OutPrev = (CountLayers > 1) ? (LayerByIndex(CountLayers - 2).Count.TmpOut) : In;
+				auto CurOut = nl.Count.TmpOut;
+				auto CountPrev = nl.get_count_prev();
+				int mq = OutputCount;
 				if(nl.IsHaveBiases)
 				{
 					auto Biases = nl.Count.Biases;
@@ -1142,7 +1141,7 @@ lblOutErr:
 						{
 							TypeNum CurError = Result[q] - CurOut[q];
 #pragma omp atomic
-							Error += CurError * CurError; 					
+							Error += CurError * CurError;
 							TypeNum CurDelta = SpeedLern * (Delta[q] = Derivatives[q] * CurError);	//Delta[q] = F`(OUT[q]) * (T[q] - OUT[q])
 							TypeNum* w = InputWeigths + q * CountPrev;
 							for(size_t p = 0; p < CountPrev; p++)
@@ -1150,7 +1149,7 @@ lblOutErr:
 							Biases[q] += CurDelta;
 						}
 					}
-				}else
+				} else
 				{
 #pragma omp parallel
 					{
@@ -1159,28 +1158,28 @@ lblOutErr:
 						{
 							TypeNum CurError = Result[q] - CurOut[q];
 #pragma omp atomic
-							Error += CurError * CurError; 					
+							Error += CurError * CurError;
 							TypeNum CurDelta = SpeedLern * (Delta[q] = Derivatives[q] * CurError);	//Delta[q] = F`(OUT[q]) * (T[q] - OUT[q])
 							TypeNum* w = InputWeigths + q * CountPrev;
 							for(size_t p = 0; p < CountPrev; p++)
 								w[p] += CurDelta * OutPrev[p];					//w[p,q](i+1) = q[p,q](i) + n * Delta[q] * OUT[p]
 						}
-					}				
+					}
 				}
 			}
 			//Правим веса внутренних слоёв
 			for(int l = CountLayers - 2; l >= 0; l--)
-			{		
-				NEURAL_LAYER& nl				= LayerByIndex(l);
-				auto Derivatives				= nl.Count.TmpDer;
-				auto InputWeigths				= nl.get_row();
-				const TypeNum* OutPrev			= (l < 1)? In: LayerByIndex(l - 1).Count.TmpOut;
-				auto Delta						= nl.Count.TmpDelta;
-				auto DeltaNextLayer				= LayerByIndex(l + 1).Count.TmpDelta;
-				auto WeigthToNextLayer			= nl.get_row();
-				auto CountPrev					= nl.get_count_prev();
-				int NeuronCount					= nl.Count;
-				size_t NeuronCountInNextLayer	= LayerByIndex(l + 1).Count;
+			{
+				NEURAL_LAYER& nl = LayerByIndex(l);
+				auto Derivatives = nl.Count.TmpDer;
+				auto InputWeigths = nl.get_row();
+				const TypeNum* OutPrev = (l < 1) ? In : LayerByIndex(l - 1).Count.TmpOut;
+				auto Delta = nl.Count.TmpDelta;
+				auto DeltaNextLayer = LayerByIndex(l + 1).Count.TmpDelta;
+				auto WeigthToNextLayer = nl.get_row();
+				auto CountPrev = nl.get_count_prev();
+				int NeuronCount = nl.Count;
+				size_t NeuronCountInNextLayer = LayerByIndex(l + 1).Count;
 				if(nl.IsHaveBiases)
 				{
 					auto Biases = nl.Count.Biases;
@@ -1191,7 +1190,7 @@ lblOutErr:
 						{
 							TypeNum CurDelta = TypeNum(0);
 							TypeNum* w = WeigthToNextLayer + q * NeuronCountInNextLayer;
-							for(size_t k = 0;k < NeuronCountInNextLayer; k++)
+							for(size_t k = 0; k < NeuronCountInNextLayer; k++)
 								CurDelta += DeltaNextLayer[k] * w[k];
 							Delta[q] = (CurDelta *= Derivatives[q]);
 							CurDelta *= SpeedLern;
@@ -1201,7 +1200,7 @@ lblOutErr:
 							Biases[q] += CurDelta;
 						}
 					}
-				}else
+				} else
 				{
 #pragma omp parallel
 					{
@@ -1210,7 +1209,7 @@ lblOutErr:
 						{
 							TypeNum CurDelta = TypeNum(0);
 							TypeNum* w = WeigthToNextLayer + q * NeuronCountInNextLayer;
-							for(size_t k = 0;k < NeuronCountInNextLayer; k++)
+							for(size_t k = 0; k < NeuronCountInNextLayer; k++)
 								CurDelta += DeltaNextLayer[k] * w[k];
 							Delta[q] = (CurDelta *= Derivatives[q]);
 							CurDelta *= SpeedLern;
