@@ -1,5 +1,4 @@
-#ifndef __NEURALNET_H_HAS_INCLUDED__
-#define __NEURALNET_H_HAS_INCLUDED__
+#pragma once
 
 #include <malloc.h>
 #include <omp.h>
@@ -1230,4 +1229,3 @@ lblOutErr:
 	}
 };
 
-#endif

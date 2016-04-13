@@ -1,5 +1,4 @@
-#ifndef __EXMATRIX_H_HAS_INCLUDED__
-#define __EXMATRIX_H_HAS_INCLUDED__
+#pragma once
 
 /*
   MATRIX class.
@@ -2444,6 +2443,3 @@ public:
 	template<typename _T, unsigned _i, unsigned _j>
 	inline bool operator!=(_T (&Another)[_i][_j]) { return !operator==(Another); }
 };
-
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef __EXTHREAD_H_HAS_INCLUDED__
-#define __EXTHREAD_H_HAS_INCLUDED__
+#pragma once
 
 #include <thread>
 #include "ExTypeTraits.h"
@@ -20,5 +19,3 @@ bool SetThreadPrior(PRIORITY priority, std::thread& Thread = std::make_default_r
 PRIORITY GetThreadPrior(std::thread& Thread = std::make_default_reference());
 bool SetThreadAffinity(unsigned long long Mask, std::thread& Thread = std::make_default_reference());
 bool GetThreadAffinity(unsigned long long* Mask, std::thread& Thread = std::make_default_reference());
-
-#endif

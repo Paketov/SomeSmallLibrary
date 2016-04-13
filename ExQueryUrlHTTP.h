@@ -1,5 +1,4 @@
-#ifndef __QUERYURLHTTP_H_HAS_INCLUDED__
-#define __QUERYURLHTTP_H_HAS_INCLUDED__
+#pragma once
 
 /*
 Warning!
@@ -265,7 +264,7 @@ public:
 		int TypeMethod = METHODS::GET, 
 		const char* Path = "/",
 		const char* ProtoVersion = "1.1"
-	) {return SendQuery(QueryUrl, TypeMethod, Path, 0, [](void*, char**, char**){ return false;}, ProtoVersion); }
+	) { return SendQuery(QueryUrl, TypeMethod, Path, 0, [](void*, char**, char**){ return false;}, ProtoVersion); }
 
 	static int SendResponse
 	(
@@ -289,6 +288,3 @@ public:
 		const char* ProtoVersion = "1.1"
 	) {return SendResponse(QueryUrl, Stat, 0, [](void*, char**,char**){ return false;}, StatMsg, ProtoVersion);}
 };
-
-
-#endif

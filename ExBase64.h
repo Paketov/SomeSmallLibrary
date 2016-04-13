@@ -1,6 +1,4 @@
-
-#ifndef __EX_BASE64_h__HAS_INCLUDED__
-#define __EX_BASE64_h__HAS_INCLUDED__
+#pragma once
 
 #include <string>
 
@@ -16,7 +14,4 @@ int DecodeBase64URL(void *Dst, const char *Src, size_t SrcLen);
 
 std::basic_string<char> DecodeBase64(const char *Src, size_t SrcLen);
 std::basic_string<char> DecodeBase64URL(const char *Src, size_t SrcLen);
-
-#endif
-
 

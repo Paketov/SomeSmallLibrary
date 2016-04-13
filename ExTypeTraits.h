@@ -1,5 +1,4 @@
-#ifndef __EXTYPETRAITS_H_HAS_INCLUDED__
-#define __EXTYPETRAITS_H_HAS_INCLUDED__
+#pragma once
 
 #include <malloc.h>
 #include <type_traits>
@@ -757,4 +756,3 @@ public:
 };
 
 
-#endif

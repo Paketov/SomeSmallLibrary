@@ -1,5 +1,4 @@
-#ifndef __EX_STRING_H_HAS_INCLUDED__
-#define __EX_STRING_H_HAS_INCLUDED__
+#pragma once
 
 /*
      ExString
@@ -332,5 +331,3 @@ bool IsSpace(wchar_t c);
 
 char* UnixPathToSystemPath(const char* Path, char* Dest, size_t LenDest);
 char* SystemPathToUnixPath(const char* Path, char* Dest, size_t LenDest);
-
-#endif

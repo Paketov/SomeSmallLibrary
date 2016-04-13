@@ -1,13 +1,12 @@
-#ifndef __QUERYURLOPENSSL_H_HAS_INCLUDED__
-#define __QUERYURLOPENSSL_H_HAS_INCLUDED__
+#pragma once
 
-#	include "ExQueryUrl.h"
+#include "ExQueryUrl.h"
 
-#	include <openssl/crypto.h>
-#	include <openssl/x509.h>
-#	include <openssl/pem.h>
-#	include <openssl/ssl.h>
-#	include <openssl/err.h>
+#include <openssl/crypto.h>
+#include <openssl/x509.h>
+#include <openssl/pem.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 
 #define	__QUERY_URL_OPEN_SSL_FIELDS \
@@ -199,7 +198,7 @@ public:
 	Set certificate info. Use for creating server.
 	*/
 	bool SetLocalCertificate
-		(	
+	(	
 		const char * CertFile, 
 		const char * PrivateKeyFile = nullptr, 
 		int TypeCertFile = SSL_FILETYPE_PEM, 
@@ -210,7 +209,7 @@ public:
 		const char * CAPath = nullptr,
 		int ModeVerify = SSL_VERIFY_PEER,
 		int VerifyDepth = 1
-		);
+	);
 
 
 	/*
@@ -229,6 +228,3 @@ public:
 	virtual long long SendFile(TDESCR InFileDescriptor, size_t Count, off_t Offset = 0);
 };
 
-
-
-#endif

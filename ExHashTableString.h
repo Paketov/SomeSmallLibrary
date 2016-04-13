@@ -1,5 +1,4 @@
-#ifndef __EXHASH_TABLE_STRING_H_HAS_INCLUDED__
-#define __EXHASH_TABLE_STRING_H_HAS_INCLUDED__
+#pragma once
 
 #include "ExHashTable.h"
 #include "ExString.h"
@@ -217,7 +216,3 @@ public:
 	}
 
 };
-
-
-
-#endif

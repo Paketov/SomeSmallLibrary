@@ -1,5 +1,4 @@
-#ifndef __FILE_CACHE_H_HAS_INCLUDED__
-#define __FILE_CACHE_H_HAS_INCLUDED__
+#pragma once
 
 #include <fcntl.h>
 #include <sys/types.h>
@@ -40,7 +39,7 @@ template<typename CACHE_INFO = DEFAULT_CACHE_DATA>
 class FILE_CACHE
 {
 public:
-	typedef enum 
+	typedef enum
 	{
 		OK,
 		NOT_HAVE_FILE,
@@ -63,13 +62,13 @@ private:
 		time_t LastModifTime;
 		size_t SizeFile;
 		int	   Descriptor;
-		inline OPENED_FILE(): Descriptor(-1) { } 
+		inline OPENED_FILE(): Descriptor(-1) {}
 		inline ~OPENED_FILE() { if(Descriptor != -1) close(Descriptor); }
 
 		bool Open(const char* Name)
 		{
 			if(Descriptor != -1) close(Descriptor);
-			Descriptor = open(Name, O_RDONLY|O_BINARY);
+			Descriptor = open(Name, O_RDONLY | O_BINARY);
 			struct stat s;
 			if((Descriptor == -1) || (stat(Name, &s) != 0)) return false;
 			SizeFile = s.st_size;
@@ -80,7 +79,7 @@ private:
 	};
 
 	struct CACHED_FILE: public CACHE_INFO
-	{	
+	{
 	private:
 		friend FILE_CACHE;
 		friend TYPE_TABLE;
@@ -112,7 +111,7 @@ private:
 		{
 			size_t h = 0;
 			for(const char* k = Key; *k != '\0'; k++) h = 31 * h + *k;
-			return h % MaxCount; 
+			return h % MaxCount;
 		}
 		static size_t IndexByKey(CACHED_FILE* Key, size_t MaxCount) { return Key->PathHash % MaxCount; }
 		bool CmpKey(CACHED_FILE* Key) const { return (Key->PathHash == PathHash) && (strcmp(Path, Key->Path) == 0); }
@@ -122,15 +121,15 @@ private:
 		void RatingUp(FILE_CACHE* Cache)
 		{
 			auto n = Next;
-			if(n != &Cache->RatingList) 
-			{	
+			if(n != &Cache->RatingList)
+			{
 				auto p = Prev;
 				n->Prev = p;
 				Next = n->Next;
 				Next->Prev = this;
 				n->Next = this;
 				Prev = n;
-				p->Next = n;	
+				p->Next = n;
 			}
 			if(Cache->CachedListEnd == &Cache->RatingList)
 				Cache->CachedListEnd = this;
@@ -161,7 +160,7 @@ private:
 			Prev->Next = Next;
 			if(Cache->CachedListEnd == this)
 				Cache->CachedListEnd = Next;
-			if(Buffer == nullptr) 
+			if(Buffer == nullptr)
 				Cache->CountInUncached--;
 			else
 				Cache->CurSize -= SizeFile;
@@ -181,7 +180,7 @@ private:
 		{
 			Locker.LockWrite();
 			void* NewPlace = ___realloc(Buffer, File->SizeFile);
-			if(NewPlace == nullptr) 
+			if(NewPlace == nullptr)
 			{
 				Locker.UnlockWrite();
 				return STAT::NOT_ALLOC_MEM;
@@ -212,7 +211,7 @@ private:
 			if(Path == nullptr) return std::numeric_limits<float>::max();
 			double TimePassed = std::chrono::duration_cast<std::chrono::milliseconds>(CurTime.time_since_epoch()).count();
 			TimePassed -= std::chrono::duration_cast<std::chrono::milliseconds>(LastTestTime.time_since_epoch()).count();
-			return (TimePassed < 100.0) ? std::numeric_limits<float>::max(): (CountReaded / TimePassed * 1000.0);
+			return (TimePassed < 100.0) ? std::numeric_limits<float>::max() : (CountReaded / TimePassed * 1000.0);
 		}
 		char*		Path;
 		void*		Buffer;
@@ -236,31 +235,31 @@ public:
 			CachedFile->Locker.LockRead();
 		}
 	public:
-		inline READ_INTERATOR(): CachedFile(nullptr) { }	
+		inline READ_INTERATOR(): CachedFile(nullptr) {}
 		inline ~READ_INTERATOR() { Release(); }
 		READ_INTERATOR(const READ_INTERATOR&) throw(char*)
-		{ 
+		{
 			throw "Not copy this object!";
 		}
 
 		READ_INTERATOR& operator=(const READ_INTERATOR&) throw(char*)
-		{ 
-			throw "Not copy this object!"; 
+		{
+			throw "Not copy this object!";
 			return *this;
 		}
-		void Release() 
-		{ 
-			if(CachedFile != nullptr) 
+		void Release()
+		{
+			if(CachedFile != nullptr)
 			{
-				CachedFile->Locker.UnlockRead(); 
-				CachedFile = nullptr; 
-			}  
+				CachedFile->Locker.UnlockRead();
+				CachedFile = nullptr;
+			}
 		}
 
-		const void* Buf() const { return (CachedFile == nullptr)? nullptr: CachedFile->Buffer; }
-		size_t SizeBuf() const { return (CachedFile == nullptr)? 0: CachedFile->SizeFile; }
-		const char* Path() const { return (CachedFile == nullptr)? nullptr: CachedFile->Path; }
-		time_t LastModificate() const { return (CachedFile == nullptr)? 0: CachedFile->LastModifTime; }
+		const void* Buf() const { return (CachedFile == nullptr) ? nullptr : CachedFile->Buffer; }
+		size_t SizeBuf() const { return (CachedFile == nullptr) ? 0 : CachedFile->SizeFile; }
+		const char* Path() const { return (CachedFile == nullptr) ? nullptr : CachedFile->Path; }
+		time_t LastModificate() const { return (CachedFile == nullptr) ? 0 : CachedFile->LastModifTime; }
 		CACHE_INFO* UserData() const { return CachedFile; }
 	};
 
@@ -280,16 +279,16 @@ private:
 
 	template<typename T>
 	CACHED_FILE* InsertInTable(T arg)
-	{	
-		if(Table.IsFull) Table.ResizeBeforeInsert((Table.Count < 3)? 3: (TYPE_TABLE::TINDEX)(Table.Count * 1.61803398875f));
+	{
+		if(Table.IsFull) Table.ResizeBeforeInsert((Table.Count < 3) ? 3 : (TYPE_TABLE::TINDEX)(Table.Count * 1.61803398875f));
 		return Table.Insert(arg);
 	}
 
 	template<typename T>
 	void RemoveFromTable(T arg)
-	{	
+	{
 		if(Table.Remove(arg) != nullptr)
-		{	
+		{
 			if((TYPE_TABLE::TINDEX)(Table.Count * 1.7f) < Table.AllocCount)
 				Table.ResizeAfterRemove();
 		}
@@ -313,7 +312,7 @@ private:
 			NewFileReg->SizeFile = s.st_size;
 			NewFileReg->LastModifTime = s.st_mtime;
 			NewFileReg->LastTestTime = CurTime;
-		}else
+		} else
 		{
 			auto NewFileReg = InsertFile(Path);
 			if(NewFileReg == nullptr) return false;
@@ -330,7 +329,7 @@ private:
 		float CachFileReadPerSec = CachFile->CountReadPerSec(CurTime);
 		if((CachFile->Buffer == nullptr) && (CachFile->Next == CachedListEnd))
 		{
-			if(((CachFile->SizeFile + CurSize) >= MaxSizeBuff) && 
+			if(((CachFile->SizeFile + CurSize) >= MaxSizeBuff) &&
 				((CachFile->Next->CountReadPerSec(CurTime) >= CachFileReadPerSec) ||
 				(CachFileReadPerSec == std::numeric_limits<float>::max())))
 				return true;
@@ -380,7 +379,7 @@ private:
 				t = i->Next;
 				RemoveFile(i);
 			}
-		}else
+		} else
 		{
 			return false;
 		}
@@ -449,15 +448,15 @@ private:
 	{
 		if(CachFile->Buffer == nullptr)
 		{
-			if(!CachFile->UpdateInfo()) 
+			if(!CachFile->UpdateInfo())
 				RemoveFile(CachFile);
-		}else
+		} else
 		{
 			OPENED_FILE File;
 			if(!File.Open(CachFile->Path))
 			{
 				RemoveFile(CachFile);
-			}else if(CachFile->LastModifTime != File.LastModifTime)
+			} else if(CachFile->LastModifTime != File.LastModifTime)
 			{
 				intptr_t Diffr = File.SizeFile - CachFile->SizeFile;
 				if((CachFile->SizeFile < File.SizeFile) && ((Diffr + CurSize) >= MaxSizeBuff))
@@ -466,7 +465,7 @@ private:
 					CurSize += Diffr;
 				else
 					RemoveFile(CachFile);
-			}	
+			}
 		}
 	}
 
@@ -551,20 +550,20 @@ public:
 		if(r == nullptr)
 		{
 			AddFile(Path, CurTime);
-		}else
+		} else
 		{
 			r->UpdateStat(CurTime, this);
 			r->CountReaded++;
 			if(BeforeRead(r, CurTime))
 			{
 				if(r->Buffer != nullptr)
-				{				
+				{
 					Interator.Set(r);
 					Locker.UnlockWrite();
 					return true;
 				}
 			}
-		}			
+		}
 		Locker.UnlockWrite();
 		return false;
 	}
@@ -621,5 +620,3 @@ public:
 
 
 typedef FILE_CACHE<DEFAULT_CACHE_DATA> FILE_CACHE_DEFAULT;
-
-#endif

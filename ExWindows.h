@@ -1,5 +1,4 @@
-#ifndef __EX_WINDOWS_H__
-#define __EX_WINDOWS_H__
+#pragma once
 
 #include <string>
 #include <sstream>
@@ -2250,6 +2249,4 @@ inline bool SaveFileDialog
 	ofn.Flags = 0;
 	return GetSaveFileNameA(&ofn) != FALSE;
 }
-
-#endif
 

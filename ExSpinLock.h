@@ -1,5 +1,4 @@
-#ifndef __EX_SPIN_LOCK_H_HASBEEN_INCLUDED__
-#define __EX_SPIN_LOCK_H_HASBEEN_INCLUDED__
+#pragma once
 
 #include <atomic>
 #include <thread>
@@ -158,5 +157,3 @@ public:
 	void WaitRegion() const { while(!TryWaitRegion()); }
 	void WaitRegionYield() const { while(!TryWaitRegion()) std::this_thread::yield(); }
 };
-
-#endif

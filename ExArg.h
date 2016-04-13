@@ -1,5 +1,4 @@
-#ifndef __EX_ARG_H__
-#define __EX_ARG_H__
+#pragma once
 
 #include "ExString.h"
 
@@ -311,6 +310,3 @@ public:
 	}
 
 };
-
-
-#endif

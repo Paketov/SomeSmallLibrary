@@ -1,5 +1,4 @@
-#ifndef __EX_DYNAMIC_BUF_H__
-#define __EX_DYNAMIC_BUF_H__
+#pragma once
 
 #include <malloc.h>
 #include <atomic>
@@ -428,7 +427,5 @@ public:
 
 };
 
-
 typedef __FAST_ALLOC<true> FAST_ALLOC;
 typedef __FAST_ALLOC<false> FAST_ALLOC_UNSYNC;
-#endif

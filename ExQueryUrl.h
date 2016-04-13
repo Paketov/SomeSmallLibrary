@@ -1,5 +1,4 @@
-#ifndef __QUERYURL_H_HAS_INCLUDED__
-#define __QUERYURL_H_HAS_INCLUDED__
+#pragma once
 
 /*
 	 ExQueryUrl
@@ -2887,5 +2886,3 @@ public:
 	int SendAndRecive(std::basic_string<char>& strQuery, std::basic_string<char>& Result);
 
 };
-
-#endif // QUERYURL_H_INCLUDED

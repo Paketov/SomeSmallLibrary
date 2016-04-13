@@ -1,5 +1,5 @@
-#ifndef __EXTIME_H_HAS_INCLUDED__
-#define __EXTIME_H_HAS_INCLUDED__
+#pragma once
+
 #include <time.h>
 #include <string>
 /*
@@ -11,6 +11,3 @@ int StrToTime(const char* Str, time_t* Result);
 std::basic_string<char> TimeToString(time_t t);
 std::basic_string<char> TimeSubToString(time_t t1, time_t t2);
 std::basic_string<char> TimeMilisecSubToString(long long t1, long long t2);
-
-
-#endif

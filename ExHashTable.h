@@ -1,5 +1,4 @@
-#ifndef __EXHASH_TABLE_H_HAS_INCLUDED__
-#define __EXHASH_TABLE_H_HAS_INCLUDED__
+#pragma once
 
 #include <stdio.h>
 #include "ExTypeTraits.h"
@@ -711,5 +710,3 @@ lblSearchStart:
 		return LenBuf - CurLen;
 	}
 };
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef __EX_LOAD_LIBRARY_H__
-#define __EX_LOAD_LIBRARY_H__
+#pragma once
 
 #include <stdint.h>
 
@@ -27,7 +26,3 @@ public:
 	bool Free();
 	operator bool() const;
 };
-
-
-
-#endif

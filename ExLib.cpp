@@ -1,6 +1,3 @@
-
-
-#include <typeinfo>
 #include "ExString.h"
 
 #ifndef _MSC_VER
@@ -24,16 +21,16 @@
 
 
 template<bool IsScaleEps, typename TypeChar>
-int _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsigned char Radix, long double Eps1);
+static int _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsigned char Radix, long double Eps1);
 
 template<typename TypeNumber, typename TypeChar>
-int _i_NumberToString(TypeNumber Number, TypeChar * Str, size_t Len, unsigned char Radix = 10);
+static int _i_NumberToString(TypeNumber Number, TypeChar * Str, size_t Len, unsigned char Radix = 10);
 
 template<bool IsSkipSpace, typename TypeChar, typename TypeNumber>
-int _i_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsigned char Radix = 10);
+static int _i_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsigned char Radix = 10);
 
 template<bool IsSkipSpace, bool InfInd, typename TypeNumber, typename TypeChar>
-int _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsigned char Radix = 10);
+static int _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsigned char Radix = 10);
 
 template
 <
@@ -42,7 +39,7 @@ template
 	typename	TypeNumber,
 	typename	StreamType
 >
-int _i_StreamToNumber(TypeNumber * Dest, StreamType& InStream, unsigned char Radix);
+static int _i_StreamToNumber(TypeNumber * Dest, StreamType& InStream, unsigned char Radix);
 
 
 
@@ -54,7 +51,7 @@ template
 	typename	TypeNumber,
 	typename	StreamType
 >
-int _d_StreamToNumber(TypeNumber* Dest, StreamType& InStream, unsigned char Radix);
+static int _d_StreamToNumber(TypeNumber* Dest, StreamType& InStream, unsigned char Radix);
 
 
 /////////////////////////
@@ -88,10 +85,8 @@ struct __stream_io: public __stream_io__base
 	static inline bool PutChar(std::basic_ostream<TypeChar> & s, TypeChar c) { return !s.put(c).fail(); }
 };
 
-
-
 template<bool IsScaleEps, typename TypeChar>
-int _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsigned char Radix, long double Eps1)
+static int _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsigned char Radix, long double Eps1)
 {
 	static const long double MinExp = 1.0e-5;
 	static const long double MaxExp = 1.0e+15;
@@ -219,7 +214,7 @@ int _d_NumberToString(long double Number, TypeChar * Str, size_t Len, unsigned c
 }
 
 template<typename TypeNumber, typename TypeChar>
-int _i_NumberToString(TypeNumber Number, TypeChar * Str, size_t Len, unsigned char Radix)
+static int _i_NumberToString(TypeNumber Number, TypeChar * Str, size_t Len, unsigned char Radix)
 {
 	TypeChar *s = Str, *b = s + Len;
 
@@ -246,7 +241,7 @@ int _i_NumberToString(TypeNumber Number, TypeChar * Str, size_t Len, unsigned ch
 }
 
 template<bool IsSkipSpace, typename TypeChar, typename TypeNumber>
-int _i_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsigned char Radix)
+static int _i_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsigned char Radix)
 {
 	char Negative = 1;
 	int CountReaded = 0;
@@ -281,7 +276,7 @@ int _i_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsig
 }
 
 template<bool IsSkipSpace, bool InfInd, typename TypeNumber, typename TypeChar>
-int _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsigned char Radix)
+static int _d_StringToNumber(TypeNumber * Dest, const TypeChar * Str, size_t Len, unsigned char Radix)
 {
 	static const long double Inf = 9999e+200 * 9999e+200 * 9999e+200;
 	static const long double Ind = Inf * 0;
@@ -389,7 +384,7 @@ template
 	typename	TypeNumber,
 	typename	StreamType
 >
-int _i_StreamToNumber(TypeNumber * Dest, StreamType& InStream, unsigned char Radix)
+static int _i_StreamToNumber(TypeNumber * Dest, StreamType& InStream, unsigned char Radix)
 {
 	char Negative = 1;
 	int CountReaded = 0;
@@ -436,7 +431,7 @@ template
 	typename	TypeNumber,
 	typename	StreamType
 >
-int _d_StreamToNumber(TypeNumber* Dest, StreamType& InStream, unsigned char Radix)
+static int _d_StreamToNumber(TypeNumber* Dest, StreamType& InStream, unsigned char Radix)
 {
 
 	static const long double Inf = 9999e+200 * 9999e+200 * 9999e+200;
@@ -558,8 +553,6 @@ lblTrueOut:
 	*Dest = TypeNumber(Result);
 	return CountReaded;
 }
-
-
 
 template<typename _InCharType, typename _OutCharType>
 void __StringConvertCodePage(unsigned InCp, unsigned OutCp, const std::basic_string<_InCharType> & InStr, std::basic_string<_OutCharType> & OutStr)
@@ -720,9 +713,6 @@ void CodeUrl(const InString & InStr, OutString & OutStr, unsigned InCodePage = C
 	}
 }
 
-
-
-
 bool IsSpace(char c)
 {
 	switch(c)
@@ -753,7 +743,6 @@ bool IsSpace(wchar_t c)
 	return false;
 }
 
-
 size_t SkipSpace(const char* String, size_t Len)
 {
 	size_t CountSkiped = 0;
@@ -766,7 +755,6 @@ size_t SkipSpace(const char* String, size_t Len)
 	return 0;
 }
 
-
 size_t SkipSpace(const wchar_t* String, size_t Len)
 {
 	size_t CountSkiped = 0;
@@ -778,7 +766,6 @@ size_t SkipSpace(const wchar_t* String, size_t Len)
 	}
 	return 0;
 }
-
 
 size_t SkipSpace(std::basic_istream<char> & Stream) { return _SkipSpace<char>(Stream); }
 size_t SkipSpace(std::basic_istream<wchar_t> & Stream) { return _SkipSpace<wchar_t>(Stream); }
@@ -1361,7 +1348,7 @@ static void EndWsa()
 		WSACleanup();
 }
 
-int ____f = ([] { GetWsa(); return 0; })();
+static int ____f = ([] { GetWsa(); return 0; })();
 
 #else
 #	define closesocket(socket)  close(socket)
