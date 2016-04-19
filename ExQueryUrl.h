@@ -10,80 +10,31 @@
 */
 
 
-#include "ExDynamicBuf.h"
-#include "ExHashTable.h"
-#include <atomic>
-#include <errno.h>
+
+
 
 //#define HAVE_KEVENT___
 
-
 #ifdef _MSC_VER
 
-//#define WIN_PLATFORM
-#	include <winsock.h>
+#if  defined(_WINDOWS_) && !defined(_WINSOCK2API_)
+#error "Use this header under windows.h!"
+#endif
 
-#	define WIN_PLATFORM
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <ws2def.h>
+#include <ws2ipdef.h>
+
 #	ifndef WSA_VERSION
 #		define WSA_VERSION MAKEWORD(2, 2)
 #	endif
 
-#	undef IPPROTO_ICMP
-#	undef IPPROTO_IGMP
-#	undef IPPROTO_GGP
-#	undef IPPROTO_TCP
-#	undef IPPROTO_PUP
-#	undef IPPROTO_UDP
-#	undef IPPROTO_IDP
-#	undef IPPROTO_ND 
-#	undef IPPROTO_RAW
-#	undef IPPROTO_MAX
+int ___GetLastErrSocket();
 
-namespace winsock
-{
-#	include <ws2tcpip.h>
-#	include <Ws2ipdef.h>
-#	include <winsock2.h>
-
-	int GetLastErrSocket();
-};
-
-using winsock::addrinfo;
-using winsock::ip_mreq_source;
-typedef UINT32 socklen_t;
-
-#	define gai_strerror gai_strerrorA
-#	define sockaddr  winsock::sockaddr
-#	define sockaddr_in  winsock::sockaddr_in
-#	define sockaddr_in6  winsock::sockaddr_in6
-#	define sockaddr_storage winsock::sockaddr_storage
-#	define sockaddr_dl winsock::sockaddr_dl
 //Should disable overlapped, when you want use OpenAsFile
-//#	define socket(ProtFamily, SockType, Protocol) winsock::WSASocketA((ProtFamily), (SockType), (Protocol), NULL, 0, 0)
-
-#	define pollfd winsock::pollfd
-#	define ipv6_mreq winsock::ipv6_mreq
-
-#	define LAST_ERR_SOCKET winsock::GetLastErrSocket()
-
-#	define IPPROTO_ICMP ((int)winsock::IPPROTO_ICMP)
-#	define IPPROTO_IGMP ((int)winsock::IPPROTO_IGMP)
-#	define IPPROTO_GGP  ((int)winsock::IPPROTO_GGP)
-#	define IPPROTO_TCP  ((int)winsock::IPPROTO_TCP)
-#	define IPPROTO_PUP  ((int)winsock::IPPROTO_PUP)
-#	define IPPROTO_UDP  ((int)winsock::IPPROTO_UDP)
-#	define IPPROTO_IDP  ((int)winsock::IPPROTO_IDP)
-#	define IPPROTO_ND   ((int)winsock::IPPROTO_ND)
-#	define IPPROTO_RAW  ((int)winsock::IPPROTO_RAW)
-#	define IPPROTO_MAX  ((int)winsock::IPPROTO_MAX)
-#	define IPPROTO_IPV6 ((int)winsock::IPPROTO_IPV6)
-
-#	define SHUT_RDWR    SD_BOTH
-#	define SHUT_RD		SD_RECEIVE
-#	define SHUT_WR      SD_SEND
-
+#	define LAST_ERR_SOCKET ___GetLastErrSocket()
 #	define ADDITIONAL_FIELDS  bool IsNonBlocked;
-
 #	undef max
 
 #else
@@ -108,6 +59,10 @@ typedef UINT32 socklen_t;
 #	define ADDITIONAL_FIELDS  
 #endif
 
+#include <atomic>
+#include <errno.h>
+#include "ExDynamicBuf.h"
+#include "ExHashTable.h"
 
 #ifndef INVALID_PORT
 #define INVALID_PORT 0
@@ -811,7 +766,7 @@ public:
 	{
 		typedef decltype(socket(std::variant_arg(), std::variant_arg(), std::variant_arg())) TDESCR;
 
-#ifdef WIN_PLATFORM	
+#ifdef _MSC_VER	
 	public:
 		enum
 		{
@@ -876,7 +831,7 @@ public:
 
 		~CHECK_EVENTS()
 		{
-#if defined(WIN_PLATFORM)
+#if defined(_MSC_VER)
 			for(size_t i = 0, m = Events.Count; i < m; i++)
 				winsock::WSACloseEvent(Events[i]);
 #elif defined(HAVE_KEVENT___)
@@ -891,7 +846,7 @@ public:
 
 		int AddConnection(TDESCR SocketDescriptor, long lNetworkEvents = POLLIN, void* AssocData = nullptr)
 		{
-#if defined(WIN_PLATFORM)
+#if defined(_MSC_VER)
 			HANDLE Event = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 			if(Event == WSA_INVALID_EVENT)
 				return -1;
@@ -920,7 +875,7 @@ public:
 
 		int EnumWhoHasEvents(long* REvents = std::make_default_pointer())
 		{
-#if defined(WIN_PLATFORM)
+#if defined(_MSC_VER)
 			winsock::WSANETWORKEVENTS e;
 			for(size_t i = GetBeginIndex(), m = Data.Count; i < m; i++)
 			{
@@ -947,7 +902,7 @@ public:
 
 		int EnumWhoHasEvents(int Prev, long* REvents = std::make_default_pointer())
 		{
-#if defined(WIN_PLATFORM)
+#if defined(_MSC_VER)
 			winsock::WSANETWORKEVENTS e;
 			for(size_t i = Prev + 1, m = Data.Count; i < m; i++)
 			{
@@ -974,7 +929,7 @@ public:
 
 		inline TDESCR DescriptorByEnumIndex(int Index) 
 		{ 
-#if defined(WIN_PLATFORM)
+#if defined(_MSC_VER)
 			return Data[Index].fd;
 #elif defined(HAVE_KEVENT___)
 			return REvents[Index].ident;
@@ -985,7 +940,7 @@ public:
 
 		inline void*& DataByEnumIndex(int Index) 
 		{ 
-#if defined(WIN_PLATFORM)
+#if defined(_MSC_VER)
 			return Data[Index].Data;
 #elif defined(HAVE_KEVENT___)
 			return REvents[Index].udata;
@@ -996,7 +951,7 @@ public:
 
 		inline int GetBeginIndex() const
 		{
-#if defined(WIN_PLATFORM)
+#if defined(_MSC_VER)
 			return (IsHaveSignal)?1:0;
 #elif defined(HAVE_KEVENT___)
 			return REvents[Index].ident;
@@ -1007,7 +962,7 @@ public:
 
 		inline int GetEndIndex() const
 		{
-#if defined(WIN_PLATFORM)
+#if defined(_MSC_VER)
 			return Data.Count;
 #elif defined(HAVE_KEVENT___)
 			return REvents[Index].ident;
@@ -1018,7 +973,7 @@ public:
 
 		int RemoveByEnumIndex(int Index) 
 		{ 
-#if defined(WIN_PLATFORM)
+#if defined(_MSC_VER)
 			CloseHandle(Events[Index]);	
 			Events.RemoveSubstituting(Index);
 			Data.RemoveSubstituting(Index);
@@ -1037,7 +992,7 @@ public:
 
 		inline TDESCR DescriptorByIndex(int Index) 
 		{ 
-#if defined(WIN_PLATFORM) || defined(HAVE_KEVENT___)
+#if defined(_MSC_VER) || defined(HAVE_KEVENT___)
 			return Data[Index].fd;
 #elif defined(HAVE_EPOLL___)
 
@@ -1053,7 +1008,7 @@ public:
 
 		void Remove(int Index) 
 		{ 
-#if defined(WIN_PLATFORM)
+#if defined(_MSC_VER)
 			CloseHandle(Events[Index]);	
 			Events.RemoveSubstituting(Index);
 			Data.RemoveSubstituting(Index);
@@ -1074,7 +1029,7 @@ public:
 			for(bool v = false; !SetEventLocker.compare_exchange_strong(v, true); v = false);
 			if(!IsHaveSignal)
 			{
-#if defined(WIN_PLATFORM)
+#if defined(_MSC_VER)
 				Events.InsertInPositionSubstituting(0) = CreateEventW(nullptr, TRUE, FALSE, nullptr);
 				auto& r = Data.InsertInPositionSubstituting(0);
 				r.fd = 0;
@@ -1091,7 +1046,7 @@ public:
 			for(bool v = false; !SetEventLocker.compare_exchange_strong(v, true); v = false);
 			if(IsHaveSignal)
 			{
-#if defined(WIN_PLATFORM)
+#if defined(_MSC_VER)
 				CloseHandle(Events[0]);
 				Events.RemoveSubstituting(0);
 				Data.RemoveSubstituting(0);
@@ -1114,7 +1069,7 @@ public:
 			if(IsHaveSignal)
 			{			
 				IsSignalSended = true;
-#if defined(WIN_PLATFORM)
+#if defined(_MSC_VER)
 				SetEvent(Events[0]);	
 #elif defined(HAVE_KEVENT___)	
 #elif defined(HAVE_EPOLL___)
@@ -1125,12 +1080,11 @@ public:
 
 		void ResetSignal()
 		{
-
 			for(bool v = false; !SetEventLocker.compare_exchange_strong(v, true); v = false);
 			if(IsHaveSignal)
 			{	
 				IsSignalSended = false;
-#if defined(WIN_PLATFORM)
+#if defined(_MSC_VER)
 				ResetEvent(Events[0]);
 #elif defined(HAVE_KEVENT___)	
 #elif defined(HAVE_EPOLL___)
@@ -1151,7 +1105,7 @@ public:
 			if(r = IsSignalSended)
 			{
 				IsSignalSended = false;
-#if defined(WIN_PLATFORM)
+#if defined(_MSC_VER)
 				ResetEvent(Events[0]);
 #elif defined(HAVE_KEVENT___)	
 #elif defined(HAVE_EPOLL___)
@@ -1162,11 +1116,11 @@ public:
 		}
 		/*
 		*/
-		int Check(unsigned WaitTime = 0, bool* IsEndTimeOut = std::make_default_pointer())
+		int Check(unsigned WaitTime = 0)
 		{			
 			if(Events.Count == 0)
 				return true;
-#if defined(WIN_PLATFORM)
+#if defined(_MSC_VER)
 			switch(WaitForMultipleObjectsEx(Data.Count, Events.BeginBuf, FALSE, WaitTime, FALSE))
 			{
 			case WSA_WAIT_FAILED:

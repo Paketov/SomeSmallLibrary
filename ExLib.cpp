@@ -1,3 +1,5 @@
+
+#include "ExQueryUrl.h"
 #include "ExString.h"
 
 #ifndef _MSC_VER
@@ -936,232 +938,224 @@ char* SystemPathToUnixPath(const char* Path, char* Dest, size_t LenDest)
 */
 
 
-#include "ExQueryUrl.h"
-
-#ifdef WIN_PLATFORM
+#ifdef _MSC_VER
 #	include <io.h>
 #	include <fcntl.h>
 
 
 #	pragma comment(lib, "Ws2_32.lib")
 
-#define poll winsock::WSAPoll
-#define inet_pton winsock::inet_pton
-using winsock::getaddrinfo;
-using winsock::inet_ntop;
+#define poll WSAPoll
 
 
-namespace winsock
+int ___GetLastErrSocket()
 {
-	int GetLastErrSocket()
+	switch(WSAGetLastError())
 	{
-		switch(WSAGetLastError())
-		{
-			case WSAEADDRINUSE:
+		case WSAEADDRINUSE:
 #ifdef EADDRINUSE
-				return EADDRINUSE;
+			return EADDRINUSE;
 #else
-				break;
+			break;
 #endif
-			case WSAEADDRNOTAVAIL:
+		case WSAEADDRNOTAVAIL:
 #ifdef EADDRNOTAVAIL
-				return EADDRNOTAVAIL;
+			return EADDRNOTAVAIL;
 #else
-				break;
+			break;
 #endif
-			case WSAEAFNOSUPPORT:
+		case WSAEAFNOSUPPORT:
 #ifdef EAFNOSUPPORT
-				return EAFNOSUPPORT;
+			return EAFNOSUPPORT;
 #else
-				break;
+			break;
 #endif
-			case WSAEALREADY:
+		case WSAEALREADY:
 #ifdef EALREADY
-				return EALREADY;
+			return EALREADY;
 #else
-				break;
+			break;
 #endif
-			case WSAEBADF:			return EBADF;
-			case WSAECONNABORTED:
+		case WSAEBADF:			return EBADF;
+		case WSAECONNABORTED:
 #ifdef ECONNABORTED
-				return ECONNABORTED;
+			return ECONNABORTED;
 #else
-				break;
+			break;
 #endif
-			case WSAECONNREFUSED:
+		case WSAECONNREFUSED:
 #ifdef ECONNREFUSED
-				return ECONNREFUSED;
+			return ECONNREFUSED;
 #else
-				break;
+			break;
 #endif
-			case WSAECONNRESET:
+		case WSAECONNRESET:
 #ifdef ECONNRESET
-				return ECONNRESET;
+			return ECONNRESET;
 #else
-				break;
+			break;
 #endif
-			case WSAEDESTADDRREQ:
+		case WSAEDESTADDRREQ:
 #ifdef EDESTADDRREQ
-				return EDESTADDRREQ;
+			return EDESTADDRREQ;
 #else
-				break;
+			break;
 #endif
-			case WSAEFAULT:			return EFAULT;
-			case WSAEHOSTDOWN:
+		case WSAEFAULT:			return EFAULT;
+		case WSAEHOSTDOWN:
 #ifdef EHOSTDOWN
-				return EHOSTDOWN;
+			return EHOSTDOWN;
 #else
-				break;
+			break;
 #endif
-			case WSAEHOSTUNREACH:
+		case WSAEHOSTUNREACH:
 #ifdef EHOSTUNREACH
-				return EHOSTUNREACH;
+			return EHOSTUNREACH;
 #else
-				break;
+			break;
 #endif
-			case WSAEINPROGRESS:
+		case WSAEINPROGRESS:
 #ifdef EINPROGRESS
-				return EINPROGRESS;
+			return EINPROGRESS;
 #else
-				break;
+			break;
 #endif
-			case WSAEINTR:			return EINTR;
-			case WSAEINVAL:			return EINVAL;
-			case WSAEISCONN:
+		case WSAEINTR:			return EINTR;
+		case WSAEINVAL:			return EINVAL;
+		case WSAEISCONN:
 #ifdef EISCONN
-				return EISCONN;
+			return EISCONN;
 #else
-				break;
+			break;
 #endif
-			case WSAELOOP:
+		case WSAELOOP:
 #ifdef ELOOP
-				return ELOOP;
+			return ELOOP;
 #else
-				break;
+			break;
 #endif
-			case WSAEMFILE:			return EMFILE;
-			case WSAEMSGSIZE:
+		case WSAEMFILE:			return EMFILE;
+		case WSAEMSGSIZE:
 #ifdef EMSGSIZE
-				return EMSGSIZE;
+			return EMSGSIZE;
 #else
-				break;
+			break;
 #endif
-			case WSAENAMETOOLONG:	return ENAMETOOLONG;
-			case WSAENETDOWN:
+		case WSAENAMETOOLONG:	return ENAMETOOLONG;
+		case WSAENETDOWN:
 #ifdef ENETDOWN
-				return ENETDOWN;
+			return ENETDOWN;
 #else
-				break;
+			break;
 #endif
-			case WSAENETRESET:
+		case WSAENETRESET:
 #ifdef ENETRESET
-				return ENETRESET;
+			return ENETRESET;
 #else
-				break;
+			break;
 #endif
-			case WSAENETUNREACH:
+		case WSAENETUNREACH:
 #ifdef ENETUNREACH
-				return ENETUNREACH;
+			return ENETUNREACH;
 #else
-				break;
+			break;
 #endif
-			case WSAENOBUFS:
+		case WSAENOBUFS:
 #ifdef ENOBUFS
-				return ENOBUFS;
+			return ENOBUFS;
 #else
-				break;
+			break;
 #endif
-			case WSAENOPROTOOPT:
+		case WSAENOPROTOOPT:
 #ifdef ENOPROTOOPT
-				return ENOPROTOOPT;
+			return ENOPROTOOPT;
 #else
-				break;
+			break;
 #endif
-			case WSAENOTCONN:
+		case WSAENOTCONN:
 #ifdef ENOTCONN
-				return ENOTCONN;
+			return ENOTCONN;
 #else
-				break;
+			break;
 #endif
-			case WSANOTINITIALISED:	return EAGAIN;
-			case WSAENOTSOCK:
+		case WSANOTINITIALISED:	return EAGAIN;
+		case WSAENOTSOCK:
 #ifdef ENOTSOCK
-				return ENOTSOCK;
+			return ENOTSOCK;
 #else
-				break;
+			break;
 #endif
-			case WSAEOPNOTSUPP:		return EOPNOTSUPP;
-			case WSAEPFNOSUPPORT:
+		case WSAEOPNOTSUPP:		return EOPNOTSUPP;
+		case WSAEPFNOSUPPORT:
 #ifdef EPFNOSUPPORT 
-				return EPFNOSUPPORT;
+			return EPFNOSUPPORT;
 #else 
-				break;
+			break;
 #endif
-			case WSAEPROTONOSUPPORT:
+		case WSAEPROTONOSUPPORT:
 #ifdef EPROTONOSUPPORT
-				return EPROTONOSUPPORT;
+			return EPROTONOSUPPORT;
 #else
-				break;
+			break;
 #endif
-			case WSAEPROTOTYPE:
+		case WSAEPROTOTYPE:
 #ifdef EPROTOTYPE
-				return EPROTOTYPE;
+			return EPROTOTYPE;
 #else
-				break;
+			break;
 #endif
-			case WSAESHUTDOWN:
+		case WSAESHUTDOWN:
 #ifdef ESHUTDOWN
-				return ESHUTDOWN;
+			return ESHUTDOWN;
 #else
-				break;
+			break;
 #endif
-			case WSAESOCKTNOSUPPORT:
+		case WSAESOCKTNOSUPPORT:
 #ifdef ESOCKTNOSUPPORT
-				return ESOCKTNOSUPPORT;
+			return ESOCKTNOSUPPORT;
 #else
-				break;
+			break;
 #endif
-			case WSAETIMEDOUT:
+		case WSAETIMEDOUT:
 #ifdef ETIMEDOUT
-				return ETIMEDOUT;
+			return ETIMEDOUT;
 #else
-				break;
+			break;
 #endif
-			case WSAETOOMANYREFS:
+		case WSAETOOMANYREFS:
 #ifdef ETOOMANYREFS
-				return ETOOMANYREFS;
+			return ETOOMANYREFS;
 #else
-				break;
+			break;
 #endif
-			case ERROR_IO_PENDING:
-			case WSAEWOULDBLOCK:
+		case ERROR_IO_PENDING:
+		case WSAEWOULDBLOCK:
 #ifdef EWOULDBLOCK
-				return EWOULDBLOCK;
+			return EWOULDBLOCK;
 #else
-				return EAGAIN;
+			return EAGAIN;
 #endif
-			case WSAHOST_NOT_FOUND:
+		case WSAHOST_NOT_FOUND:
 #ifdef EHOSTUNREACH
-				return EHOSTUNREACH;
+			return EHOSTUNREACH;
 #else
-				break;
+			break;
 #endif
-			case WSASYSNOTREADY:
-			case WSATRY_AGAIN:		return EAGAIN;
-			case WSAVERNOTSUPPORTED:
+		case WSASYSNOTREADY:
+		case WSATRY_AGAIN:		return EAGAIN;
+		case WSAVERNOTSUPPORTED:
 #ifdef DB_OPNOTSUP
-				return DB_OPNOTSUP;
+			return DB_OPNOTSUP;
 #else
-				break;
+			break;
 #endif
-			case WSAEACCES:			return EACCES;
-			case 0:
-				return 0;
-		}
-
-		return EFAULT;
+		case WSAEACCES:			return EACCES;
+		case 0:
+			return 0;
 	}
-};
+
+	return EFAULT;
+}
 
 static netent* readnetnetworklist_()
 {
@@ -1349,6 +1343,10 @@ static void EndWsa()
 }
 
 static int ____f = ([] { GetWsa(); return 0; })();
+
+#	define SHUT_RDWR    SD_BOTH
+#	define SHUT_RD		SD_RECEIVE
+#	define SHUT_WR      SD_SEND
 
 #else
 #	define closesocket(socket)  close(socket)
@@ -1586,8 +1584,6 @@ char* QUERY_URL::PROTOCOL_INTERATOR::P_NAME::operator[](unsigned Index)
 	return "";
 }
 
-
-
 QUERY_URL::PORT_SERVICE_INTERATOR::_NAME::operator char*()
 {
 	if(Cur == nullptr) return "";
@@ -1619,8 +1615,6 @@ QUERY_URL::PROTOCOL_INTERATOR QUERY_URL::PORT_SERVICE_INTERATOR::_USED_PROTOCOL:
 	return GetSystemProtocol(Cur->s_proto);
 }
 
-
-
 QUERY_URL::PORT_SERVICE_INTERATOR::P_NAME::_COUNT::operator int()
 {
 	int Count = 0;
@@ -1634,8 +1628,6 @@ char* QUERY_URL::PORT_SERVICE_INTERATOR::P_NAME::operator[](unsigned Index)
 	if(Index < Count) return Count.Cur->s_aliases[Index];
 	return "";
 }
-
-
 
 char * QUERY_URL::NET_INTERATOR::P_NAME::operator[](unsigned Index)
 {
@@ -1752,7 +1744,7 @@ bool QUERY_URL::EvntAcceptClient(TDESCR ClientDescr) { return true; }
 
 int QUERY_URL::EvntGetCountPandingData()
 {
-#ifdef WIN_PLATFORM
+#ifdef _MSC_VER
 	u_long res = -1;
 	if(ioctlsocket(RemoteIp.hSocket, FIONREAD, &res) == SOCKET_ERROR)
 	{
@@ -1779,7 +1771,7 @@ bool QUERY_URL::EvntBeforeClose() { return true; }
 
 void QUERY_URL::InitFields()
 {
-#ifdef WIN_PLATFORM
+#ifdef _MSC_VER
 	RemoteIp.IsNonBlocked = false;
 #endif
 	RemoteIp.hSocket = INVALID_SOCKET;
@@ -1974,7 +1966,7 @@ const char* QUERY_URL::__PROTOCOL_FAMILY::ToString() const
 
 bool QUERY_URL::__IS_NON_BLOCKED::operator=(bool NewVal)
 {
-#ifdef WIN_PLATFORM
+#ifdef _MSC_VER
 	u_long nonBlocking = NewVal;
 	if(ioctlsocket(hSocket, FIONBIO, &nonBlocking) == SOCKET_ERROR)
 		URL_SET_LAST_ERR_IN_PROPERTY
@@ -1990,7 +1982,7 @@ bool QUERY_URL::__IS_NON_BLOCKED::operator=(bool NewVal)
 
 QUERY_URL::__IS_NON_BLOCKED::operator bool() const
 {
-#ifdef WIN_PLATFORM
+#ifdef _MSC_VER
 	return IsNonBlocked;
 #else
 	return fcntl(hSocket, F_GETFL, 0) & O_NONBLOCK;
@@ -2248,7 +2240,7 @@ bool QUERY_URL::AcceptClient(QUERY_URL& DestConnection)
 	}
 	DestConnection.RemoteIp.hSocket = ConnectedSocket;
 	DestConnection.RemoteIp.ProtocolType = RemoteIp.ProtocolType;
-#ifdef WIN_PLATFORM
+#ifdef _MSC_VER
 	DestConnection.RemoteIp.IsNonBlocked = false;
 #endif
 	DestConnection.LastError.Clear();
@@ -2266,7 +2258,7 @@ bool QUERY_URL::AcceptClient(QUERY_URL& DestConnection, SOCKET_ADDR& AddressClie
 	}
 	DestConnection.RemoteIp.hSocket = ConnectedSocket;
 	DestConnection.RemoteIp.ProtocolType = RemoteIp.ProtocolType;
-#ifdef WIN_PLATFORM
+#ifdef _MSC_VER
 	DestConnection.RemoteIp.IsNonBlocked = false;
 #endif
 	DestConnection.LastError.Clear();
@@ -2301,9 +2293,9 @@ bool QUERY_URL::SkipClient(SOCKET_ADDR& AddressSkipedClient)
 bool QUERY_URL::Duplicate(int TargetProcessHandle)
 {
 
-#ifdef WIN_PLATFORM
-	winsock::WSAPROTOCOL_INFOA ProtInfo;
-	if(winsock::WSADuplicateSocketA(RemoteIp.hSocket, TargetProcessHandle, &ProtInfo) == SOCKET_ERROR)
+#ifdef _MSC_VER
+	WSAPROTOCOL_INFOA ProtInfo;
+	if(WSADuplicateSocketA(RemoteIp.hSocket, TargetProcessHandle, &ProtInfo) == SOCKET_ERROR)
 	{
 		URL_SET_LAST_ERR;
 		return false;
@@ -2320,7 +2312,7 @@ bool QUERY_URL::Duplicate(int TargetProcessHandle)
 FILE* QUERY_URL::OpenAsFile(const char * mode)
 {
 	FILE* File;
-#ifdef WIN_PLATFORM
+#ifdef _MSC_VER
 	const char * m = mode;
 	int fileflag = 0;
 	while(*mode == ' ') ++mode;
@@ -2404,15 +2396,33 @@ int QUERY_URL::CheckEvents(decltype(std::declval<pollfd>().events) InEventFlags,
 	return pfd.revents;
 }
 
+#ifdef _MSC_VER
+#pragma comment(lib, "Mswsock.lib")
+typedef struct _TRANSMIT_FILE_BUFFERS {
+    PVOID Head;
+    DWORD HeadLength;
+    PVOID Tail;
+    DWORD TailLength;
+} TRANSMIT_FILE_BUFFERS, *PTRANSMIT_FILE_BUFFERS, *LPTRANSMIT_FILE_BUFFERS;
 
+extern "C" BOOL PASCAL FAR TransmitFile 
+(
+    _In_ SOCKET hSocket,
+    _In_ HANDLE hFile,
+    _In_ DWORD nNumberOfBytesToWrite,
+    _In_ DWORD nNumberOfBytesPerSend,
+    _Inout_opt_ LPOVERLAPPED lpOverlapped,
+    _In_opt_ LPTRANSMIT_FILE_BUFFERS lpTransmitBuffers,
+    _In_ DWORD dwReserved
+ );
+#endif
 
 long long QUERY_URL::SendFile(TDESCR InFileDescriptor, size_t Count, off_t Offset)
 {
-#ifdef WIN_PLATFORM
-#pragma comment(lib, "Mswsock.lib")
+#ifdef _MSC_VER
 	WSAOVERLAPPED Overlap = {0};
 	DWORD ResFlag, WritedCount = 0;
-	if((Overlap.hEvent = winsock::WSACreateEvent()) == NULL)
+	if((Overlap.hEvent = WSACreateEvent()) == NULL)
 	{
 		URL_SET_LAST_ERR_VAL(EFAULT);
 		return -1;
@@ -2420,16 +2430,16 @@ long long QUERY_URL::SendFile(TDESCR InFileDescriptor, size_t Count, off_t Offse
 	Overlap.OffsetHigh = ((Overlap.Offset = Offset) >> 32);
 	if(!TransmitFile(RemoteIp.hSocket, (HANDLE)InFileDescriptor, Count, 0, &Overlap, nullptr, 0))
 	{
-		if(winsock::WSAGetLastError() == ERROR_IO_PENDING)
+		if(WSAGetLastError() == ERROR_IO_PENDING)
 		{
-			if(winsock::WSAGetOverlappedResult(RemoteIp.hSocket, &Overlap, &WritedCount, !IsNonBlocked, &ResFlag))
+			if(WSAGetOverlappedResult(RemoteIp.hSocket, &Overlap, &WritedCount, !IsNonBlocked, &ResFlag))
 			{
-				winsock::WSACloseEvent(Overlap.hEvent);
+				WSACloseEvent(Overlap.hEvent);
 				return WritedCount;
 			}
 		}
 	}
-	winsock::WSACloseEvent(Overlap.hEvent);
+	WSACloseEvent(Overlap.hEvent);
 	URL_SET_LAST_ERR;
 	return -1;
 #elif defined(__FreeBSD__)
@@ -2557,7 +2567,7 @@ bool QUERY_URL::ShutdownSendRecive()
 
 int QUERY_URL::Write(const void * Buf, size_t SizeBuf)
 {
-#ifdef WIN_PLATFORM
+#ifdef _MSC_VER
 	DWORD Written;
 	OVERLAPPED Overlap = {0}, *ovlp = nullptr;
 lblTryAgain:
@@ -2604,7 +2614,7 @@ lblTryAgain:
 
 int QUERY_URL::Read(void * Buf, size_t SizeBuf)
 {
-#ifdef WIN_PLATFORM
+#ifdef _MSC_VER
 	DWORD Readed;
 	OVERLAPPED Overlap = {0}, *ovlp = nullptr;
 lblTryAgain:
@@ -3538,9 +3548,7 @@ std::basic_string<char> TimeMilisecSubToString(long long t1, long long t2)
 #include "ExThread.h"
 
 
-#ifdef WIN_PLATFORM
-#include <Windows.h>
-
+#ifdef _MSC_VER
 
 static int __GetRealPrior(PRIORITY p)
 {
@@ -3612,7 +3620,7 @@ static PRIORITY __GetPrior(int Code)
 
 bool SetThreadPrior(PRIORITY priority, std::thread& Thread)
 {
-#ifdef WIN_PLATFORM
+#ifdef _MSC_VER
 	return SetThreadPriority((std::is_default_ref(Thread)) ? GetCurrentThread() : Thread.native_handle(), __GetRealPrior(priority)) != FALSE;
 #else
 	sched_param schedparams;
@@ -3623,7 +3631,7 @@ bool SetThreadPrior(PRIORITY priority, std::thread& Thread)
 
 PRIORITY GetThreadPrior(std::thread& Thread)
 {
-#ifdef WIN_PLATFORM
+#ifdef _MSC_VER
 	return __GetPrior(GetThreadPriority((std::is_default_ref(Thread)) ? GetCurrentThread() : Thread.native_handle()));
 #else
 	sched_param schedparams;
@@ -3634,7 +3642,7 @@ PRIORITY GetThreadPrior(std::thread& Thread)
 
 bool SetThreadAffinity(unsigned long long Mask, std::thread& Thread)
 {
-#ifdef WIN_PLATFORM
+#ifdef _MSC_VER
 	return SetThreadAffinityMask((std::is_default_ref(Thread)) ? GetCurrentThread() : Thread.native_handle(), Mask) != 0;
 #else
 	return pthread_setaffinity_np((std::is_default_ref(Thread)) ? pthread_self() : Thread.native_handle(), sizeof(Mask), (const cpu_set_t*)&Mask) == 0;
@@ -3643,7 +3651,7 @@ bool SetThreadAffinity(unsigned long long Mask, std::thread& Thread)
 
 bool GetThreadAffinity(unsigned long long* Mask, std::thread& Thread)
 {
-#ifdef WIN_PLATFORM
+#ifdef _MSC_VER
 	GROUP_AFFINITY ga = {0};
 	if(GetThreadGroupAffinity((std::is_default_ref(Thread)) ? GetCurrentThread() : Thread.native_handle(), &ga) == FALSE)
 		return false;
@@ -3662,7 +3670,7 @@ bool GetThreadAffinity(unsigned long long* Mask, std::thread& Thread)
 #include "ExLoadLibrary.h"
 
 
-#ifdef WIN_PLATFORM
+#ifdef _MSC_VER
 EXTERNAL_LIBRARY::EXTERNAL_LIBRARY(const char* Path) { Handle = (HANDLE_TYPE)LoadLibraryA(Path); }
 EXTERNAL_LIBRARY::EXTERNAL_LIBRARY() { Handle = (HANDLE_TYPE)GetModuleHandleA(NULL); }
 EXTERNAL_LIBRARY::PROC EXTERNAL_LIBRARY::GetProc(const char* NameProc) const { return GetProcAddress((HMODULE)Handle, NameProc); }

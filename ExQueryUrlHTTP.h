@@ -6,10 +6,11 @@ This library not thread safe!
 You have to manually put the critical section or block in your code.
 This is made to minimize the overhead for thread synchronization.
 */
-
-#include <time.h>
 #include "ExQueryUrl.h"
 #include "ExHashTable.h"
+#include <time.h>
+
+
 
 
 class EX_HTTP
