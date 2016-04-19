@@ -193,7 +193,6 @@ class DYNAMIC_BUF_S
 {
 	struct FIELDS { size_t count; TypeElement* buf; };
 public:
-
 	union{
 		class{ 
 			FIELDS f; friend DYNAMIC_BUF_S;

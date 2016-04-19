@@ -32,6 +32,7 @@
 #else
 #include <Windows.h>
 #include <Windowsx.h>
+#pragma warning(disable : 4996)
 #endif
 
 #define OFFSET_P(Pointer1, Pointer2) ((off_t)((size_t)(Pointer2) - (size_t)(Pointer1)))
@@ -240,41 +241,12 @@ inline int StringCompare(const wchar_t * Str1, const wchar_t * Str2, size_t MaxC
 inline int StringCompare(const char * Str1, const char * Str2) { return strcmp(Str1, Str2); }
 inline int StringCompare(const wchar_t * Str1, const wchar_t * Str2) { return wcscmp(Str1, Str2); }
 
-inline int StringICompare(const char * Str1, const char * Str2, size_t MaxCount)
-{
-#if _POSIX_VERSION >= 200112L //If posix standart >= POSIX.1-2001
-	return strncasecmp(Str1, Str2, MaxCount);
-#else
-	return strnicmp(Str1, Str2, MaxCount);
-#endif
-}
 
-inline int StringICompare(const wchar_t * Str1, const wchar_t * Str2, size_t MaxCount)
-{
-#if _POSIX_VERSION >= 200112L  //If posix standart >= POSIX.1-2001
-	return wcsncasecmp(Str1, Str2, MaxCount);
-#else
-	return wcsnicmp(Str1, Str2, MaxCount);
-#endif
-}
 
-inline int StringICompare(const char * Str1, const char * Str2)
-{
-#if _POSIX_VERSION >= 200112L //If posix standart >= POSIX.1-2001
-	return strcasecmp(Str1, Str2);
-#else
-	return stricmp(Str1, Str2);
-#endif
-}
-
-inline int StringICompare(const wchar_t * Str1, const wchar_t * Str2)
-{
-#if _POSIX_VERSION >= 200112L  //If posix standart >= POSIX.1-2001
-	return wcscasecmp(Str1, Str2);
-#else
-	return wcsicmp(Str1, Str2);
-#endif
-}
+int StringICompare(const char * Str1, const char * Str2, size_t MaxCount);
+int StringICompare(const wchar_t * Str1, const wchar_t * Str2, size_t MaxCount);
+int StringICompare(const char * Str1, const char * Str2);
+int StringICompare(const wchar_t * Str1, const wchar_t * Str2);
 
 inline char * StringUpper(char * Dest) { return strupr(Dest); }
 inline wchar_t * StringUpper(wchar_t * Dest) { return wcsupr(Dest); }

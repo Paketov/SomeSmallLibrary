@@ -209,7 +209,7 @@ private:
 		float CountReadPerSec(TIME_POINT CurTime) const
 		{
 			if(Path == nullptr) return std::numeric_limits<float>::max();
-			double TimePassed = std::chrono::duration_cast<std::chrono::milliseconds>(CurTime.time_since_epoch()).count();
+			double TimePassed = (double)std::chrono::duration_cast<std::chrono::milliseconds>(CurTime.time_since_epoch()).count();
 			TimePassed -= std::chrono::duration_cast<std::chrono::milliseconds>(LastTestTime.time_since_epoch()).count();
 			return (TimePassed < 100.0) ? std::numeric_limits<float>::max() : (CountReaded / TimePassed * 1000.0);
 		}
@@ -237,12 +237,12 @@ public:
 	public:
 		inline READ_INTERATOR(): CachedFile(nullptr) {}
 		inline ~READ_INTERATOR() { Release(); }
-		READ_INTERATOR(const READ_INTERATOR&) throw(char*)
+		READ_INTERATOR(const READ_INTERATOR&)
 		{
 			throw "Not copy this object!";
 		}
 
-		READ_INTERATOR& operator=(const READ_INTERATOR&) throw(char*)
+		READ_INTERATOR& operator=(const READ_INTERATOR&)
 		{
 			throw "Not copy this object!";
 			return *this;
@@ -298,7 +298,7 @@ private:
 	{
 		struct stat s;
 		if(stat(Path, &s) != 0) return false;
-		if(s.st_size >= MaxSizeBuff) return false;
+		if((size_t)s.st_size >= MaxSizeBuff) return false;
 		if(CountInUncached >= MaxInPreparedList)
 		{
 			if(((RatingList.Next->LastTestTime + std::chrono::milliseconds(1000)) >= CurTime)

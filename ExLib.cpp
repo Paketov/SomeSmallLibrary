@@ -799,6 +799,43 @@ void StringConvertCodePage(unsigned InCp, unsigned OutCp, const char * InStr, st
 }
 
 
+int StringICompare(const char * Str1, const char * Str2, size_t MaxCount)
+{
+#if _POSIX_VERSION >= 200112L //If posix standart >= POSIX.1-2001
+	return strncasecmp(Str1, Str2, MaxCount);
+#else
+	return strnicmp(Str1, Str2, MaxCount);
+#endif
+}
+
+int StringICompare(const wchar_t * Str1, const wchar_t * Str2, size_t MaxCount)
+{
+#if _POSIX_VERSION >= 200112L  //If posix standart >= POSIX.1-2001
+	return wcsncasecmp(Str1, Str2, MaxCount);
+#else
+	return wcsnicmp(Str1, Str2, MaxCount);
+#endif
+}
+
+int StringICompare(const char * Str1, const char * Str2)
+{
+#if _POSIX_VERSION >= 200112L //If posix standart >= POSIX.1-2001
+	return strcasecmp(Str1, Str2);
+#else
+	return stricmp(Str1, Str2);
+#endif
+}
+
+int StringICompare(const wchar_t * Str1, const wchar_t * Str2)
+{
+#if _POSIX_VERSION >= 200112L  //If posix standart >= POSIX.1-2001
+	return wcscasecmp(Str1, Str2);
+#else
+	return wcsicmp(Str1, Str2);
+#endif
+}
+
+
 int NumberToString(int Number, char* Str, size_t Len, unsigned char Radix) { return _i_NumberToString(Number, Str, Len, Radix); }
 int NumberToString(int Number, wchar_t* Str, size_t Len, unsigned char Radix) { return _i_NumberToString(Number, Str, Len, Radix); }
 int NumberToString(unsigned Number, char* Str, size_t Len, unsigned char Radix) { return _i_NumberToString(Number, Str, Len, Radix); }
@@ -2379,6 +2416,7 @@ bool QUERY_URL::OnlyCreate(int iSocktype, int iProtocol, int iFamily)
 		return false;
 	}
 	RemoteIp.ProtocolType = iProtocol;
+	return true;
 }
 
 
@@ -3994,7 +4032,6 @@ bool EX_HTTP::ReadGMTTime(const char * TimeStr, tm& OutTm)
 {
 	char DayOfWeekName[6], MonthName[6], MeanTime[6];
 	MeanTime[0] = MonthName[0] = DayOfWeekName[0] = '\0';
-	unsigned short DayOfMonth, Year, Hour, Minute, Sec;
 	auto r = sscanf
 	(
 		TimeStr,
