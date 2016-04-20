@@ -755,4 +755,3 @@ public:
 	inline bool operator !=(decltype(nullptr) n) const { return p != nullptr; } 
 };
 
-
