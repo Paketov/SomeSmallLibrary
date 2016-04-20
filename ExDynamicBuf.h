@@ -372,32 +372,25 @@ public:
 
 	template<typename Type>
 	inline static Type* New(){	
-		auto Elem = std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc();
-		return (Elem == nullptr)? nullptr: (new(Elem) Type());}
+		return new(std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc()) Type();}
 	template<typename Type, typename A1>
 	inline static Type* New(A1&& arg1){	
-		auto Elem = std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc();
-		return (Elem == nullptr)? nullptr: (new(Elem) Type(arg1));}
+		return new(std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc()) Type(arg1);}
 	template<typename Type, typename A1, typename A2>
 	inline static Type* New(A1&& arg1, A2&& arg2){	
-		auto Elem = std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc();
-		return (Elem == nullptr)? nullptr: (new(Elem) Type(arg1, arg2));}
+		return new(std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc()) Type(arg1, arg2);}
 	template<typename Type, typename A1, typename A2, typename A3>
 	inline static Type* New(A1&& arg1, A2&& arg2, A3&& arg3){	
-		auto Elem = std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc();
-		return (Elem == nullptr)? nullptr: (new(Elem) Type(arg1, arg2, arg3));}
+		return new(std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc()) Type(arg1, arg2, arg3);}
 	template<typename Type, typename A1, typename A2, typename A3, typename A4>
 	inline static Type* New(A1&& arg1, A2&& arg2, A3&& arg3, A4&& arg4){	
-		auto Elem = std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc();
-		return (Elem == nullptr)? nullptr: (new(Elem) Type(arg1, arg2, arg3, arg4)); }
+		return new(std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc()) Type(arg1, arg2, arg3, arg4);}
 	template<typename Type, typename A1, typename A2, typename A3, typename A4, typename A5>
 	inline static Type* New(A1 arg1, A2&& arg2, A3&& arg3, A4&& arg4, A5&& arg5){	
-		auto Elem = std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc();
-		return (Elem == nullptr)? nullptr: (new(Elem) Type(arg1, arg2, arg3, arg4, arg5));}
+		return new(std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc()) Type(arg1, arg2, arg3, arg4, arg5);}
 	template<typename Type, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6>
 	inline static Type* New(A1&& arg1, A2&& arg2, A3&& arg3, A4&& arg4, A5&& arg5, A6&& arg6){	
-		auto Elem = std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc();
-		return (Elem == nullptr)? nullptr: (new(Elem) Type(arg1, arg2, arg3, arg4, arg5, arg6));}
+		return new(std::assoc_val<size_t, sizeof(Type), VAL_TYPE<Type>>::value.Alloc()) Type(arg1, arg2, arg3, arg4, arg5, arg6);}
 
 	/*
 	Delete memory region with adding in stack regions. Late, this region takes from stack.
