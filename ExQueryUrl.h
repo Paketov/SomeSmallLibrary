@@ -18,7 +18,7 @@
 #ifdef _MSC_VER
 
 #if  defined(_WINDOWS_) && !defined(_WINSOCK2API_)
-#error "Use this header under windows.h!"
+#error "Don`t use this header under windows.h!"
 #endif
 
 #include <winsock2.h>
@@ -2742,9 +2742,8 @@ public:
 	@Count - Size of sending data
 	@Offset - Offsen data in file descriptor
 	*/
-	virtual long long SendFile(QUERY_URL& InSocket, size_t Count);
 
-	virtual long long SendFile(TDESCR InFileDescriptor, size_t Count, off_t Offset = 0);
+	virtual intptr_t SendFile(int InFileDescriptor, off_t Offset, size_t Count);
 	
 	/*
 	Close socket descriptor.

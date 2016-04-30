@@ -219,12 +219,11 @@ public:
 	virtual int Send(const void * QueryBuf, size_t SizeBuf, int Flags = 0);
 	virtual int Recive(void * Buf, size_t SizeBuf, int Flags = 0);
 	virtual int Recive
-		(
+	(
 		std::basic_string<char>& StrBuf, 
 		std::basic_string<char>::size_type MaxLen = std::numeric_limits<std::basic_string<char>::size_type>::max(), 
 		int Flags = 0
-		);
-	virtual long long SendFile(QUERY_URL& InSocket, size_t Count);
-	virtual long long SendFile(TDESCR InFileDescriptor, size_t Count, off_t Offset = 0);
+	);
+	virtual intptr_t SendFile(int InFileDescriptor, off_t Offset, size_t Count);
 };
 

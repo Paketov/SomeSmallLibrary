@@ -1771,8 +1771,6 @@ QUERY_URL::INFO_HOST_INTERATOR::P_ADDRESES::ADDRESS_INTERATOR QUERY_URL::INFO_HO
 	return ADDRESS_INTERATOR(Count.Cur->h_addr_list[Index], Count.Cur->h_addrtype);
 }
 
-long long QUERY_URL::SendFile(QUERY_URL& InSocket, size_t Count) { return SendFile(InSocket.RemoteIp.hSocket, Count, 0); }
-
 bool QUERY_URL::EvntBind() { return true; }
 
 bool QUERY_URL::EvntConnect() { return true; }
@@ -2455,114 +2453,70 @@ extern "C" BOOL PASCAL FAR TransmitFile
  );
 #endif
 
-long long QUERY_URL::SendFile(TDESCR InFileDescriptor, size_t Count, off_t Offset)
+intptr_t QUERY_URL::SendFile(int InFD, off_t Offset, size_t Count)
 {
-#ifdef _MSC_VER
-	WSAOVERLAPPED Overlap = {0};
-	DWORD ResFlag, WritedCount = 0;
-	if((Overlap.hEvent = WSACreateEvent()) == NULL)
+	int OutFd = RemoteIp.hSocket;
+#if defined(__linux__)
+	auto r = sendfile(OutFd, InFD, &Offset, Count);
+	URL_SET_LAST_ERR;
+	return r;
+#elif defined(__FreeBSD__)
+	off_t SfLen = Count;
+	int r = sendfile(InFD, OutFd, Offset, Count, NULL, &SfLen, 0);
+	URL_SET_LAST_ERR;
+	if((r == 0) || ((r == -1) && SOCK_IS_WOULD_BLOCK))
+		return SfLen;
+	return -1;
+#elif defined(__APPLE__)
+	off_t SfLen = Count;
+	int r = sendfile(InFD, OutFd, Offset, &SfLen, NULL, 0);
+	if((r == 0) || ((r == -1) && SOCK_IS_WOULD_BLOCK))
+		return SfLen;
+	return -1;
+#elif defined(__sun__)
+	off_t Off = Offset;
+	ssize_t r = sendfile(OutFd, InFD, &Off, Count);
+	URL_SET_LAST_ERR;
+	if((r < 0) && SOCK_IS_WOULD_BLOCK)
+	{
+		if((Off - Offset) > 0)
+			return Off - Offset;
+	}
+	return r;
+#else
+	if(lseek(InFD, Offset, SEEK_SET) < 0)
 	{
 		URL_SET_LAST_ERR_VAL(EFAULT);
 		return -1;
 	}
-	Overlap.OffsetHigh = ((Overlap.Offset = Offset) >> 32);
-	if(!TransmitFile(RemoteIp.hSocket, (HANDLE)InFileDescriptor, Count, 0, &Overlap, nullptr, 0))
+	char Buf[32768];
+
+	size_t Readed = 0;
+	int r, wr;
+	for(size_t ReadSize; (ReadSize = Count - Readed) > 0;)
 	{
-		if(WSAGetLastError() == ERROR_IO_PENDING)
-		{
-			if(WSAGetOverlappedResult(RemoteIp.hSocket, &Overlap, &WritedCount, !IsNonBlocked, &ResFlag))
-			{
-				WSACloseEvent(Overlap.hEvent);
-				return WritedCount;
-			}
-		}
-	}
-	WSACloseEvent(Overlap.hEvent);
-	URL_SET_LAST_ERR;
-	return -1;
-#elif defined(__FreeBSD__)
-	off_t sbytes = 0;
-	int r = sendfile(RemoteIp.hSocket, InFileDescriptor, Offset, Count, 0, &sbytes, 0);
-	if(r == -1)
-	{
-		if(errno == EAGAIN)
-			return (sbytes ? sbytes : -1);
-		URL_SET_LAST_ERR;
-		return -1;
-	}
-	return Count;
-#elif defined(__linux__)
-	off_t o = Offset;
-	long long done = 0;
-	while(Count)
-	{
-		off_t todo = (Count > 0x7fffffff) ? 0x7fffffff : Count;
-		off_t i = sendfile(RemoteIp.hSocket, InFileDescriptor, &o, todo);
-		if(i == todo)
-		{
-			done += todo;
-			Count -= todo;
-			if(Count == 0)
-				return done;
-			continue;
-		} else if(i == -1)
+		if(ReadSize > sizeof(Buf))
+			ReadSize = sizeof(Buf);
+		if((r = read(InFD, Buf, ReadSize)) == -1)
 		{
 			URL_SET_LAST_ERR;
-			return -1;
-		} else
-			return done + i;
-	}
-	return 0;
-#else
-	if(Count == 0)
-		return 0;
-	if(Offset != 0)
-		if(lseek(InFileDescriptor, Offset, SEEK_SET))
+			return Readed;
+		}
+		if((wr = send(OutFd, Buf, r, 0)) == -1)
 		{
 			URL_SET_LAST_ERR;
+			if(LastError )
+				return Readed;
 			return -1;
 		}
-	unsigned long long SizeBuf;
-	int r, wr, w = 0;
-	void* Buf;
-#	ifdef SO_SNDBUF
-	SizeBuf = SockOptions.SendSizeBuffer;
-#	else
-	SizeBuf = 0xffff;
-#	endif
-	SizeBuf = (SizeBuf < Count) ? SizeBuf : Count;
-	Buf = malloc(SizeBuf);
-	if(Buf == nullptr)
-	{
-		URL_SET_LAST_ERR;
-		return -1;
-	}
-	while(true)
-	{
-		if((r = read(InFileDescriptor, Buf, SizeBuf)) == -1)
-		{
-			if(w > 0)
-				return w;
-			URL_SET_LAST_ERR;
-			free(Buf);
-			return -1;
-		}
-		if((wr = write(RemoteIp.hSocket, Buf, r)) == -1)
+		if(wr < r)
 		{
 			URL_SET_LAST_ERR;
-			free(Buf);
-			return -1;
+			return Readed + wr;
 		}
-		if(r < SizeBuf)
-		{
-			free(Buf);
-			return wr;
-		}
-		w += wr;
-		SizeBuf = ((Count - w) < SizeBuf) ? (Count - w) : SizeBuf;
+		Readed += r;
 	}
-	free(Buf);
-	return 0;
+	return Readed;
 #endif
 }
 
@@ -2839,7 +2793,6 @@ int QUERY_URL::SendAndRecive(std::basic_string<char>& strQuery, std::basic_strin
 *			start ExQueryUrlOpenSSL.h
 *
 */
-
 
 #ifdef HAVE_OPENSSL
 #include "ExQueryUrlOpenSSL.h"
@@ -3309,156 +3262,40 @@ lblErr:
 	return CurSize;
 }
 
-long long QUERY_URL_OPEN_SSL::SendFile(QUERY_URL& InSocket, size_t Count)
+
+intptr_t QUERY_URL_OPEN_SSL::SendFile(int InFD, off_t Offset, size_t Count)
 {
-	if(Count == 0)
-		return 0;
-	unsigned long long SizeBuf;
-	int r, wr, w = 0;
-	void* Buf;
-#	ifdef SO_SNDBUF
-	SizeBuf = SockOptions.SendSizeBuffer;
-#	else
-	SizeBuf = 0xffff;
-#	endif
-	SizeBuf = (SizeBuf < Count) ? SizeBuf : Count;
-	Buf = malloc(SizeBuf);
-	if(Buf == nullptr)
+	if(lseek(InFD, Offset, SEEK_SET) < 0)
 	{
 		QUERY_URL::SetLastErr(EFAULT);
 		return -1;
 	}
-	while(true)
+	char Buf[32768];
+
+	size_t Readed = 0;
+	int r, wr;
+	for(size_t ReadSize; (ReadSize = Count - Readed) > 0;)
 	{
-		if((r = InSocket.Recive(Buf, SizeBuf)) == -1)
+		if(ReadSize > sizeof(Buf))
+			ReadSize = sizeof(Buf);
+		if((r = read(InFD, Buf, ReadSize)) == -1)
 		{
-			if(w > 0)
-				return w;
-			goto lblErr;
+			QUERY_URL::SetLastErr(EFAULT);
+			return Readed;
 		}
 		if((wr = Send(Buf, r)) == -1)
 		{
-lblErr:
-			QUERY_URL::SetLastErr(LAST_ERR_SOCKET);
-			free(Buf);
 			return -1;
 		}
-		if(r < SizeBuf)
+		if(wr < r)
 		{
-			free(Buf);
-			return wr;
+			SSLLastError.Set();
+			return Readed + wr;
 		}
-		w += wr;
-		SizeBuf = ((Count - w) < SizeBuf) ? (Count - w) : SizeBuf;
+		Readed += r;
 	}
-	free(Buf);
-	return 0;
+	return Readed;
 }
-
-long long QUERY_URL_OPEN_SSL::SendFile(TDESCR InFileDescriptor, size_t Count, off_t Offset)
-{
-	if(Count == 0)
-		return 0;
-	if(Offset != 0)
-	{
-#ifdef _WIN32
-		if(SetFilePointer((HANDLE)InFileDescriptor, Offset, nullptr, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
-#else
-		if(lseek(InFileDescriptor, Offset, SEEK_SET))
-#endif			
-		{
-			QUERY_URL::SetLastErr(LAST_ERR_SOCKET);
-			return -1;
-		}
-	}
-	unsigned long long SizeBuf;
-	int r, wr, w = 0;
-	void* Buf;
-#	ifdef SO_SNDBUF
-	SizeBuf = SockOptions.SendSizeBuffer;
-#	else
-	SizeBuf = 0xffff;
-#	endif
-	SizeBuf = (SizeBuf < Count) ? SizeBuf : Count;
-	Buf = malloc(SizeBuf);
-	if(Buf == nullptr)
-	{
-		QUERY_URL::SetLastErr(EFAULT);
-		return -1;
-	}
-	OVERLAPPED Overlap = {0}, *ovlp = nullptr;
-	while(true)
-	{
-#ifdef _WIN32
-		lblTryAgain :
-		{
-			DWORD rt;
-			if(!ReadFile((HANDLE)InFileDescriptor, Buf, SizeBuf, &rt, &Overlap))
-			{
-				DWORD LastErr = GetLastError();
-				if(LastErr == ERROR_IO_PENDING)
-				{
-					if((LastErr == ERROR_INVALID_PARAMETER) && (ovlp == nullptr))
-					{
-						Overlap.hEvent = CreateEventW(nullptr, true, false, nullptr);
-						ovlp = &Overlap;
-						goto lblTryAgain;
-					} else if(LastErr == ERROR_IO_PENDING)
-					{
-						if(Overlap.hEvent != NULL)
-						{
-							WaitForSingleObject(Overlap.hEvent, INFINITE);
-							if(!GetOverlappedResult((HANDLE)InFileDescriptor, ovlp, &rt, TRUE))
-							{
-								CloseHandle(Overlap.hEvent);
-								goto lblErr2;
-							}
-						} else
-						{
-							QUERY_URL::SetLastErr(EWOULDBLOCK);
-							goto lblErr2;
-						}
-					} else
-					{
-						if(Overlap.hEvent != NULL)
-							CloseHandle(Overlap.hEvent);
-						goto lblErr;
-					}
-				}
-			}
-			r = rt;
-		}
-#else
-		r = read(InFileDescriptor, Buf, SizeBuf);
-#endif
-		if(r == -1)
-		{
-			if(w > 0)
-				return w;
-			goto lblErr;
-		}
-		if((wr = Send(Buf, r)) == -1)
-		{
-lblErr:
-			QUERY_URL::SetLastErr(LAST_ERR_SOCKET);
-lblErr2:
-			free(Buf);
-			return -1;
-		}
-		if(r < SizeBuf)
-		{
-			free(Buf);
-			return wr;
-		}
-		w += wr;
-		SizeBuf = ((Count - w) < SizeBuf) ? (Count - w) : SizeBuf;
-	}
-	free(Buf);
-	return 0;
-
-}
-
-
 
 
 #endif
@@ -3696,7 +3533,7 @@ bool GetThreadAffinity(unsigned long long* Mask, std::thread& Thread)
 	*Mask = ga.Mask;
 	return true;
 #else
-	return pthread_getaffinity_np((std::is_default_ref(Thread)) ? pthread_self() : Thread.native_handle(), LenMaskBytes, (const cpu_set_t*)Mask) == 0;
+	return pthread_getaffinity_np((std::is_default_ref(Thread)) ? pthread_self() : Thread.native_handle(), sizeof(Mask[0]), (const cpu_set_t*)Mask) == 0;
 #endif
 }
 

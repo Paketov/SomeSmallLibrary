@@ -15,8 +15,7 @@
 
 
 #if defined(_DEBUG)
-#define CHECK_RATING_LIST \
-	if(!CheckRatingList()) { throw "Rating list has been corrupted!"; }
+#define CHECK_RATING_LIST CheckRatingList()
 #else
 #define CHECK_RATING_LIST 
 #endif
@@ -28,14 +27,14 @@ void Cache(const char* Path, void* Buf, size_t SizeBuf, time_t LastModifTime)
 void Uncache(const char* Path, void* Buf, size_t SizeBuf, time_t LastModifTime)
 */
 
-struct DEFAULT_CACHE_DATA
+struct default_cache_data_tpp
 {
 	void Cache(const char* Path, void* Buf, size_t SizeBuf, time_t LastModifTime) const {}
 	void Recache(const char* Path, void* Buf, size_t SizeBuf, time_t LastModifTime) const {}
 	void Uncache(const char* Path, void* Buf, size_t SizeBuf, time_t LastModifTime) const {}
 };
 
-template<typename CACHE_INFO = DEFAULT_CACHE_DATA>
+template<typename CACHE_INFO = default_cache_data_tpp>
 class FILE_CACHE
 {
 public:
@@ -327,29 +326,35 @@ private:
 	bool BeforeRead(CACHED_FILE* CachFile, TIME_POINT CurTime)
 	{
 		float CachFileReadPerSec = CachFile->CountReadPerSec(CurTime);
-		if((CachFile->Buffer == nullptr) && (CachFile->Next == CachedListEnd))
+		if(CachFile->Buffer == nullptr)
 		{
-			if(((CachFile->SizeFile + CurSize) >= MaxSizeBuff) &&
-				((CachFile->Next->CountReadPerSec(CurTime) >= CachFileReadPerSec) ||
-				(CachFileReadPerSec == std::numeric_limits<float>::max())))
-				return true;
+			if(CachFile->Next == CachedListEnd)
+			{
+				if(((CachFile->SizeFile + CurSize) >= MaxSizeBuff) &&
+					((CachFile->Next->CountReadPerSec(CurTime) >= CachFileReadPerSec) ||
+					(CachFileReadPerSec == std::numeric_limits<float>::max())))
+					return true;
 
-			OPENED_FILE File;
-			if(!File.Open(CachFile->Path))
+				OPENED_FILE File;
+				if(!File.Open(CachFile->Path))
+				{
+					RemoveFile(CachFile);
+					return false;
+				}
+				if((CachFile->SizeFile + CurSize) >= MaxSizeBuff)
+				{
+					if(!ClearPlaceForFirstInUncached(CurTime)) return true;
+				}
+				if(CachFile->DoCache(&File) != STAT::OK) return true;
+				CachFile->RatingUp(this);
+				CurSize += CachFile->SizeFile;
+				CountInUncached--;
+				CHECK_RATING_LIST;
+				return true;
+			} else
 			{
-				RemoveFile(CachFile);
-				return false;
+				return true;
 			}
-			if((CachFile->SizeFile + CurSize) >= MaxSizeBuff)
-			{
-				if(!ClearPlaceForFirstInUncached(CurTime)) return true;
-			}
-			if(CachFile->DoCache(&File) != STAT::OK) return true;
-			CachFile->RatingUp(this);
-			CurSize += CachFile->SizeFile;
-			CountInUncached--;
-			CHECK_RATING_LIST;
-			return true;
 		}
 		if(CachFile->Next->CountReadPerSec(CurTime) < CachFileReadPerSec)
 			CachFile->RatingUp(this);
@@ -474,12 +479,16 @@ private:
 		for(auto i = CachedListEnd; i != &RatingList; i = i->Next)
 		{
 			if(i->Buffer == nullptr)
-				return false;
+			{
+				throw "Rating list has been corrupted!";
+			}
 		}
 		for(auto i = CachedListEnd->Prev; i != &RatingList; i = i->Prev)
 		{
 			if(i->Buffer != nullptr)
-				return false;
+			{
+				throw "Rating list has been corrupted!";
+			}
 		}
 		return true;
 	}
@@ -619,4 +628,4 @@ public:
 };
 
 
-typedef FILE_CACHE<DEFAULT_CACHE_DATA> FILE_CACHE_DEFAULT;
+typedef FILE_CACHE<default_cache_data_tpp> FILE_CACHE_DEFAULT;

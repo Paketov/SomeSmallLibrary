@@ -34,6 +34,7 @@
 #include <stdint.h>
 #include <ctype.h>
 
+
 inline constexpr uint32_t __StrSwitchLen(const char* const Str) { return (*Str != '\0') ? (__StrSwitchLen(Str + 1) + 1) : 0; }
 inline constexpr uint32_t __StrSwitchHash(const char* const Str, uint32_t CurHash) { return (*Str != '\0') ? (__StrSwitchHash(Str + 1, CurHash * 31 + *Str)) : CurHash; }
 inline constexpr uint64_t __StrSwitchStrCase(const char* const Str) { return ((uint64_t)__StrSwitchLen(Str) << 32) | (uint64_t)__StrSwitchHash(Str, 0); }
