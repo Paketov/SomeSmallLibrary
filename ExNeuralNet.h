@@ -4,7 +4,10 @@
 #include <omp.h>
 #include <math.h>
 #include <stdlib.h>
+#include <memory.h>
+#include <time.h>
 #include <type_traits>
+#include <utility>
 
 /*
 	ExNeuronNet 
@@ -20,6 +23,7 @@ Example:
 	Net.EnableAllBiases();
 
 	float In[10], Out[10], TestOut[10];
+	double err;
 
 	float new_val = -0.5;
 	std::arr_set_elements(In, new_val);
@@ -37,7 +41,7 @@ Example:
 	Net.Randomize();
 						
 	for(unsigned i = 0; i < 10; i++)
-		err = hh.Learn(In, Out, 0.1, 0.000000001, 5000);
+		err = Net.Learn(In, Out, 0.1, 0.000000001, 5000);
 
 	//Проверяем обученность
 	double Err = Net.Recognize(In, TestOut);
@@ -314,7 +318,7 @@ private:
 	template<typename T1, typename T2>
 	static void copy_arr_cast(T1* Dest, T2* Source, size_t Count)
 	{
-		if(std::is_equal<typename std::remove_const<T2>::type, T1>::value)
+		if(std::is_same<typename std::remove_const<T2>::type, T1>::value)
 		{
 			memcpy(Dest, Source, Count * sizeof(T1));
 		}else
